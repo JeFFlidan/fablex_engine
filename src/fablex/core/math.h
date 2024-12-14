@@ -13,23 +13,6 @@ struct Vector2
 
     Vector2() = default;
     Vector2(const DirectX::XMVECTOR& vec) : data(vec) { }
-
-    // Calculates distance between 3D vectors
-    FORCE_INLINE float distance(const Vector2& other)
-    {
-        return DirectX::XMVectorGetX(DirectX::XMVector2Length(DirectX::XMVectorSubtract(data, other.data)));
-    }
-
-    // Calculates squared distance between 3D vectors
-    FORCE_INLINE float distance_squared(const Vector2& other)
-    {
-        return DirectX::XMVectorGetX(DirectX::XMVector2LengthSq(DirectX::XMVectorSubtract(data, other.data)));
-    }
-    
-    FORCE_INLINE float distance_estimated(const Vector2& other)
-    {
-        return DirectX::XMVectorGetX(DirectX::XMVector2LengthEst(DirectX::XMVectorSubtract(data, other.data)));
-    }
 };
 
 struct Vector3
