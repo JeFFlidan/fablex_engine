@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 // https://meghprkh.github.io/blog/posts/c++-force-inline/#fn5
 #if defined(__clang__)
 #define FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]] inline
@@ -14,3 +16,5 @@
 #else
 #error Unsupported compiler
 #endif // __clang__
+
+#define FE_COMPILE_CHECK(exp) static_assert(exp, #exp)
