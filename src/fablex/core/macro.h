@@ -18,3 +18,5 @@
 #endif // __clang__
 
 #define FE_COMPILE_CHECK(exp) static_assert(exp, #exp)
+#define FE_CHECK(exp) assert(exp)
+#define FE_CHECK_MSG(exp, msg) assert(exp && msg)
