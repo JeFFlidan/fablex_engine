@@ -9,6 +9,7 @@
 #endif // WIN32
 
 #include <string>
+#include <vector>
 
 namespace fe::rhi
 {
@@ -751,8 +752,7 @@ struct ColorBlendState
 {
     bool isLogicOpEnabled;
     LogicOp logicOp{ LogicOp::UNDEFINED };
-    ColorBlendAttachmentState* colorBlendAttachments;
-    uint32 colorBlendAttachmentCount = 0;
+    std::vector<ColorBlendAttachmentState> colorBlendAttachments;
 };
 
 enum class CompareOp
@@ -809,14 +809,10 @@ struct GraphicsPipelineInfo
     MultisampleState multisampleState;
     ColorBlendState colorBlendState;
     DepthStencilState depthStencilState;
-    Shader* shaderStages = nullptr;
-    VertexBindingDescription* bindingDescriptions = nullptr;
-    VertexAttributeDescription* attributeDescriptions = nullptr;
-    Format* colorAttachmentFormats = nullptr;
-    uint32 shaderStageCount = 0;
-    uint32 bindingDescriptionCount = 0;
-    uint32 attributeDescriptionCount = 0;
-    uint32 formatCount = 0;
+    std::vector<Shader*> shaderStages;
+    std::vector<VertexBindingDescription> bindingDescriptions;
+    std::vector<VertexAttributeDescription> attributeDescriptions;
+    std::vector<Format> colorAttachmentFormats;
     Format depthFormat = Format::UNDEFINED;
 };
 
@@ -1063,16 +1059,19 @@ struct RenderingBeginInfo
 
     struct OffscreenPass
     {
-        RenderTarget* renderTargets = nullptr;
-        uint32 renderTargetCount = 0;
+        std::vector<RenderTarget> renderTargets;
         RenderingBeginInfoFlags flags;
         MultiviewInfo multiviewInfo;		// Not necessary
+
+        ~OffscreenPass() = default;
     };
 
     struct SwapChainPass
     {
         SwapChain* swapChain = nullptr;
         ClearValues clearValues;
+
+        ~SwapChainPass() = default;
     };
 
     union
@@ -1080,26 +1079,23 @@ struct RenderingBeginInfo
         OffscreenPass offscreenPass;
         SwapChainPass swapChainPass;
     };
+
+    ~RenderingBeginInfo() { }
 };
 
 struct SubmitInfo
 {
-    CommandBuffer** cmdBuffers = nullptr;
-    Fence** signalFences = nullptr;
-    Semaphore** waitSemaphores = nullptr;
-    Semaphore** signalSemaphores = nullptr;
-    uint32 cmdBufferCount = 0;
-    uint32 signalFenceCount = 0;
-    uint32 waitSemaphoreCount = 0;
-    uint32 signalSemaphoreCount = 0;
+    std::vector<CommandBuffer*> cmdBuffers;
+    std::vector<Fence*> signalFences;
+    std::vector<Semaphore> waitSemaphores;
+    std::vector<Semaphore*> signalSemaphores;
     bool isSubmitDone = false;
 };
 
 struct PresentInfo
 {
     SwapChain* swapChain = nullptr;
-    Semaphore** waitSemaphores = nullptr;
-    uint32 waitSemaphoreCount = 0;
+    std::vector<Semaphore*> waitSemaphores;
     bool isSubmitDone = false;
 };
 

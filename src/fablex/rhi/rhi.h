@@ -32,8 +32,8 @@ inline void (*create_sampler)(Sampler** sampler, const SamplerInfo* info);
 inline void (*destroy_sampler)(Sampler* sampler);
 inline void (*create_shader)(Shader** shader, const ShaderInfo* info);
 inline void (*destroy_shader)(Shader* shader);
-inline void (*create_graphics_pipelines)(uint32 pipelineCount, Pipeline** pipelines, const GraphicsPipelineInfo* infos);
-inline void (*create_compute_pipelines)(uint32 pipelineCount, Pipeline** pipelines, const ComputePipelineInfo* infos);
+inline void (*create_graphics_pipelines)(const std::vector<GraphicsPipelineInfo>& infos, std::vector<Pipeline*>& outPipelines);
+inline void (*create_compute_pipelines)(const std::vector<ComputePipelineInfo>& infos, std::vector<Pipeline*>& outPipelines);
 inline void (*destroy_pipeline)(Pipeline* pipeline);
 
 inline uint32 (*get_buffer_index)(const Buffer* buffer);
@@ -52,6 +52,11 @@ inline void (*end_command_buffer)(CommandBuffer* cmd);
 inline void (*wait_command_buffer)(CommandBuffer* cmd1, CommandBuffer* cmd2);
 inline void (*reset_command_pool)(CommandPool* cmdPool);
 
+inline void (*create_semaphore)(Semaphore** semaphore);
+inline void (*destroy_semaphore)(Semaphore* semaphore);
+inline void (*create_fence)(Fence** fence);
+inline void (*destroy_fence)(Fence* fence);
+
 inline void (*fill_buffer)(CommandBuffer* cmd, Buffer* dstBuffer, uint32 dstOffset, uint32 size, uint32 data);
 inline void (*copy_buffer)(CommandBuffer* cmd, Buffer* srcBuffer, Buffer* dstBuffer, uint32 size, uint32 srcOffset, uint32 dstOffset);
 inline void (*copy_texture)(CommandBuffer* cmd, Texture* srcTexture, Texture* dstTexture);
@@ -69,8 +74,8 @@ inline void (*blit_texture)(
     uint32 dstBaseLayer
 );
 
-inline void (*set_viewports)(CommandBuffer* cmd, uint32 viewportCount, const Viewport* viewports);
-inline void (*set_scissors)(CommandBuffer* cmd, uint32 scissorCount, const Scissor* scissors);
+inline void (*set_viewports)(CommandBuffer* cmd, const std::vector<Viewport>& viewports);
+inline void (*set_scissors)(CommandBuffer* cmd, const std::vector<Scissor>& scissors);
 
 inline void (*push_constants)(CommandBuffer* cmd, Pipeline* pipeline, void* data);
 inline void (*bind_vertex_buffer)(CommandBuffer* cmd, Buffer* buffer);
@@ -91,6 +96,6 @@ inline void (*acquire_next_image)(SwapChain* swapChain, Semaphore* signalSemapho
 inline void (*submit)(CommandBuffer* cmd, SubmitInfo* submitInfo);
 inline void (*present)(PresentInfo* presentInfo);
 inline void (*wait_queue_idle)(QueueType queueType);
-inline void (*wait_for_fences)(uint32 fenceCount, Fence* fences);
+inline void (*wait_for_fences)(const std::vector<Fence*>& fences);
 
 }

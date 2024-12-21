@@ -92,12 +92,12 @@ void destroy_shader(Shader* shader)
 
 }
 
-void create_graphics_pipelines(uint32 pipelineCount, Pipeline** pipelines, const GraphicsPipelineInfo* infos)
+void create_graphics_pipelines(const std::vector<GraphicsPipelineInfo>& infos, std::vector<Pipeline*>& outPipelines)
 {
 
 }
 
-void create_compute_pipelines(uint32 pipelineCount, Pipeline** pipelines, const ComputePipelineInfo* infos)
+void create_compute_pipelines(const std::vector<ComputePipelineInfo>& infos, std::vector<Pipeline*>& outPipelines)
 {
 
 }
@@ -172,6 +172,26 @@ void reset_command_pool(CommandPool* cmdPool)
 
 }
 
+void create_semaphore(Semaphore** semaphore)
+{
+
+}
+
+void destroy_semaphore(Semaphore* semaphore)
+{
+
+}
+
+void create_fence(Fence** fence)
+{
+
+}
+
+void destroy_fence(Fence* fence)
+{
+
+}
+
 void fill_buffer(CommandBuffer* cmd, Buffer* dstBuffer, uint32 dstOffset, uint32 size, uint32 data)
 {
 
@@ -212,12 +232,12 @@ void blit_texture(
 
 }
 
-void set_viewports(CommandBuffer* cmd, uint32 viewportCount, const Viewport* viewports)
+void set_viewports(CommandBuffer* cmd, const std::vector<Viewport>& viewports)
 {
 
 }
 
-void set_scissors(CommandBuffer* cmd, uint32 scissorCount, const Scissor* scissors)
+void set_scissors(CommandBuffer* cmd, const std::vector<Scissor>& scissors)
 {
 
 }
@@ -297,7 +317,7 @@ void wait_queue_idle(QueueType queueType)
 
 }
 
-void wait_for_fences(uint32 fenceCount, Fence* fences)
+void wait_for_fences(const std::vector<Fence*>& fences)
 {
 
 }
@@ -343,6 +363,11 @@ void fill_function_table()
     fe::rhi::end_command_buffer = end_command_buffer;
     fe::rhi::wait_command_buffer = wait_command_buffer;
     fe::rhi::reset_command_pool = reset_command_pool;
+
+    fe::rhi::create_semaphore = create_semaphore;
+    fe::rhi::destroy_semaphore = destroy_semaphore;
+    fe::rhi::create_fence = create_fence;
+    fe::rhi::destroy_fence = destroy_fence;
 
     fe::rhi::fill_buffer = fill_buffer;
     fe::rhi::copy_buffer = copy_buffer;
