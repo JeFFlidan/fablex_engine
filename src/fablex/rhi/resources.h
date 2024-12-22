@@ -2,6 +2,7 @@
 
 #include "core/types.h"
 #include "core/macro.h"
+#include "core/flags_operations.h"
 
 #ifdef WIN32
 #define VULKAN
@@ -1149,3 +1150,10 @@ struct GPUProperties
 };
 
 }
+
+ENABLE_BIT_MASK(fe::rhi::GPUCapability)
+ENABLE_BIT_MASK(fe::rhi::ResourceUsage)
+ENABLE_BIT_MASK(fe::rhi::ResourceFlags)
+ENABLE_BIT_MASK(fe::rhi::ResourceLayout)
+ENABLE_BIT_MASK(fe::rhi::RenderingBeginInfoFlags)
+ENABLE_BIT_MASK(fe::rhi::ShaderType)
