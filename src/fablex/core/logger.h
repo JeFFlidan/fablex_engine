@@ -17,14 +17,14 @@ enum FELogType
     FATAL
 };
 
-#define DECLARE_LOG_CATEGORY(CategoryName)                 \
+#define DEFINE_LOG_CATEGORY(CategoryName)                  \
 struct CategoryName                                        \
 {                                                          \
     constexpr static const char* name = #CategoryName;     \
     inline static fmt::color color = fmt::color::black;    \
 };
 
-DECLARE_LOG_CATEGORY(LogDefault)
+DEFINE_LOG_CATEGORY(LogDefault)
 
 #define FE_LOG(LogCategory, LogType, Message, ...) FELogger::log<LogCategory, LogType>(Message, ##__VA_ARGS__)
 

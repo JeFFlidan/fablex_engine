@@ -6,7 +6,7 @@
 
 #ifdef WIN32
 #define VULKAN
-#include <vulkan.h>
+#include <vulkan/vulkan.h>
 #endif // WIN32
 
 #include <string>
