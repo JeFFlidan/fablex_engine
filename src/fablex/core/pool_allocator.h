@@ -4,6 +4,7 @@
 #include "types.h"
 #include "macro.h"
 #include <vector>
+#include <mutex>
 
 namespace fe
 {
@@ -18,7 +19,7 @@ public:
         m_memoryBlobs.reserve(4);
     }
 
-    ~PoolAllocator()
+    virtual ~PoolAllocator()
     {
         m_freePointers.clear();
 
@@ -80,6 +81,29 @@ private:
 
         m_memoryBlobs.push_back(memoryBlob);
     }
+};
+
+template<typename T, size_t PoolSize = 64>
+class ThreadSafePoolAllocator : private PoolAllocator<T, PoolSize>
+{
+public:
+    ThreadSafePoolAllocator() : PoolAllocator<T, PoolSize>() { }
+
+    template<typename... Params>
+    T* allocate(Params&&... params)
+    {
+        std::scoped_lock<std::mutex> locker{m_threadLock};
+        return PoolAllocator<T, PoolSize>::allocate(std::forward<Params>(params)...);
+    }
+
+    void free(T* ptr)
+    {
+        std::scoped_lock<std::mutex> locker{m_threadLock};
+        return PoolAllocator<T, PoolSize>::free(ptr);
+    }
+
+private:
+    std::mutex m_threadLock;
 };
 
 }
