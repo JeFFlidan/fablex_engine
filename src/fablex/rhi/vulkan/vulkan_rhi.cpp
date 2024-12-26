@@ -1,18 +1,25 @@
+#include "core/platform/platform.h"
+
+#ifndef VK_NO_PROTOTYPES
+	#define VK_NO_PROTOTYPES
+#endif
+#ifdef _WIN32
+	#ifndef VK_USE_PLATFORM_WIN32_KHR
+		#define VK_USE_PLATFORM_WIN32_KHR
+	#endif
+#endif
+
 #include "vulkan_rhi.h"
-#include "vulkan_api.h"
 #include "rhi/rhi.h"
 #include "rhi/resources.h"
 #include "core/logger.h"
 
-#ifndef VOLK_IMPLEMENTATION
-    #define VOLK_IMPLEMENTATION
-#endif
-
+#define VOLK_IMPLEMENTATION
 #include "volk.h"
 
-#ifndef VMA_IMPLEMENTATION
-    #define VMA_IMPLEMENTATION
-#endif
+#define VMA_IMPLEMENTATION
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 #include "vk_mem_alloc.h"
 
 #include <iostream>
