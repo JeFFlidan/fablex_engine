@@ -31,7 +31,7 @@
 
 DEFINE_LOG_CATEGORY(LogVulkanRHI)
 
-#define VK_CHECK(x)                                                         \
+#define VK_CHECK(x)                                                                 \
     do                                                                              \
     {                                                                               \
         VkResult err = x;                                                           \
@@ -2458,6 +2458,8 @@ private:
     }
 } static g_pipelineLayoutCache;
 
+uint32 g_frameIndex = 0;
+
 VkSurfaceKHR create_surface(const WindowInfo& windowInfo)
 {
     VkSurfaceKHR surface;
@@ -3977,7 +3979,7 @@ void bind_index_buffer(CommandBuffer* cmd, Buffer* buffer)
 	vkCmdBindIndexBuffer(cmd->vk.cmdBuffer, buffer->vk.buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
-void bind_pipeline(CommandBuffer* cmd, Pipeline* pipeline, uint32 frameIndex)
+void bind_pipeline(CommandBuffer* cmd, Pipeline* pipeline)
 {
     FE_CHECK(cmd);
     FE_CHECK(pipeline);
@@ -4004,7 +4006,7 @@ void bind_pipeline(CommandBuffer* cmd, Pipeline* pipeline, uint32 frameIndex)
 
     if (auto pipelineLayout = g_pipelineLayoutCache.find_layout(pipeline->vk.layoutHash))
     {
-        pipelineLayout->bind_descriptor_sets(cmd->vk.cmdBuffer, frameIndex, bindPoint);
+        pipelineLayout->bind_descriptor_sets(cmd->vk.cmdBuffer, g_frameIndex, bindPoint);
     }
 }
 
@@ -4085,7 +4087,7 @@ void begin_rendering(CommandBuffer* cmd, RenderingBeginInfo* beginInfo)
                     depthAttachment.storeOp = get_attach_store_op(renderTarget.storeOp);
                     depthAttachment.clearValue.depthStencil.depth = renderTarget.clearValue.depthStencil.depth;
 
-                    if (texture->format != rhi::Format::D16_UNORM || texture->format != rhi::Format::D32_SFLOAT)
+                    if (texture->format != rhi::Format::D16_UNORM && texture->format != rhi::Format::D32_SFLOAT)
                     {
                         depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                         depthAttachment.clearValue.depthStencil.stencil = renderTarget.clearValue.depthStencil.stencil;
@@ -4324,6 +4326,7 @@ void acquire_next_image(SwapChain* swapChain, Semaphore* signalSemaphore, Fence*
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
         create_swap_chain_internal(swapChain);
 
+    g_frameIndex = *frameIndex;
     swapChain->vk.imageIndex = *frameIndex;
 }
 
@@ -4446,6 +4449,11 @@ void wait_for_fences(const std::vector<Fence*>& fences)
     VK_CHECK(vkWaitForFences(g_device.device, vkFences.size(), vkFences.data(), VK_TRUE, 1000000000));
 }
 
+uint32 get_frame_index()
+{
+    return g_frameIndex;
+}
+
 #pragma endregion
 
 void fill_function_table()
@@ -4520,6 +4528,8 @@ void fill_function_table()
     fe::rhi::present = present;
     fe::rhi::wait_queue_idle = wait_queue_idle;
     fe::rhi::wait_for_fences = wait_for_fences;
+
+    fe::rhi::get_frame_index = get_frame_index;
 }
 
 }

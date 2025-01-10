@@ -75,7 +75,7 @@ inline void (*set_scissors)(CommandBuffer* cmd, const std::vector<Scissor>& scis
 inline void (*push_constants)(CommandBuffer* cmd, Pipeline* pipeline, void* data);
 inline void (*bind_vertex_buffer)(CommandBuffer* cmd, Buffer* buffer);
 inline void (*bind_index_buffer)(CommandBuffer* cmd, Buffer* buffer);
-inline void (*bind_pipeline)(CommandBuffer* cmd, Pipeline* pipeline, uint32 frameIndex);
+inline void (*bind_pipeline)(CommandBuffer* cmd, Pipeline* pipeline);
 
 inline void (*begin_rendering)(CommandBuffer* cmd, RenderingBeginInfo* beginInfo);
 inline void (*end_rendering)(CommandBuffer* cmd, SwapChain* swapChain);
@@ -92,5 +92,7 @@ inline void (*submit)(SubmitInfo* submitInfo);
 inline void (*present)(PresentInfo* presentInfo);
 inline void (*wait_queue_idle)(QueueType queueType);
 inline void (*wait_for_fences)(const std::vector<Fence*>& fences);
+
+inline uint32 (*get_frame_index)();
 
 }
