@@ -16,7 +16,7 @@ if (WIN32)
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${VULKAN_RHI_SRC})
 
     target_sources(rhi PRIVATE ${VULKAN_RHI_SRC})
-    target_link_libraries(rhi volk vma core)
+    target_link_libraries(rhi volk vma spirv_reflect core)
 endif()
 
 target_include_directories(rhi 

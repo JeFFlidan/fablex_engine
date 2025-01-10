@@ -26,7 +26,7 @@ inline void (*create_texture)(Texture** texture, const TextureInfo* info);
 inline void (*destroy_texture)(Texture* texture);
 inline void (*create_texture_view)(TextureView** textureView, const TextureViewInfo* info, const Texture* texture);
 inline void (*destroy_texture_view)(TextureView* textureView);
-inline void (*create_buffer_view)(BufferView** bufferView, const BufferViewInfo* info);
+inline void (*create_buffer_view)(BufferView** bufferView, const BufferViewInfo* info, const Buffer* buffer);
 inline void (*destroy_buffer_view)(BufferView* bufferView);
 inline void (*create_sampler)(Sampler** sampler, const SamplerInfo* info);
 inline void (*destroy_sampler)(Sampler* sampler);
@@ -36,12 +36,7 @@ inline void (*create_graphics_pipelines)(const std::vector<GraphicsPipelineInfo>
 inline void (*create_compute_pipelines)(const std::vector<ComputePipelineInfo>& infos, std::vector<Pipeline*>& outPipelines);
 inline void (*destroy_pipeline)(Pipeline* pipeline);
 
-inline uint32 (*get_buffer_index)(const Buffer* buffer);
-inline uint32 (*get_texture_view_index)(const TextureView* textureView);
-inline uint32 (*get_buffer_view_index)(const BufferView* bufferView);
-inline uint32 (*get_sampler_index)(const Sampler* sampler);
-
-inline void (*bind_uniform_buffer)(Buffer* buffer, uint32 slot, uint32 size, uint32 offset);
+inline void (*bind_uniform_buffer)(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset);
 
 inline void (*create_command_pool)(CommandPool** cmdPool, const CommandPoolInfo* info);
 inline void (*destroy_command_pool)(CommandPool* cmdPool);
@@ -80,20 +75,20 @@ inline void (*set_scissors)(CommandBuffer* cmd, const std::vector<Scissor>& scis
 inline void (*push_constants)(CommandBuffer* cmd, Pipeline* pipeline, void* data);
 inline void (*bind_vertex_buffer)(CommandBuffer* cmd, Buffer* buffer);
 inline void (*bind_index_buffer)(CommandBuffer* cmd, Buffer* buffer);
-inline void (*bind_pipeline)(CommandBuffer* cmd, Buffer* buffer);
+inline void (*bind_pipeline)(CommandBuffer* cmd, Pipeline* pipeline, uint32 frameIndex);
 
 inline void (*begin_rendering)(CommandBuffer* cmd, RenderingBeginInfo* beginInfo);
-inline void (*end_rendering)(CommandBuffer* cmd);
+inline void (*end_rendering)(CommandBuffer* cmd, SwapChain* swapChain);
 
 inline void (*draw)(CommandBuffer* cmd, uint64 vertexCount);
 inline void (*draw_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride);
 inline void (*draw_indexed_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride);
 
 inline void (*dispatch)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
-inline void (*add_pipeline_barriers)(CommandBuffer* cmd, uint32 barrierCount, const PipelineBarrier* barriers);
+inline void (*add_pipeline_barriers)(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers);
 
-inline void (*acquire_next_image)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* imageIndex);
-inline void (*submit)(CommandBuffer* cmd, SubmitInfo* submitInfo);
+inline void (*acquire_next_image)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex);
+inline void (*submit)(SubmitInfo* submitInfo);
 inline void (*present)(PresentInfo* presentInfo);
 inline void (*wait_queue_idle)(QueueType queueType);
 inline void (*wait_for_fences)(const std::vector<Fence*>& fences);

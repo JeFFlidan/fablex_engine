@@ -2,6 +2,7 @@
 
 #include "core/types.h"
 #include "core/macro.h"
+#include "core/window.h"
 #include "core/flags_operations.h"
 
 #ifdef WIN32
@@ -11,6 +12,8 @@
 
 #include <string>
 #include <vector>
+
+struct VmaAllocation_T;
 
 namespace fe::rhi
 {
@@ -428,13 +431,14 @@ struct alignas(64) Buffer
 #if defined(VULKAN)
         struct
         {
-            VkBuffer buffer;
-            struct VmaAllocation_T* allocation;
+            VkBuffer buffer = VK_NULL_HANDLE;
+            VmaAllocation_T* allocation;
         } vk;
 #endif // VULKAN
     };
 
     uint64 size : 32;
+    uint64 descriptorIndex : 32;
     
     ResourceUsage bufferUsage;
     MemoryUsage memoryUsage : 3;
@@ -451,7 +455,7 @@ struct TextureInfo
     uint32 width = 0;
     uint32 height = 0;
     // Only for 3D textures
-    uint32 depath = 1;
+    uint32 depth = 1;
     uint32 mipLevels = 1;
     uint32 layersCount = 1;
     Format format = Format::UNDEFINED;
@@ -470,7 +474,7 @@ struct alignas(64) Texture
 #if defined(VULKAN)
         struct
         {
-            VkImage image;
+            VkImage image = VK_NULL_HANDLE;
             VmaAllocation_T* allocation;
         } vk;
 #endif // VULKAN
@@ -486,7 +490,7 @@ struct alignas(64) Texture
     ResourceUsage textureUsage : 24;
     MemoryUsage memoryUsage : 3;
     TextureDimension dimension : 3;
-    ResourceFlags resourceFlags : 20;
+    ResourceFlags flags : 20;
 
     void* mappedData;
 };
@@ -503,7 +507,7 @@ struct TextureViewInfo
     // however, for stencil view it must be set
     TextureAspect aspect = TextureAspect::UNDEFINED;
     ViewType type = ViewType::AUTO;
-    ComponentMapping componentMapping;	// If component mapping is not set, mapping from texture will be used
+    ComponentMapping componentMapping = { ComponentSwizzle::R, ComponentSwizzle::G, ComponentSwizzle::B, ComponentSwizzle::A };
     Format format = Format::UNDEFINED;	// If format is undefined, format from texture will be used
 };
 
@@ -514,12 +518,14 @@ struct TextureView
 #if defined(VULKAN)
         struct
         {
-            VkImageView imageView;
-        } mVk;
+            VkImageView imageView = VK_NULL_HANDLE;
+        } vk;
 #endif // VULKAN
     };
 
-    Texture* texture;
+    const Texture* texture;
+
+    uint32 descriptorIndex;
 
     uint32 baseMipLevel : 6;
     uint32 baseLayer : 10;
@@ -546,13 +552,14 @@ struct BufferView
 #if defined(VULKAN)
         struct
         {
-            VkBufferView bufferView;
-        };
+            VkBufferView bufferView = VK_NULL_HANDLE;
+        } vk;
 #endif // VULKAN
     };
 
-    Buffer* buffer = nullptr;
+    const Buffer* buffer = nullptr;
 
+    uint64 descriptorIndex : 32;
     uint64 offset : 32;
     uint64 size : 32;
     ViewType type;
@@ -576,18 +583,19 @@ struct Sampler
 #if defined(VULKAN)
         struct
         {
-            VkSampler sampler;
+            VkSampler sampler = VK_NULL_HANDLE;
         } vk;
 #endif // VULKAN
     };
+
+    uint32 descriptorIndex;
 };
 
 struct SwapChainInfo
 {
     bool vSync = true;
-    uint32 buffersCount = 3;
-    uint32 width = 0;
-    uint32 height = 0;
+    uint32 bufferCount = 3;
+    Window* window = nullptr;
     Format format = Format::B8G8R8A8_UNORM;
     ColorSpace colorSpace = ColorSpace::SRGB;
     bool useHDR = false;
@@ -595,16 +603,28 @@ struct SwapChainInfo
 
 struct SwapChain
 {
+    SwapChain() { }
+    ~SwapChain() { }
+
     union
     {
 #if defined(VULKAN)
         struct
         {
-            VkSwapchainKHR swapChain;
-            VkSurfaceKHR surface;
+            VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+            VkSurfaceKHR surface = VK_NULL_HANDLE;
+            std::vector<VkImage> images;
+            std::vector<VkImageView> imageViews;
+            uint32 imageIndex;
         } vk;
 #endif // VULKAN
     };
+
+    Window* window = nullptr;
+    ColorSpace colorSpace;
+    Format format = Format::UNDEFINED;
+    uint32 bufferCount = 0;
+    bool vSync = true;
 };
 
 struct ShaderInfo
@@ -621,13 +641,13 @@ struct Shader
 #if defined(VULKAN)
         struct
         {
-            VkShaderModule shader;
+            VkShaderModule shader = VK_NULL_HANDLE;
             // TODO: Add reflection data
         } vk;
 #endif // VULKAN
     };
 
-    ShaderType type{ShaderType::UNDEFINED};
+    ShaderType type = ShaderType::UNDEFINED;
 };
 
 enum class TopologyType
@@ -819,7 +839,7 @@ struct GraphicsPipelineInfo
 
 struct ComputePipelineInfo
 {
-    Shader shaderStage;
+    Shader* shaderStage;
 };
 
 enum class PipelineType : uint32
@@ -837,8 +857,8 @@ struct Pipeline
 #if defined (VULKAN)
         struct
         {
-            // TODO: Add pipeline layout
-            VkPipeline pipeline;
+            VkPipeline pipeline = VK_NULL_HANDLE;
+            uint64 layoutHash = 0;
         } vk;
 #endif
     };
@@ -858,7 +878,7 @@ struct CommandPool
 #if defined(VULKAN)
         struct
         {
-            VkCommandPool cmdPool;
+            VkCommandPool cmdPool = VK_NULL_HANDLE;
         } vk;
 #endif
     };
@@ -878,21 +898,23 @@ struct CommandBuffer
 #if defined(VULKAN)
         struct
         {
-            VkCommandBuffer cmdBuffer;
+            VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
         } vk;
 #endif
     };
+
+    const CommandPool* cmdPool = nullptr;
 };
 
 class PipelineBarrier
 {
 public:
-    enum class BarrierType
+    enum BarrierType
     {
         MEMORY,
         BUFFER,
         TEXTURE
-    };
+    } type;
 
     struct MemoryBarrier
     {
@@ -925,12 +947,14 @@ public:
 
     PipelineBarrier(ResourceLayout srcLayout, ResourceLayout dstLayout)
     { 
-        m_barrier.memoryBarrier = MemoryBarrier{srcLayout, dstLayout}; 
+        m_barrier.memoryBarrier = MemoryBarrier{srcLayout, dstLayout};
+        type = MEMORY;
     }
 
     PipelineBarrier(Buffer* buffer, ResourceLayout srcLayout, ResourceLayout dstLayout)
     { 
         m_barrier.bufferBarrier = BufferBarrier{buffer, srcLayout, dstLayout};
+        type = BUFFER;
     }
 
     PipelineBarrier(Texture* texture,
@@ -942,16 +966,19 @@ public:
         uint32_t layerCount = 0)
     { 
         m_barrier.textureBarrier = TextureBarrier{texture, srcLayout, dstLayout, levelCount, baseMipLevel, layerCount, baseLayer};
+        type = TEXTURE;
     }
 
     void set_memory_barrier(ResourceLayout srcLayout, ResourceLayout dstLayout)
     {
         m_barrier.memoryBarrier = MemoryBarrier{srcLayout, dstLayout};
+        type = MEMORY;
     }
 
     void set_buffer_barrier(Buffer* buffer, ResourceLayout srcLayout, ResourceLayout dstLayout)
     {
         m_barrier.bufferBarrier = BufferBarrier{buffer, srcLayout, dstLayout};
+        type = BUFFER;
     }
 
     void set_texture_barrier(Texture* texture,
@@ -963,6 +990,7 @@ public:
         uint32_t layerCount = 0)
     {
         m_barrier.textureBarrier = TextureBarrier{texture, srcLayout, dstLayout, levelCount, baseMipLevel, layerCount, baseLayer};
+        type = TEXTURE;
     }
 
     const MemoryBarrier* get_memory_barrier() const { return &m_barrier.memoryBarrier; }
@@ -985,7 +1013,7 @@ struct Semaphore
 #if defined(VULKAN)
         struct
         {
-            VkSemaphore semaphore;
+            VkSemaphore semaphore = VK_NULL_HANDLE;
         } vk;
 #endif
     };
@@ -998,7 +1026,7 @@ struct Fence
 #if defined(VULKAN)
         struct
         {
-            VkFence fence;
+            VkFence fence = VK_NULL_HANDLE;
         } vk;
 #endif
     };
@@ -1057,6 +1085,8 @@ struct RenderingBeginInfo
     };
 
     Type type;
+    MultiviewInfo multiviewInfo;
+    RenderingBeginInfoFlags flags;
 
     struct OffscreenPass
     {
@@ -1086,16 +1116,17 @@ struct RenderingBeginInfo
 
 struct SubmitInfo
 {
+    QueueType queueType = QueueType::GRAPHICS;
+    Fence* signalFence;
     std::vector<CommandBuffer*> cmdBuffers;
-    std::vector<Fence*> signalFences;
-    std::vector<Semaphore> waitSemaphores;
+    std::vector<Semaphore*> waitSemaphores;
     std::vector<Semaphore*> signalSemaphores;
     bool isSubmitDone = false;
 };
 
 struct PresentInfo
 {
-    SwapChain* swapChain = nullptr;
+    std::vector<SwapChain*> swapChains;
     std::vector<Semaphore*> waitSemaphores;
     bool isSubmitDone = false;
 };
