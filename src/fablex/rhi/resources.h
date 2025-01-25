@@ -18,6 +18,12 @@ struct VmaAllocation_T;
 namespace fe::rhi
 {
 
+enum class API
+{
+    VK,
+    D3D12
+};
+
 enum class GPUCapability : uint32
 {
     UNDEFINED = 0,

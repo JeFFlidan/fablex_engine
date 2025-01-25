@@ -10,7 +10,7 @@ namespace fe
 class FileStream
 {
 public:
-    FileStream();
+    FileStream() = default;
     FileStream(FILE* file);
     ~FileStream();
 
@@ -29,6 +29,8 @@ class FileSystem
 {
 public:
     static void init(const std::string& rootPath);
+
+    static const std::string& get_root_path() { return m_rootPath; }
 
     static FileStream open(const std::string& strPath, const char* mode);
     static bool close(FileStream stream);
@@ -57,6 +59,8 @@ public:
     static bool has_extension(const std::string& path);
     static bool exists(const std::string& absolutePath);
     static bool exists(const std::string& rootPath, const std::string& relativePath);
+
+    static uint64 get_last_write_time(const std::string& absolutePath);
 
 private:
     inline static std::string m_rootPath = "";

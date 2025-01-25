@@ -10,7 +10,7 @@ add_executable(main ${MAIN_SRC})
 set_target_name_exe(main "fablex")
 set_engine_out_dir(main ${CMAKE_SOURCE_DIR}/bin)
 
-target_link_libraries(main core rhi)
+target_link_libraries(main core rhi renderer)
 
 target_include_directories(main 
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../

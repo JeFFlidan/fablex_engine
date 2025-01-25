@@ -93,6 +93,7 @@ inline void (*present)(PresentInfo* presentInfo);
 inline void (*wait_queue_idle)(QueueType queueType);
 inline void (*wait_for_fences)(const std::vector<Fence*>& fences);
 
+inline API (*get_api)();
 inline uint32 (*get_frame_index)();
 
 }

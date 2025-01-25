@@ -249,4 +249,10 @@ FileStream FileSystem::create_read_stream(const std::string& path, uint64& outSi
     return stream;
 }
 
+uint64 FileSystem::get_last_write_time(const std::string& absolutePath)
+{
+    auto time = std::filesystem::last_write_time(absolutePath.c_str());
+    return std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+}
+
 }

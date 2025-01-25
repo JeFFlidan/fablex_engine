@@ -7,6 +7,7 @@
 #include "rhi/vulkan/vulkan_rhi.h"
 #include "core/pool_allocator.h"
 #include "core/logger.h"
+#include "renderer/shader_compiler.h"
 
 struct Test
 {
@@ -65,6 +66,7 @@ int main(int argc, char* argv[])
     initInfo.validationMode = fe::rhi::ValidationMode::ENABLED;
     initInfo.gpuPreference = fe::rhi::GPUPreference::DISCRETE;
     fe::rhi::init(&initInfo);
+    fe::renderer::init_shader_compiler();
 
     while (true)
     {

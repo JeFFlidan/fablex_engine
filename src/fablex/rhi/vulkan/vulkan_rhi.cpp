@@ -4449,6 +4449,11 @@ void wait_for_fences(const std::vector<Fence*>& fences)
     VK_CHECK(vkWaitForFences(g_device.device, vkFences.size(), vkFences.data(), VK_TRUE, 1000000000));
 }
 
+API get_api()
+{
+    return API::VK;
+}
+
 uint32 get_frame_index()
 {
     return g_frameIndex;
@@ -4529,6 +4534,7 @@ void fill_function_table()
     fe::rhi::wait_queue_idle = wait_queue_idle;
     fe::rhi::wait_for_fences = wait_for_fences;
 
+    fe::rhi::get_api = get_api;
     fe::rhi::get_frame_index = get_frame_index;
 }
 
