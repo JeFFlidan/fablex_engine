@@ -21,3 +21,10 @@ target_sources(spirv_reflect PRIVATE
     spirv_reflect/spirv_reflect.h
     spirv_reflect/spirv_reflect.c
 )
+
+add_library(dxc INTERFACE)
+target_include_directories(dxc INTERFACE dxc)
+target_link_libraries(dxc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/dxc/dxcompiler.lib)
+
+add_library(json INTERFACE)
+target_include_directories(json INTERFACE json)
