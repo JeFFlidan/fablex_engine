@@ -448,6 +448,7 @@ VkBufferUsageFlags get_buffer_usage(rhi::ResourceUsage usage)
     {
         usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     }
+
     return usageFlags;
 }
 
@@ -1554,6 +1555,7 @@ public:
     ThreadSafePoolAllocator<CommandBuffer, 64> cmdBufferAllocator;
     ThreadSafePoolAllocator<Semaphore, 24> semaphoreAllocator;
     ThreadSafePoolAllocator<Fence, 8> fenceAllocator;
+    ThreadSafePoolAllocator<AccelerationStructure, 512> accelerationStructureAllocator;
 
     VmaAllocator gpuAllocator = VK_NULL_HANDLE;
 
@@ -1643,7 +1645,7 @@ public:
         m_zeroDescriptorPool.cleanup();
     }
 
-    void allocate_bindless_descriptor(Buffer* buffer)
+    void allocate_descriptor(Buffer* buffer)
     {
         FE_CHECK(buffer);
 
@@ -1665,7 +1667,7 @@ public:
         vkUpdateDescriptorSets(g_device.device, 1, &writeDescriptorSet, 0, nullptr);
     }
 
-    void allocate_bindless_descriptor(BufferView* bufferView)
+    void allocate_descriptor(BufferView* bufferView)
     {
         FE_CHECK(bufferView);
 
@@ -1696,7 +1698,7 @@ public:
         vkUpdateDescriptorSets(g_device.device, 1, &writeDescriptorSet, 0, nullptr);
     }
 
-    void allocate_bindless_descriptor(TextureView* textureView)
+    void allocate_descriptor(TextureView* textureView)
     {
         FE_CHECK(textureView);
 
@@ -1767,7 +1769,7 @@ public:
         }
     }
 
-    void allocate_bindless_descriptor(Sampler* sampler)
+    void allocate_descriptor(Sampler* sampler)
     {
         sampler->descriptorIndex = m_samplerBindlessPool.allocate();
 
@@ -1785,13 +1787,33 @@ public:
         vkUpdateDescriptorSets(g_device.device, 1, &writeDescriptorSet, 0, nullptr);
     }
 
+    void allocate_descriptor(AccelerationStructure* accelerationStructure)
+    {
+        accelerationStructure->descriptorIndex = m_accelerationStructureBindlessPool.allocate();
+        
+        VkWriteDescriptorSetAccelerationStructureKHR asInfo{};
+        asInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+        asInfo.accelerationStructureCount = 1;
+        asInfo.pAccelerationStructures = &accelerationStructure->vk.accelerationStructure;
+
+        VkWriteDescriptorSet writeDescriptorSet{};
+        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+        writeDescriptorSet.dstBinding = 0;
+        writeDescriptorSet.dstSet = m_accelerationStructureBindlessPool.set;
+        writeDescriptorSet.dstArrayElement = accelerationStructure->descriptorIndex;
+        writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.pNext = &asInfo;
+        vkUpdateDescriptorSets(g_device.device, 1, &writeDescriptorSet, 0, nullptr);
+    }
+
     void free_descriptor(Buffer* buffer)
     {
         m_storageBufferBindlessPool.free(buffer->descriptorIndex);
         buffer->descriptorIndex = s_undefinedDescriptor;
     }
 
-    void free_bindless_descriptor(BufferView* bufferView)
+    void free_descriptor(BufferView* bufferView)
     {
         switch (bufferView->type)
         {
@@ -1808,7 +1830,7 @@ public:
         bufferView->descriptorIndex = s_undefinedDescriptor;
     }
 
-    void free_bindless_descriptor(TextureView* textureView)
+    void free_descriptor(TextureView* textureView)
     {
         switch (textureView->type)
         {
@@ -1835,10 +1857,16 @@ public:
         textureView->descriptorIndex = s_undefinedDescriptor;
     }
 
-    void free_bindless_descriptor(Sampler* sampler)
+    void free_descriptor(Sampler* sampler)
     {
         m_samplerBindlessPool.free(sampler->descriptorIndex);
         sampler->descriptorIndex = s_undefinedDescriptor;
+    }
+
+    void free_descriptor(AccelerationStructure* accelerationStructure)
+    {
+        m_accelerationStructureBindlessPool.free(accelerationStructure->descriptorIndex);
+        accelerationStructure->descriptorIndex = s_undefinedDescriptor;
     }
 
     VkDescriptorSetLayout get_bindless_descriptor_set_layout(VkDescriptorType descriptorType)
@@ -2096,6 +2124,8 @@ private:
             return m_uniformTexelBufferBindlessPool;
         case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
             return m_storageTexelBufferBindlessPool;
+        case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+            return m_accelerationStructureBindlessPool;
         default:
             FE_LOG(LogVulkanRHI, FATAL, "Unsupported descritpor type.");
             return m_samplerBindlessPool;
@@ -2112,6 +2142,7 @@ private:
     BindlessDescriptorPool m_storageBufferBindlessPool;
     BindlessDescriptorPool m_uniformTexelBufferBindlessPool;
     BindlessDescriptorPool m_storageTexelBufferBindlessPool;
+    BindlessDescriptorPool m_accelerationStructureBindlessPool;
     ZeroDescriptorPool m_zeroDescriptorPool;
 } static g_descriptorHeap;
 
@@ -2206,7 +2237,7 @@ public:
         if (it != m_shaderReflectionInfos.end())
             return it->second.get();
 
-        FE_LOG(LogVulkanRHI, ERROR, "Failed to find shader reflection info.");
+        FE_LOG(LogVulkanRHI, ERROR, "Failed to find shader reflection info->");
         return nullptr;
     }
 
@@ -2635,6 +2666,211 @@ void execute_image_barrier(CommandBuffer* cmd, VkImageMemoryBarrier2& imageBarri
     vkCmdPipelineBarrier2(cmd->vk.cmdBuffer, &dependencyInfo);
 }
 
+VkDeviceAddress get_device_address(VkBuffer buffer)
+{
+    FE_CHECK(buffer != VK_NULL_HANDLE);
+
+    VkBufferDeviceAddressInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    info.buffer = buffer;
+    return vkGetBufferDeviceAddress(g_device.device, &info);
+}
+
+VkDeviceAddress get_device_address(VkAccelerationStructureKHR accelerationStructure)
+{
+    FE_CHECK(accelerationStructure != VK_NULL_HANDLE);
+
+    VkAccelerationStructureDeviceAddressInfoKHR info{};
+    info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+    info.accelerationStructure = accelerationStructure;
+    return vkGetAccelerationStructureDeviceAddressKHR(g_device.device, &info);
+}
+
+void fill_blas_geometry(
+    const BLAS::Geometry* geometryInfo,
+    uint32* outPrimitiveCount,
+    VkAccelerationStructureGeometryKHR* outGeometry,
+    VkAccelerationStructureBuildRangeInfoKHR* outRange
+)
+{
+    outGeometry->sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    outGeometry->flags = 0;
+
+    switch (geometryInfo->type)
+    {
+    case BLAS::Geometry::TRIANGLES:
+    {
+        if (has_flag(geometryInfo->flags, BLAS::Geometry::Flags::OPAQUE))
+            outGeometry->flags |= VK_GEOMETRY_OPAQUE_BIT_KHR;
+        if (has_flag(geometryInfo->flags, BLAS::Geometry::Flags::NO_DUPLICATE_ANYHIT_INVOCATION))
+            outGeometry->flags |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR;
+
+        const BLAS::Geometry::Triangles& trianglesInfo = geometryInfo->triangles;
+        VkAccelerationStructureGeometryTrianglesDataKHR& triangles = outGeometry->geometry.triangles;
+        
+        outGeometry->geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+        triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+        
+        triangles.indexType = VK_INDEX_TYPE_UINT32;
+        triangles.indexData.deviceAddress = trianglesInfo.indexBuffer->vk.address +
+            trianglesInfo.indexOffset * sizeof(uint32);
+
+        triangles.maxVertex = trianglesInfo.vertexCount;
+        triangles.vertexStride = trianglesInfo.vertexStride;
+        triangles.vertexFormat = get_format(trianglesInfo.vertexFormat);
+        triangles.vertexData.deviceAddress = trianglesInfo.vertexBuffer->vk.address +
+            trianglesInfo.vertexOffset;
+
+        if (has_flag(geometryInfo->flags, BLAS::Geometry::Flags::USE_TRANSFORM))
+        {
+            triangles.transformData.deviceAddress = trianglesInfo.transform3x4Buffer->vk.address;
+            
+            if (outRange)
+                outRange->transformOffset = trianglesInfo.transform3x4BufferOffset;
+        }
+
+        if (outPrimitiveCount)
+            *outPrimitiveCount = trianglesInfo.indexCount / 3;
+
+        if (outRange)
+        {
+            outRange->primitiveCount = trianglesInfo.indexCount / 3;
+            outRange->primitiveOffset = 0;
+        }
+    }
+    case BLAS::Geometry::PROCEDURAL_AABBS:
+    {
+        const BLAS::Geometry::ProceduralAABBs& aabbsInfo = geometryInfo->aabbs;
+        VkAccelerationStructureGeometryAabbsDataKHR& aabbs = outGeometry->geometry.aabbs;
+
+        outGeometry->geometryType = VK_GEOMETRY_TYPE_AABBS_KHR;
+        aabbs.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR;
+        aabbs.stride = sizeof(float) * 6.0f;
+        aabbs.data.deviceAddress = aabbsInfo.aabbBuffer->vk.address;
+
+        if (outPrimitiveCount)
+            *outPrimitiveCount = aabbsInfo.count;
+
+        if (outRange)
+        {
+            outRange->primitiveCount = aabbsInfo.count;
+            outRange->primitiveOffset = aabbsInfo.ofsset;
+        }
+    }
+    }
+}
+
+void fill_tlas_geometry(
+    const TLAS* tlasInfo,
+    uint32* outPrimitiveCount,
+    VkAccelerationStructureGeometryKHR* outGeometry,
+    VkAccelerationStructureBuildRangeInfoKHR* outRange
+)
+{
+    outGeometry->sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    outGeometry->geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+
+    VkAccelerationStructureGeometryInstancesDataKHR& instances = outGeometry->geometry.instances;
+    instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+    instances.arrayOfPointers = VK_FALSE;
+    instances.data.deviceAddress = tlasInfo->instanceBuffer->vk.address;
+
+    if (outPrimitiveCount)
+        *outPrimitiveCount = tlasInfo->count;
+
+    if (outRange)
+    {
+        outRange->primitiveCount = tlasInfo->count;
+        outRange->primitiveOffset = tlasInfo->offset;
+    }
+}
+
+void fill_acceleration_structure_build_geometry_info(
+    const AccelerationStructure* dstAccelerationStructure,
+    const AccelerationStructure* srcAccelerationStructure,
+    VkAccelerationStructureBuildGeometryInfoKHR* outBuildInfo,
+    std::vector<VkAccelerationStructureGeometryKHR>* outGeometries,
+    std::vector<uint32>* outPrimitivesCount,
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR>* outRanges
+)
+{
+    FE_CHECK(dstAccelerationStructure);
+    FE_CHECK(outBuildInfo);
+    FE_CHECK(outGeometries);
+
+    const AccelerationStructureInfo& asInfo = dstAccelerationStructure->info;
+
+    outBuildInfo->sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+
+    if (dstAccelerationStructure->vk.accelerationStructure != VK_NULL_HANDLE)
+    {
+        outBuildInfo->dstAccelerationStructure = dstAccelerationStructure->vk.accelerationStructure;
+        outBuildInfo->srcAccelerationStructure = VK_NULL_HANDLE;
+        outBuildInfo->mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+
+        outBuildInfo->scratchData.deviceAddress = dstAccelerationStructure->vk.scratchAddress;
+
+        if (srcAccelerationStructure && 
+            has_flag(dstAccelerationStructure->info.flags, AccelerationStructureInfo::Flags::ALLOW_UPDATE))
+        {
+            outBuildInfo->mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+            outBuildInfo->srcAccelerationStructure = srcAccelerationStructure->vk.accelerationStructure;
+        }
+    }
+
+    outBuildInfo->flags = 0;
+
+    if (has_flag(asInfo.flags, AccelerationStructureInfo::Flags::ALLOW_UPDATE))
+        outBuildInfo->flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+    if (has_flag(asInfo.flags, AccelerationStructureInfo::Flags::ALLOW_COMPACTION))
+        outBuildInfo->flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR;
+    if (has_flag(asInfo.flags, AccelerationStructureInfo::Flags::PREFER_FAST_TRACE))
+        outBuildInfo->flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    if (has_flag(asInfo.flags, AccelerationStructureInfo::Flags::PREFER_FAST_BUILD))
+        outBuildInfo->flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR;
+    if (has_flag(asInfo.flags, AccelerationStructureInfo::Flags::LOW_MEMORY))
+        outBuildInfo->flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_KHR;
+
+    switch (asInfo.type)
+    {
+    case AccelerationStructureInfo::BOTTOM_LEVEL:
+    {
+        outBuildInfo->type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+        outGeometries->reserve(asInfo.blas.geometries.size());
+
+        if (outPrimitivesCount)
+            outPrimitivesCount->reserve(asInfo.blas.geometries.size());
+        if (outRanges)
+            outRanges->reserve(asInfo.blas.geometries.size());
+
+        for (const BLAS::Geometry& geometryInfo : asInfo.blas.geometries)
+        {
+            fill_blas_geometry(
+                &geometryInfo,
+                outPrimitivesCount ? &outPrimitivesCount->emplace_back() : nullptr,
+                &outGeometries->emplace_back(),
+                outRanges ? &outRanges->emplace_back() : nullptr
+            );
+        }
+
+        break;
+    }
+    case AccelerationStructureInfo::TOP_LEVEL:
+    {
+        fill_tlas_geometry(
+            &asInfo.tlas, 
+            outPrimitivesCount ? &outPrimitivesCount->emplace_back() : nullptr,
+            &outGeometries->emplace_back(), 
+            outRanges ? &outRanges->emplace_back() : nullptr
+        );
+        break;
+    }
+    }
+
+    outBuildInfo->geometryCount = outGeometries->size();
+    outBuildInfo->pGeometries = outGeometries->data();
+}
+
 #pragma endregion
 
 //============================================================================================================================================================================================
@@ -2768,6 +3004,9 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferCreateInfo.size = info->size;
     bufferCreateInfo.usage = get_buffer_usage(info->bufferUsage);
+
+    if (g_device.features1_2.bufferDeviceAddress == VK_TRUE)
+        bufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     
     if (!bufferCreateInfo.usage)
         FE_LOG(LogVulkanRHI, FATAL, "Invalid buffer usage.");
@@ -2797,9 +3036,10 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
     VK_CHECK(vmaCreateBuffer(g_allocator.gpuAllocator, &bufferCreateInfo, &allocCreateInfo, &bufferPtr->vk.buffer, &bufferPtr->vk.allocation, nullptr));
 
     if (has_flag(bufferPtr->bufferUsage, rhi::ResourceUsage::STORAGE_BUFFER))
-    {
-        g_descriptorHeap.allocate_bindless_descriptor(bufferPtr);
-    }
+        g_descriptorHeap.allocate_descriptor(bufferPtr);
+
+    if (bufferCreateInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+        bufferPtr->vk.address = get_device_address(bufferPtr->vk.buffer);
 
     bufferPtr->mappedData = bufferPtr->vk.allocation->GetMappedData();
 
@@ -2825,6 +3065,7 @@ void destroy_buffer(Buffer* buffer)
     if (buffer->vk.buffer != VK_NULL_HANDLE)
         vmaDestroyBuffer(g_allocator.gpuAllocator, buffer->vk.buffer, buffer->vk.allocation);
 
+    g_descriptorHeap.free_descriptor(buffer);
     g_allocator.bufferAllocator.free(buffer);
 }
 
@@ -3028,7 +3269,7 @@ void create_texture_view(TextureView** textureView, const TextureViewInfo* info,
 
     VK_CHECK(vkCreateImageView(g_device.device, &createInfo, nullptr, &textureViewPtr->vk.imageView));
 
-    g_descriptorHeap.allocate_bindless_descriptor(textureViewPtr);
+    g_descriptorHeap.allocate_descriptor(textureViewPtr);
 
     *textureView = textureViewPtr;
 }
@@ -3038,6 +3279,7 @@ void destroy_texture_view(TextureView* textureView)
     if (textureView->vk.imageView != VK_NULL_HANDLE)
         vkDestroyImageView(g_device.device, textureView->vk.imageView, nullptr);
 
+    g_descriptorHeap.free_descriptor(textureView);
     g_allocator.textureViewAllocator.free(textureView);
 }
 
@@ -3083,7 +3325,7 @@ void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info, con
     createInfo.format = get_format(bufferViewPtr->format);
     VK_CHECK(vkCreateBufferView(g_device.device, &createInfo, nullptr, &bufferViewPtr->vk.bufferView));
 
-    g_descriptorHeap.allocate_bindless_descriptor(bufferViewPtr);
+    g_descriptorHeap.allocate_descriptor(bufferViewPtr);
 
     *bufferView = bufferViewPtr;
 }
@@ -3095,6 +3337,7 @@ void destroy_buffer_view(BufferView* bufferView)
     if (bufferView->vk.bufferView != VK_NULL_HANDLE)
         vkDestroyBufferView(g_device.device, bufferView->vk.bufferView, nullptr);
 
+    g_descriptorHeap.free_descriptor(bufferView);
     g_allocator.bufferViewAllocator.free(bufferView);
 }
 
@@ -3164,7 +3407,7 @@ void create_sampler(Sampler** sampler, const SamplerInfo* info)
 
     VK_CHECK(vkCreateSampler(g_device.device, &createInfo, nullptr, &samplerPtr->vk.sampler));
 
-    g_descriptorHeap.allocate_bindless_descriptor(samplerPtr);
+    g_descriptorHeap.allocate_descriptor(samplerPtr);
 
     *sampler = samplerPtr;
 }
@@ -3176,6 +3419,7 @@ void destroy_sampler(Sampler* sampler)
     if (sampler->vk.sampler != VK_NULL_HANDLE)
         vkDestroySampler(g_device.device, sampler->vk.sampler, nullptr);
 
+    g_descriptorHeap.free_descriptor(sampler);
     g_allocator.samplerAllocator.free(sampler);
 }
 
@@ -3223,250 +3467,260 @@ void create_graphics_pipelines(const std::vector<GraphicsPipelineInfo>& infos, s
 
     for (const GraphicsPipelineInfo& info : infos)
     {
-        VkPipelineInputAssemblyStateCreateInfo assemblyState{};
-        assemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        assemblyState.topology = get_primitive_topology(info.assemblyState.topologyType);
-        assemblyState.primitiveRestartEnable = VK_FALSE;
-
-        // Only dynamic viewports, no static
-        VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.pScissors = nullptr;
-        viewportState.scissorCount = 1;
-        viewportState.pViewports = nullptr;
-        viewportState.viewportCount = 1;
-
-        if (info.rasterizationState.cullMode == rhi::CullMode::UNDEFINED)
-            FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined cull mode. Failed to create VkPipeline.");
-        
-        if (info.rasterizationState.polygonMode == rhi::PolygonMode::UNDEFINED)
-            FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined polygon mode. Failed to create VkPipeline.");
-            
-        if (info.rasterizationState.frontFace == rhi::FrontFace::UNDEFINED)
-            FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined front face. Failed to create VkPipeline.");
-
-        VkPipelineRasterizationStateCreateInfo rasterizationState{};
-        rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizationState.depthClampEnable = VK_FALSE;
-        rasterizationState.rasterizerDiscardEnable = VK_FALSE;
-        rasterizationState.polygonMode = get_polygon_mode(info.rasterizationState.polygonMode);
-        rasterizationState.lineWidth = 1.0f;
-        rasterizationState.cullMode = get_cull_mode(info.rasterizationState.cullMode);
-        rasterizationState.frontFace = get_front_face(info.rasterizationState.frontFace);
-        rasterizationState.depthBiasEnable = info.rasterizationState.isBiasEnabled ? VK_TRUE : VK_FALSE;
-        rasterizationState.depthBiasConstantFactor = 0.0f;
-        rasterizationState.depthBiasClamp = 0.0f;
-        rasterizationState.depthBiasSlopeFactor = 0.0f;
-
-        if (info.multisampleState.sampleCount == rhi::SampleCount::UNDEFINED)
-            FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined sample count. Failed to create VkPipeline.");
-
-        VkPipelineMultisampleStateCreateInfo multisampleState{};
-        multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleState.sampleShadingEnable = info.multisampleState.isEnabled ? VK_TRUE : VK_FALSE;
-        multisampleState.rasterizationSamples = get_sample_count(info.multisampleState.sampleCount);
-        multisampleState.minSampleShading = 1.0f;
-        multisampleState.pSampleMask = nullptr;
-        multisampleState.alphaToCoverageEnable = info.multisampleState.isEnabled ? VK_TRUE : VK_FALSE;
-        multisampleState.alphaToOneEnable = info.multisampleState.isEnabled ? VK_TRUE : VK_FALSE;
-
-        std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-        for (auto& desc : info.bindingDescriptions)
-        {
-            VkVertexInputBindingDescription description;
-            description.binding = desc.binding;
-            description.stride = desc.stride;
-            description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-            bindingDescriptions.push_back(description);
-        }
-
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-        for (auto& desc : info.attributeDescriptions)
-        {
-            if (desc.format == rhi::Format::UNDEFINED)
-                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined format. Failed to create VkPipeline.");
-            
-            VkVertexInputAttributeDescription description;
-            description.binding = desc.binding;
-            description.format = get_format(desc.format);
-            description.location = desc.location;
-            description.offset = desc.offset;
-            attributeDescriptions.push_back(description);
-        }
-
-        VkPipelineVertexInputStateCreateInfo inputState{};
-        inputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        inputState.pVertexBindingDescriptions = !bindingDescriptions.empty() ? bindingDescriptions.data() : nullptr;
-        inputState.vertexBindingDescriptionCount = bindingDescriptions.size();
-        inputState.pVertexAttributeDescriptions = !attributeDescriptions.empty() ? attributeDescriptions.data() : nullptr;
-        inputState.vertexAttributeDescriptionCount = attributeDescriptions.size();
-
-        std::vector<VkDynamicState> dynamicStates;
-        dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
-        dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
-        if (info.rasterizationState.isBiasEnabled)
-            dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
-
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = dynamicStates.size();
-        dynamicState.pDynamicStates = dynamicStates.data();
-
-        std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-        for (auto& attach : info.colorBlendState.colorBlendAttachments)
-        {
-            VkPipelineColorBlendAttachmentState attachmentState{};
-            attachmentState.colorWriteMask = (VkColorComponentFlags)attach.colorWriteMask;
-            if (attach.isBlendEnabled)
-            {
-                if (attach.srcColorBlendFactor == rhi::BlendFactor::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined src color blend factor. Failed to create VkPipeline.");
-                
-                if (attach.dstColorBlendFactor == rhi::BlendFactor::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined dst color blend factor. Failed to create VkPipeline.");
-                
-                if (attach.srcAlphaBlendFactor == rhi::BlendFactor::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined src alpha blend factor. Failed to create VkPipeline.");
-                
-                if (attach.dstAlphaBlendFactor == rhi::BlendFactor::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined dst alpha blend factor. Failed to create VkPipeline.");
-                
-                if (attach.colorBlendOp == rhi::BlendOp::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined color blend op. Failed to create VkPipeline.");
-                
-                if (attach.alphaBlendOp == rhi::BlendOp::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined alpha blend op. Failed to create VkPipeline.");
-                
-                attachmentState.blendEnable = VK_TRUE;
-                attachmentState.srcColorBlendFactor = get_blend_factor(attach.srcColorBlendFactor);
-                attachmentState.dstColorBlendFactor = get_blend_factor(attach.dstColorBlendFactor);
-                attachmentState.srcAlphaBlendFactor = get_blend_factor(attach.srcAlphaBlendFactor);
-                attachmentState.dstAlphaBlendFactor = get_blend_factor(attach.dstAlphaBlendFactor);
-                attachmentState.colorBlendOp = get_blend_op(attach.colorBlendOp);
-                attachmentState.alphaBlendOp = get_blend_op(attach.alphaBlendOp);
-            }
-            attachmentState.blendEnable = VK_FALSE;
-            colorBlendAttachments.push_back(attachmentState);
-        }
-
-        VkPipelineColorBlendStateCreateInfo colorBlendState{};
-        colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlendState.attachmentCount = colorBlendAttachments.size();
-        colorBlendState.pAttachments = colorBlendAttachments.data();
-        colorBlendState.logicOpEnable = info.colorBlendState.isLogicOpEnabled ? VK_TRUE : VK_FALSE;
-        colorBlendState.logicOp = get_logic_op(info.colorBlendState.logicOp);
-        colorBlendState.blendConstants[0] = 1.0f;
-        colorBlendState.blendConstants[1] = 1.0f;
-        colorBlendState.blendConstants[2] = 1.0f;
-        colorBlendState.blendConstants[3] = 1.0f;
-        
-        std::vector<VkPipelineShaderStageCreateInfo> pipelineStages; 
-        for (Shader* shader : info.shaderStages)
-        {
-            if (shader->type == rhi::ShaderType::UNDEFINED)
-                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Shader type is undefined.");
-            
-            VkPipelineShaderStageCreateInfo shaderStage{};
-            shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            shaderStage.module = shader->vk.shader;
-            shaderStage.stage = (VkShaderStageFlagBits)get_shader_stage(shader->type);
-            shaderStage.pName = "main";
-            shaderStage.pSpecializationInfo = nullptr;
-            pipelineStages.push_back(shaderStage);
-        }
-
-        if (info.depthStencilState.compareOp == rhi::CompareOp::UNDEFINED)
-            FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined compare op, depth. Failed to create VkPipeline.");
-        
-        VkPipelineDepthStencilStateCreateInfo depthStencilState{};
-        depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencilState.depthTestEnable = info.depthStencilState.isDepthTestEnabled ? VK_TRUE : VK_FALSE;
-        depthStencilState.depthWriteEnable = info.depthStencilState.isDepthWriteEnabled ? VK_TRUE : VK_FALSE;
-        depthStencilState.depthCompareOp = get_compare_op(info.depthStencilState.compareOp);
-        depthStencilState.minDepthBounds = 0.0f;
-        depthStencilState.maxDepthBounds = 1.0f;
-        depthStencilState.stencilTestEnable = VK_FALSE;
-        std::vector<rhi::StencilOpState> stencilOps = { info.depthStencilState.backStencil, info.depthStencilState.frontStencil };
-        if (info.depthStencilState.isStencilTestEnabled)
-        {
-            depthStencilState.stencilTestEnable = VK_TRUE;
-
-            std::vector<VkStencilOpState> vkStencilStates;
-            for (auto& stencilState : stencilOps)
-            {
-                if (stencilState.compareOp == rhi::CompareOp::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined compare op, stencil. Failed to create VkPipeline.");
-                
-                if (stencilState.failOp == rhi::StencilOp::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined fail op stencil. Failed to create VkPipeline.");
-                
-                if (stencilState.passOp == rhi::StencilOp::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined pass op stencil. Failed to create VkPipeline.");
-                
-                if (stencilState.depthFailOp == rhi::StencilOp::UNDEFINED)
-                    FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined depth fail op stencil. Failed to create VkPipeline.");
-                
-                VkStencilOpState stencilOp{};
-                stencilOp.failOp = get_stencil_op(stencilState.failOp);
-                stencilOp.passOp = get_stencil_op(stencilState.passOp);
-                stencilOp.depthFailOp = get_stencil_op(stencilState.depthFailOp);
-                stencilOp.compareOp = get_compare_op(stencilState.compareOp);
-                stencilOp.compareMask = stencilState.compareMask;
-                stencilOp.writeMask = stencilState.writeMask;
-                stencilOp.reference = stencilState.reference;
-                vkStencilStates.push_back(stencilOp);
-            }
-        }
-
-        const PipelineLayoutCache::PipelineLayout& layout = g_pipelineLayoutCache.find_or_add_layout(info.shaderStages);
-
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.renderPass = VK_NULL_HANDLE;
-        pipelineInfo.layout = layout.layout;
-        pipelineInfo.subpass = 0;
-        pipelineInfo.stageCount = pipelineStages.size();
-        pipelineInfo.pStages = pipelineStages.data();
-        pipelineInfo.pVertexInputState = &inputState;
-        pipelineInfo.pInputAssemblyState = &assemblyState;
-        pipelineInfo.pViewportState = &viewportState;
-        pipelineInfo.pRasterizationState = &rasterizationState;
-        pipelineInfo.pMultisampleState = &multisampleState;
-        pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.pColorBlendState = &colorBlendState;
-        pipelineInfo.pDepthStencilState = &depthStencilState;
-        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-        
-        VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
-        pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-        pipelineRenderingCreateInfo.viewMask = 0;
-        //pipelineRenderingCreateInfo.colorAttachmentCount = info->colorAttachmentFormats.size();
-        
-        std::vector<VkFormat> colorAttachFormats;
-        for (auto& rhiFormat : info.colorAttachmentFormats)
-            colorAttachFormats.push_back(get_format(rhiFormat));
-        
-        pipelineRenderingCreateInfo.pColorAttachmentFormats = colorAttachFormats.size() ? colorAttachFormats.data() : nullptr;
-        pipelineRenderingCreateInfo.colorAttachmentCount = colorAttachFormats.size();
-        if (info.depthFormat != rhi::Format::UNDEFINED)
-        {
-            pipelineRenderingCreateInfo.depthAttachmentFormat = get_format(info.depthFormat);
-            if (support_stencil(info.depthFormat))
-                pipelineRenderingCreateInfo.stencilAttachmentFormat = get_format(info.depthFormat);
-        }
-        
-        pipelineInfo.pNext = &pipelineRenderingCreateInfo;
-
-        Pipeline* pipeline = g_allocator.pipelineAllocator.allocate();
-        FE_CHECK(pipeline);
-
-        pipeline->type = PipelineType::GRAPHICS;
-        pipeline->vk.layoutHash = layout.layoutHash;
-        
-        VK_CHECK(vkCreateGraphicsPipelines(g_device.device, nullptr, 1, &pipelineInfo, nullptr, &pipeline->vk.pipeline));
-
-        outPipelines.push_back(pipeline);
+        create_graphics_pipeline(&outPipelines.emplace_back(), &info);
     }
+}
+
+void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* info)
+{
+    FE_CHECK(pipeline);
+    FE_CHECK(info);
+
+    VkPipelineInputAssemblyStateCreateInfo assemblyState{};
+    assemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    assemblyState.topology = get_primitive_topology(info->assemblyState.topologyType);
+    assemblyState.primitiveRestartEnable = VK_FALSE;
+
+    // Only dynamic viewports, no static
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.pScissors = nullptr;
+    viewportState.scissorCount = 1;
+    viewportState.pViewports = nullptr;
+    viewportState.viewportCount = 1;
+
+    if (info->rasterizationState.cullMode == rhi::CullMode::UNDEFINED)
+        FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined cull mode. Failed to create VkPipeline.");
+    
+    if (info->rasterizationState.polygonMode == rhi::PolygonMode::UNDEFINED)
+        FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined polygon mode. Failed to create VkPipeline.");
+        
+    if (info->rasterizationState.frontFace == rhi::FrontFace::UNDEFINED)
+        FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined front face. Failed to create VkPipeline.");
+
+    VkPipelineRasterizationStateCreateInfo rasterizationState{};
+    rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizationState.depthClampEnable = VK_FALSE;
+    rasterizationState.rasterizerDiscardEnable = VK_FALSE;
+    rasterizationState.polygonMode = get_polygon_mode(info->rasterizationState.polygonMode);
+    rasterizationState.lineWidth = 1.0f;
+    rasterizationState.cullMode = get_cull_mode(info->rasterizationState.cullMode);
+    rasterizationState.frontFace = get_front_face(info->rasterizationState.frontFace);
+    rasterizationState.depthBiasEnable = info->rasterizationState.isBiasEnabled ? VK_TRUE : VK_FALSE;
+    rasterizationState.depthBiasConstantFactor = 0.0f;
+    rasterizationState.depthBiasClamp = 0.0f;
+    rasterizationState.depthBiasSlopeFactor = 0.0f;
+
+    if (info->multisampleState.sampleCount == rhi::SampleCount::UNDEFINED)
+        FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined sample count. Failed to create VkPipeline.");
+
+    VkPipelineMultisampleStateCreateInfo multisampleState{};
+    multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleState.sampleShadingEnable = info->multisampleState.isEnabled ? VK_TRUE : VK_FALSE;
+    multisampleState.rasterizationSamples = get_sample_count(info->multisampleState.sampleCount);
+    multisampleState.minSampleShading = 1.0f;
+    multisampleState.pSampleMask = nullptr;
+    multisampleState.alphaToCoverageEnable = info->multisampleState.isEnabled ? VK_TRUE : VK_FALSE;
+    multisampleState.alphaToOneEnable = info->multisampleState.isEnabled ? VK_TRUE : VK_FALSE;
+
+    std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+    for (auto& desc : info->bindingDescriptions)
+    {
+        VkVertexInputBindingDescription description;
+        description.binding = desc.binding;
+        description.stride = desc.stride;
+        description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        bindingDescriptions.push_back(description);
+    }
+
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+    for (auto& desc : info->attributeDescriptions)
+    {
+        if (desc.format == rhi::Format::UNDEFINED)
+            FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined format. Failed to create VkPipeline.");
+        
+        VkVertexInputAttributeDescription description;
+        description.binding = desc.binding;
+        description.format = get_format(desc.format);
+        description.location = desc.location;
+        description.offset = desc.offset;
+        attributeDescriptions.push_back(description);
+    }
+
+    VkPipelineVertexInputStateCreateInfo inputState{};
+    inputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    inputState.pVertexBindingDescriptions = !bindingDescriptions.empty() ? bindingDescriptions.data() : nullptr;
+    inputState.vertexBindingDescriptionCount = bindingDescriptions.size();
+    inputState.pVertexAttributeDescriptions = !attributeDescriptions.empty() ? attributeDescriptions.data() : nullptr;
+    inputState.vertexAttributeDescriptionCount = attributeDescriptions.size();
+
+    std::vector<VkDynamicState> dynamicStates;
+    dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+    dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+    if (info->rasterizationState.isBiasEnabled)
+        dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
+
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = dynamicStates.size();
+    dynamicState.pDynamicStates = dynamicStates.data();
+
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+    for (auto& attach : info->colorBlendState.colorBlendAttachments)
+    {
+        VkPipelineColorBlendAttachmentState attachmentState{};
+        attachmentState.colorWriteMask = (VkColorComponentFlags)attach.colorWriteMask;
+        if (attach.isBlendEnabled)
+        {
+            if (attach.srcColorBlendFactor == rhi::BlendFactor::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined src color blend factor. Failed to create VkPipeline.");
+            
+            if (attach.dstColorBlendFactor == rhi::BlendFactor::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined dst color blend factor. Failed to create VkPipeline.");
+            
+            if (attach.srcAlphaBlendFactor == rhi::BlendFactor::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined src alpha blend factor. Failed to create VkPipeline.");
+            
+            if (attach.dstAlphaBlendFactor == rhi::BlendFactor::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined dst alpha blend factor. Failed to create VkPipeline.");
+            
+            if (attach.colorBlendOp == rhi::BlendOp::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined color blend op. Failed to create VkPipeline.");
+            
+            if (attach.alphaBlendOp == rhi::BlendOp::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined alpha blend op. Failed to create VkPipeline.");
+            
+            attachmentState.blendEnable = VK_TRUE;
+            attachmentState.srcColorBlendFactor = get_blend_factor(attach.srcColorBlendFactor);
+            attachmentState.dstColorBlendFactor = get_blend_factor(attach.dstColorBlendFactor);
+            attachmentState.srcAlphaBlendFactor = get_blend_factor(attach.srcAlphaBlendFactor);
+            attachmentState.dstAlphaBlendFactor = get_blend_factor(attach.dstAlphaBlendFactor);
+            attachmentState.colorBlendOp = get_blend_op(attach.colorBlendOp);
+            attachmentState.alphaBlendOp = get_blend_op(attach.alphaBlendOp);
+        }
+        attachmentState.blendEnable = VK_FALSE;
+        colorBlendAttachments.push_back(attachmentState);
+    }
+
+    VkPipelineColorBlendStateCreateInfo colorBlendState{};
+    colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlendState.attachmentCount = colorBlendAttachments.size();
+    colorBlendState.pAttachments = colorBlendAttachments.data();
+    colorBlendState.logicOpEnable = info->colorBlendState.isLogicOpEnabled ? VK_TRUE : VK_FALSE;
+    colorBlendState.logicOp = get_logic_op(info->colorBlendState.logicOp);
+    colorBlendState.blendConstants[0] = 1.0f;
+    colorBlendState.blendConstants[1] = 1.0f;
+    colorBlendState.blendConstants[2] = 1.0f;
+    colorBlendState.blendConstants[3] = 1.0f;
+    
+    std::vector<VkPipelineShaderStageCreateInfo> pipelineStages;
+    pipelineStages.reserve(info->shaderStages.size());
+    for (Shader* shader : info->shaderStages)
+    {
+        if (shader->type == rhi::ShaderType::UNDEFINED)
+            FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Shader type is undefined.");
+        
+        VkPipelineShaderStageCreateInfo& shaderStage = pipelineStages.emplace_back();
+        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.pNext = nullptr;
+        shaderStage.flags = 0;
+        shaderStage.module = shader->vk.shader;
+        shaderStage.stage = (VkShaderStageFlagBits)get_shader_stage(shader->type);
+        shaderStage.pName = "main";
+        shaderStage.pSpecializationInfo = nullptr;
+    }
+
+    if (info->depthStencilState.compareOp == rhi::CompareOp::UNDEFINED)
+        FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined compare op, depth. Failed to create VkPipeline.");
+    
+    VkPipelineDepthStencilStateCreateInfo depthStencilState{};
+    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilState.depthTestEnable = info->depthStencilState.isDepthTestEnabled ? VK_TRUE : VK_FALSE;
+    depthStencilState.depthWriteEnable = info->depthStencilState.isDepthWriteEnabled ? VK_TRUE : VK_FALSE;
+    depthStencilState.depthCompareOp = get_compare_op(info->depthStencilState.compareOp);
+    depthStencilState.minDepthBounds = 0.0f;
+    depthStencilState.maxDepthBounds = 1.0f;
+    depthStencilState.stencilTestEnable = VK_FALSE;
+    std::vector<rhi::StencilOpState> stencilOps = { info->depthStencilState.backStencil, info->depthStencilState.frontStencil };
+    if (info->depthStencilState.isStencilTestEnabled)
+    {
+        depthStencilState.stencilTestEnable = VK_TRUE;
+
+        std::vector<VkStencilOpState> vkStencilStates;
+        for (auto& stencilState : stencilOps)
+        {
+            if (stencilState.compareOp == rhi::CompareOp::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined compare op, stencil. Failed to create VkPipeline.");
+            
+            if (stencilState.failOp == rhi::StencilOp::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined fail op stencil. Failed to create VkPipeline.");
+            
+            if (stencilState.passOp == rhi::StencilOp::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined pass op stencil. Failed to create VkPipeline.");
+            
+            if (stencilState.depthFailOp == rhi::StencilOp::UNDEFINED)
+                FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined depth fail op stencil. Failed to create VkPipeline.");
+            
+            VkStencilOpState stencilOp{};
+            stencilOp.failOp = get_stencil_op(stencilState.failOp);
+            stencilOp.passOp = get_stencil_op(stencilState.passOp);
+            stencilOp.depthFailOp = get_stencil_op(stencilState.depthFailOp);
+            stencilOp.compareOp = get_compare_op(stencilState.compareOp);
+            stencilOp.compareMask = stencilState.compareMask;
+            stencilOp.writeMask = stencilState.writeMask;
+            stencilOp.reference = stencilState.reference;
+            vkStencilStates.push_back(stencilOp);
+        }
+    }
+
+    const PipelineLayoutCache::PipelineLayout& layout = g_pipelineLayoutCache.find_or_add_layout(info->shaderStages);
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.renderPass = VK_NULL_HANDLE;
+    pipelineInfo.layout = layout.layout;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.stageCount = pipelineStages.size();
+    pipelineInfo.pStages = pipelineStages.data();
+    pipelineInfo.pVertexInputState = &inputState;
+    pipelineInfo.pInputAssemblyState = &assemblyState;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizationState;
+    pipelineInfo.pMultisampleState = &multisampleState;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.pColorBlendState = &colorBlendState;
+    pipelineInfo.pDepthStencilState = &depthStencilState;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    
+    VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
+    pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    pipelineRenderingCreateInfo.viewMask = 0;
+    //pipelineRenderingCreateInfo.colorAttachmentCount = info->colorAttachmentFormats.size();
+    
+    std::vector<VkFormat> colorAttachFormats;
+    for (auto& rhiFormat : info->colorAttachmentFormats)
+        colorAttachFormats.push_back(get_format(rhiFormat));
+    
+    pipelineRenderingCreateInfo.pColorAttachmentFormats = colorAttachFormats.size() ? colorAttachFormats.data() : nullptr;
+    pipelineRenderingCreateInfo.colorAttachmentCount = colorAttachFormats.size();
+    if (info->depthFormat != rhi::Format::UNDEFINED)
+    {
+        pipelineRenderingCreateInfo.depthAttachmentFormat = get_format(info->depthFormat);
+        if (support_stencil(info->depthFormat))
+            pipelineRenderingCreateInfo.stencilAttachmentFormat = get_format(info->depthFormat);
+    }
+    
+    pipelineInfo.pNext = &pipelineRenderingCreateInfo;
+
+    Pipeline* pipelinePtr = g_allocator.pipelineAllocator.allocate();
+    FE_CHECK(pipelinePtr);
+
+    pipelinePtr->type = PipelineType::GRAPHICS;
+    pipelinePtr->vk.layoutHash = layout.layoutHash;
+    
+    VK_CHECK(vkCreateGraphicsPipelines(g_device.device, nullptr, 1, &pipelineInfo, nullptr, &pipelinePtr->vk.pipeline));
+
+    *pipeline = pipelinePtr;
 }
 
 void create_compute_pipelines(const std::vector<ComputePipelineInfo>& infos, std::vector<Pipeline*>& outPipelines)
@@ -3475,28 +3729,121 @@ void create_compute_pipelines(const std::vector<ComputePipelineInfo>& infos, std
 
     for (const ComputePipelineInfo& info : infos)
     {
-        VkPipelineShaderStageCreateInfo shaderStage{};
-        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderStage.module = info.shaderStage->vk.shader;
-        shaderStage.stage = (VkShaderStageFlagBits)get_shader_stage(info.shaderStage->type);
-        shaderStage.pName = "main";
-
-        const PipelineLayoutCache::PipelineLayout& layout = g_pipelineLayoutCache.find_or_add_layout(info.shaderStage);
-        VkComputePipelineCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        createInfo.layout = layout.layout;
-        createInfo.stage = shaderStage;
-
-        Pipeline* pipeline = g_allocator.pipelineAllocator.allocate();
-        FE_CHECK(pipeline);
-
-        pipeline->type = PipelineType::COMPUTE;
-        pipeline->vk.layoutHash = layout.layoutHash;
-
-        VK_CHECK(vkCreateComputePipelines(g_device.device, nullptr, 1, &createInfo, nullptr, &pipeline->vk.pipeline));
-
-        outPipelines.push_back(pipeline);
+        create_compute_pipeline(&outPipelines.emplace_back(), &info);
     }
+}
+
+void create_compute_pipeline(Pipeline** pipeline, const ComputePipelineInfo* info)
+{
+    FE_CHECK(pipeline);
+    FE_CHECK(info);
+
+    VkPipelineShaderStageCreateInfo shaderStage{};
+    shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStage.module = info->shaderStage->vk.shader;
+    shaderStage.stage = (VkShaderStageFlagBits)get_shader_stage(info->shaderStage->type);
+    shaderStage.pName = "main";
+
+    const PipelineLayoutCache::PipelineLayout& layout = g_pipelineLayoutCache.find_or_add_layout(info->shaderStage);
+    VkComputePipelineCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    createInfo.layout = layout.layout;
+    createInfo.stage = shaderStage;
+
+    Pipeline* pipelinePtr = g_allocator.pipelineAllocator.allocate();
+    FE_CHECK(pipelinePtr);
+
+    pipelinePtr->type = PipelineType::COMPUTE;
+    pipelinePtr->vk.layoutHash = layout.layoutHash;
+
+    VK_CHECK(vkCreateComputePipelines(g_device.device, nullptr, 1, &createInfo, nullptr, &pipelinePtr->vk.pipeline));
+
+    *pipeline = pipelinePtr;
+}
+
+void create_ray_tracing_pipeline(Pipeline** pipeline, const RayTracingPipelineInfo* info)
+{
+    FE_CHECK(pipeline);
+    FE_CHECK(info);
+
+    VkRayTracingPipelineCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+    
+    std::vector<VkPipelineShaderStageCreateInfo> pipelineStages;
+    pipelineStages.reserve(info->shaderLibraries.size());
+    std::vector<Shader*> shaderPtrs;
+    shaderPtrs.reserve(info->shaderLibraries.size());
+
+    for (const ShaderLibrary& shaderLibrary : info->shaderLibraries)
+    {
+        if (shaderLibrary.type == rhi::ShaderType::UNDEFINED)
+            FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Shader type is undefined.");
+
+        FE_CHECK(shaderLibrary.shader);
+        shaderPtrs.push_back(shaderLibrary.shader);
+        
+        VkPipelineShaderStageCreateInfo& shaderStage = pipelineStages.emplace_back();
+        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.pNext = nullptr;
+        shaderStage.flags = 0;
+        shaderStage.module = shaderLibrary.shader->vk.shader;
+        shaderStage.stage = (VkShaderStageFlagBits)get_shader_stage(shaderLibrary.type);
+        shaderStage.pName = shaderLibrary.entryPoint.c_str();
+        shaderStage.pSpecializationInfo = nullptr;
+    }
+
+    createInfo.stageCount = pipelineStages.size();
+    createInfo.pStages = pipelineStages.data();
+
+    std::vector<VkRayTracingShaderGroupCreateInfoKHR> hitGroupInfos;
+    hitGroupInfos.reserve(info->shaderHitGroups.size());
+
+    for (const ShaderHitGroup& hitGroup : info->shaderHitGroups)
+    {
+        VkRayTracingShaderGroupCreateInfoKHR& hitGroupInfo = hitGroupInfos.emplace_back();
+        hitGroupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+        hitGroupInfo.pNext = nullptr;
+        hitGroupInfo.pShaderGroupCaptureReplayHandle = nullptr;
+
+        switch (hitGroup.type)
+        {
+        case ShaderHitGroup::GENERAL:
+            hitGroupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+            break;
+        case ShaderHitGroup::PROCEDURAL:
+            hitGroupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR;
+            break;
+        case ShaderHitGroup::TRIANGLES:
+            hitGroupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+            break;
+        }
+
+        hitGroupInfo.generalShader = hitGroup.generalShader;
+        hitGroupInfo.closestHitShader = hitGroup.closestHitShader;
+        hitGroupInfo.anyHitShader = hitGroup.anyHitShader;
+        hitGroupInfo.intersectionShader = hitGroup.intersectionShader;
+    }
+
+    createInfo.groupCount = hitGroupInfos.size();
+    createInfo.pGroups = hitGroupInfos.data();
+
+    createInfo.maxPipelineRayRecursionDepth = info->maxTraceDepthRecursion;
+
+    const PipelineLayoutCache::PipelineLayout& layout = g_pipelineLayoutCache.find_or_add_layout(shaderPtrs);
+    createInfo.layout = layout.layout;
+
+    createInfo.basePipelineHandle = VK_NULL_HANDLE;
+    createInfo.basePipelineIndex = 0;
+
+    Pipeline* pipelinePtr = g_allocator.pipelineAllocator.allocate();
+    FE_CHECK(pipelinePtr);
+
+    pipelinePtr->type = PipelineType::RAY_TRACING;
+    pipelinePtr->vk.layoutHash = layout.layoutHash;
+
+    VK_CHECK(vkCreateRayTracingPipelinesKHR(g_device.device, VK_NULL_HANDLE, nullptr, 1, &createInfo, nullptr, &pipelinePtr->vk.pipeline));
+
+    *pipeline = pipelinePtr;
 }
 
 void destroy_pipeline(Pipeline* pipeline)
@@ -3507,6 +3854,122 @@ void destroy_pipeline(Pipeline* pipeline)
         vkDestroyPipeline(g_device.device, pipeline->vk.pipeline, nullptr);
 
     g_allocator.pipelineAllocator.free(pipeline);
+}
+
+void create_acceleration_structure(AccelerationStructure** accelerationStructure, AccelerationStructureInfo* info)
+{
+    FE_CHECK(accelerationStructure);
+    FE_CHECK(info);
+
+    AccelerationStructure* accelerationStructurePtr = g_allocator.accelerationStructureAllocator.allocate();
+    FE_CHECK(accelerationStructurePtr);
+
+    accelerationStructurePtr->info = *info;
+
+    VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+    std::vector<VkAccelerationStructureGeometryKHR> geometries;
+    std::vector<uint32> primitivesCount;
+
+    fill_acceleration_structure_build_geometry_info(
+        accelerationStructurePtr, 
+        nullptr,
+        &buildInfo,
+        &geometries,
+        &primitivesCount,
+        nullptr
+    );
+
+    VkAccelerationStructureBuildSizesInfoKHR sizesInfo{};
+    sizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+
+    vkGetAccelerationStructureBuildSizesKHR(
+        g_device.device,
+        VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+        &buildInfo,
+        primitivesCount.data(),
+        &sizesInfo
+    );
+
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizesInfo.accelerationStructureSize + std::max(sizesInfo.buildScratchSize, sizesInfo.updateScratchSize);
+    bufferInfo.usage = VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
+        | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+        | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    VK_CHECK(vmaCreateBuffer(
+        g_allocator.gpuAllocator, 
+        &bufferInfo, 
+        &allocInfo, 
+        &accelerationStructurePtr->vk.buffer, 
+        &accelerationStructurePtr->vk.allocation, 
+        nullptr
+    ));
+
+    VkAccelerationStructureCreateInfoKHR asCreateInfo{};
+    asCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    asCreateInfo.type = buildInfo.type;
+    asCreateInfo.buffer = accelerationStructurePtr->vk.buffer;
+    asCreateInfo.size = sizesInfo.accelerationStructureSize;
+
+    VK_CHECK(vkCreateAccelerationStructureKHR(
+        g_device.device,
+        &asCreateInfo,
+        nullptr,
+        &accelerationStructurePtr->vk.accelerationStructure
+    ));
+
+    accelerationStructurePtr->vk.accelerationStructureAddress = 
+        get_device_address(accelerationStructurePtr->vk.accelerationStructure);
+
+    accelerationStructurePtr->vk.scratchAddress = get_device_address(accelerationStructurePtr->vk.buffer)
+        + sizesInfo.accelerationStructureSize;
+        
+    if (info->type == AccelerationStructureInfo::TOP_LEVEL)
+        g_descriptorHeap.allocate_descriptor(accelerationStructurePtr);
+
+    *accelerationStructure = accelerationStructurePtr;
+}
+
+void destroy_acceleration_structure(AccelerationStructure* accelerationStructure)
+{
+    FE_CHECK(accelerationStructure);
+
+    if (accelerationStructure->info.type == AccelerationStructureInfo::TOP_LEVEL)
+        g_descriptorHeap.free_descriptor(accelerationStructure);
+
+    g_allocator.accelerationStructureAllocator.free(accelerationStructure);
+}
+
+void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, void* dest)
+{
+    FE_CHECK(instance);
+    FE_CHECK(instance->blas);
+
+    VkAccelerationStructureInstanceKHR vkInstance{};
+    vkInstance.transform = *(VkTransformMatrixKHR*)&instance->transform;
+    vkInstance.instanceCustomIndex = instance->instanceID;
+    vkInstance.mask = instance->instanceMask;
+    vkInstance.instanceShaderBindingTableRecordOffset = instance->instanceContributionToHitGroupIndex;
+    vkInstance.flags = 0;
+
+    if (has_flag(instance->flags, TLAS::Instance::Flags::TRIANGLE_CULL_DiSABLE))
+        vkInstance.flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+    if (has_flag(instance->flags, TLAS::Instance::Flags::TRIANGLE_FRONT_COUNTERCLOCKWISE))
+        vkInstance.flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR;
+    if (has_flag(instance->flags, TLAS::Instance::Flags::FORCE_OPAQUE))
+        vkInstance.flags |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR;
+    if (has_flag(instance->flags, TLAS::Instance::Flags::FORCE_NON_OPAQUE))
+        vkInstance.flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR;
+
+    vkInstance.accelerationStructureReference = instance->blas->vk.accelerationStructureAddress;
+
+    std::memcpy(dest, &vkInstance, sizeof(VkAccelerationStructureInstanceKHR));
 }
 
 void bind_uniform_buffer(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset)
@@ -3972,7 +4435,7 @@ void bind_index_buffer(CommandBuffer* cmd, Buffer* buffer)
     FE_CHECK(cmd);
     FE_CHECK(buffer);
 
-    if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::VERTEX_BUFFER))
+    if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::INDEX_BUFFER))
         FE_LOG(LogVulkanRHI, FATAL, "bind_index_buffer(): Buffer wasn't created with INDEX_BUFFER usage.");
 
     VkDeviceSize offset = 0;
@@ -4008,6 +4471,22 @@ void bind_pipeline(CommandBuffer* cmd, Pipeline* pipeline)
     {
         pipelineLayout->bind_descriptor_sets(cmd->vk.cmdBuffer, g_frameIndex, bindPoint);
     }
+}
+
+void build_acceleration_structure(CommandBuffer* cmd, const AccelerationStructure* dst, const AccelerationStructure* src)
+{
+    FE_CHECK(cmd);
+    FE_CHECK(dst);
+
+    VkAccelerationStructureBuildGeometryInfoKHR buildInfo;
+    std::vector<VkAccelerationStructureGeometryKHR> geometries;
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR> ranges;
+
+    fill_acceleration_structure_build_geometry_info(dst, src, &buildInfo, &geometries, nullptr, &ranges);
+
+    VkAccelerationStructureBuildRangeInfoKHR* pRangeInfo = ranges.data();
+
+    vkCmdBuildAccelerationStructuresKHR(cmd->vk.cmdBuffer, 1, &buildInfo, &pRangeInfo);
 }
 
 void begin_rendering(CommandBuffer* cmd, RenderingBeginInfo* beginInfo)
@@ -4459,6 +4938,120 @@ uint32 get_frame_index()
     return g_frameIndex;
 }
 
+void set_name(ResourceVariant resource, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.pObjectName = name.c_str();
+
+    if (Buffer** ppBuffer = std::get_if<Buffer*>(&resource))
+    {
+        Buffer* buffer = *ppBuffer;
+        FE_CHECK(buffer->vk.buffer != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_BUFFER;
+        info.objectHandle = (uint64)buffer->vk.buffer;
+    }
+    else if (BufferView** ppBufferView = std::get_if<BufferView*>(&resource))
+    {
+        BufferView* bufferView = *ppBufferView;
+        FE_CHECK(bufferView->vk.bufferView != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_BUFFER_VIEW;
+        info.objectHandle = (uint64)bufferView->vk.bufferView;
+    }
+    else if (Texture** ppTexture = std::get_if<Texture*>(&resource))
+    {
+        Texture* texture = *ppTexture;
+        FE_CHECK(texture->vk.image != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_IMAGE;
+        info.objectHandle = (uint64)texture->vk.image;
+    }
+    else if (TextureView** ppTextureView = std::get_if<TextureView*>(&resource))
+    {
+        TextureView* textureView = *ppTextureView;
+        FE_CHECK(textureView->vk.imageView != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+        info.objectHandle = (uint64)textureView->vk.imageView;
+    }
+    else if (Shader** ppShader = std::get_if<Shader*>(&resource))
+    {
+        Shader* shader = *ppShader;
+        FE_CHECK(shader->vk.shader != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_SHADER_MODULE;
+        info.objectHandle = (uint64)shader->vk.shader;
+    }
+    else if (Sampler** ppSampler = std::get_if<Sampler*>(&resource))
+    {
+        Sampler* sampler = *ppSampler;
+        FE_CHECK(sampler->vk.sampler != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_SAMPLER;
+        info.objectHandle = (uint64)sampler->vk.sampler;
+    }
+    else if (Pipeline** ppPipeline = std::get_if<Pipeline*>(&resource))
+    {
+        Pipeline* pipeline = *ppPipeline;
+        FE_CHECK(pipeline->vk.pipeline != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_PIPELINE;
+        info.objectHandle = (uint64)pipeline->vk.pipeline;
+    }
+    else if (CommandPool** ppCmdPool = std::get_if<CommandPool*>(&resource))
+    {
+        CommandPool* cmdPool = *ppCmdPool;
+        FE_CHECK(cmdPool->vk.cmdPool != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+        info.objectHandle = (uint64)cmdPool->vk.cmdPool;
+    }
+    else if (CommandBuffer** ppCmdBuffer = std::get_if<CommandBuffer*>(&resource))
+    {
+        CommandBuffer* cmdBuffer = *ppCmdBuffer;
+        FE_CHECK(cmdBuffer->vk.cmdBuffer != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
+        info.objectHandle = (uint64)cmdBuffer->vk.cmdBuffer;
+    }
+    else if (SwapChain** ppSwapChain = std::get_if<SwapChain*>(&resource))
+    {
+        SwapChain* swapChain = *ppSwapChain;
+        FE_CHECK(swapChain->vk.swapChain != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
+        info.objectHandle = (uint64)swapChain->vk.swapChain;
+    }
+    else if (Fence** ppFence = std::get_if<Fence*>(&resource))
+    {
+        Fence* fence = *ppFence;
+        FE_CHECK(fence->vk.fence != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_FENCE;
+        info.objectHandle = (uint64)fence->vk.fence;
+    }
+    else if (Semaphore** ppSemaphore = std::get_if<Semaphore*>(&resource))
+    {
+        Semaphore* semaphore = *ppSemaphore;
+        FE_CHECK(semaphore->vk.semaphore != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_SEMAPHORE;
+        info.objectHandle = (uint64)semaphore->vk.semaphore;
+    }
+    else if (AccelerationStructure** ppAS = std::get_if<AccelerationStructure*>(&resource))
+    {
+        AccelerationStructure* as = *ppAS;
+        FE_CHECK(as->vk.accelerationStructure != VK_NULL_HANDLE);
+
+        info.objectType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
+        info.objectHandle = (uint64)as->vk.accelerationStructure;
+    }
+
+    VK_CHECK(vkSetDebugUtilsObjectNameEXT(g_device.device, &info));
+}
+
 #pragma endregion
 
 void fill_function_table()
@@ -4484,8 +5077,15 @@ void fill_function_table()
     fe::rhi::create_shader = create_shader;
     fe::rhi::destroy_shader = destroy_shader;
     fe::rhi::create_graphics_pipelines = create_graphics_pipelines;
+    fe::rhi::create_graphics_pipeline = create_graphics_pipeline;
     fe::rhi::create_compute_pipelines = create_compute_pipelines;
+    fe::rhi::create_compute_pipeline = create_compute_pipeline;
+    fe::rhi::create_ray_tracing_pipeline = create_ray_tracing_pipeline;
     fe::rhi::destroy_pipeline = destroy_pipeline;
+
+    fe::rhi::create_acceleration_structure = create_acceleration_structure;
+    fe::rhi::destroy_acceleration_structure = destroy_acceleration_structure;
+    fe::rhi::write_top_level_acceleration_structure_instance = write_top_level_acceleration_structure_instance;
 
     fe::rhi::bind_uniform_buffer = bind_uniform_buffer;
 
@@ -4518,6 +5118,8 @@ void fill_function_table()
     fe::rhi::bind_index_buffer = bind_index_buffer;
     fe::rhi::bind_pipeline = bind_pipeline;
 
+    fe::rhi::build_acceleration_structure = build_acceleration_structure;
+
     fe::rhi::begin_rendering = begin_rendering;
     fe::rhi::end_rendering = end_rendering;
 
@@ -4536,6 +5138,7 @@ void fill_function_table()
 
     fe::rhi::get_api = get_api;
     fe::rhi::get_frame_index = get_frame_index;
+    fe::rhi::set_name = set_name;
 }
 
 }

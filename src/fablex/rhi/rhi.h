@@ -33,8 +33,15 @@ inline void (*destroy_sampler)(Sampler* sampler);
 inline void (*create_shader)(Shader** shader, const ShaderInfo* info);
 inline void (*destroy_shader)(Shader* shader);
 inline void (*create_graphics_pipelines)(const std::vector<GraphicsPipelineInfo>& infos, std::vector<Pipeline*>& outPipelines);
+inline void (*create_graphics_pipeline)(Pipeline** pipeline, const GraphicsPipelineInfo* info);
 inline void (*create_compute_pipelines)(const std::vector<ComputePipelineInfo>& infos, std::vector<Pipeline*>& outPipelines);
+inline void (*create_compute_pipeline)(Pipeline** pipeline, const ComputePipelineInfo* info);
+inline void (*create_ray_tracing_pipeline)(Pipeline** pipeline, const RayTracingPipelineInfo* info);
 inline void (*destroy_pipeline)(Pipeline* pipeline);
+
+inline void (*create_acceleration_structure)(AccelerationStructure** accelerationStructure, AccelerationStructureInfo* info);
+inline void (*destroy_acceleration_structure)(AccelerationStructure* accelerationStructure);
+inline void (*write_top_level_acceleration_structure_instance)(TLAS::Instance* instance, void* dest);
 
 inline void (*bind_uniform_buffer)(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset);
 
@@ -77,6 +84,8 @@ inline void (*bind_vertex_buffer)(CommandBuffer* cmd, Buffer* buffer);
 inline void (*bind_index_buffer)(CommandBuffer* cmd, Buffer* buffer);
 inline void (*bind_pipeline)(CommandBuffer* cmd, Pipeline* pipeline);
 
+inline void (*build_acceleration_structure)(CommandBuffer* cmd, const AccelerationStructure* dst, const AccelerationStructure* src);
+
 inline void (*begin_rendering)(CommandBuffer* cmd, RenderingBeginInfo* beginInfo);
 inline void (*end_rendering)(CommandBuffer* cmd, SwapChain* swapChain);
 
@@ -95,5 +104,6 @@ inline void (*wait_for_fences)(const std::vector<Fence*>& fences);
 
 inline API (*get_api)();
 inline uint32 (*get_frame_index)();
+inline void (*set_name)(ResourceVariant resource, const std::string& name);
 
 }

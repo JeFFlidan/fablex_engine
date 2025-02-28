@@ -4,9 +4,17 @@
 #include "platform/platform.h"
 #include <string>
 #include <functional>
+#include <algorithm>
 
 namespace fe
 {
+
+template<typename ...Ts>
+struct Visitor : Ts ...
+{
+    Visitor(const Ts&... args) : Ts(args)... { }
+    using Ts::operator()...;
+};
 
 class Utils
 {
@@ -51,6 +59,28 @@ public:
             MultiByteToWideChar(CP_UTF8, 0, from.c_str(), -1, to.data(), length);
         }
 #endif
+    }
+
+    template<typename ...Ts>
+    static auto make_visitor(Ts... lambdas)
+    {
+        return Visitor<Ts...>(lambdas...);
+    }
+
+    static std::string to_upper(const std::string& str)
+    {
+        std::string result = str;
+        std::transform(str.begin(), str.end(), result.begin(),
+            [](unsigned char c) { return std::toupper(c); });
+        return result;
+    }
+
+    static std::string to_lower(const std::string& str)
+    {
+        std::string result = str;
+        std::transform(str.begin(), str.end(), result.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        return result;
     }
 };
 

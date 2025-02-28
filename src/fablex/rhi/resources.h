@@ -12,6 +12,8 @@
 
 #include <string>
 #include <vector>
+#include <array>
+#include <variant>
 
 struct VmaAllocation_T;
 
@@ -332,23 +334,25 @@ enum class ShaderType : uint32
 {
     UNDEFINED = 0,
     
-    VERTEX = 1 << 0,
-    FRAGMENT = 1 << 1,
-    TESSELLATION_CONTROL = 1 << 2,
-    TESSELLATION_EVALUATION = 1 << 3,
-    GEOMETRY = 1 << 4,
+    VERTEX,
+    FRAGMENT,
+    TESSELLATION_CONTROL,
+    TESSELLATION_EVALUATION,
+    GEOMETRY,
 
-    COMPUTE = 1 << 5,
+    COMPUTE,
 
-    MESH = 1 << 6,
-    TASK = 1 << 7,
+    MESH,
+    TASK,
 
-    RAY_GENERATION = 1 << 8,
-    RAY_INTERSECTION = 1 << 9,
-    RAY_ANY_HIT = 1 << 10,
-    RAY_CLOSEST_HIT = 1 << 11,
-    RAY_MISS = 1 << 12,
-    RAY_CALLABLE = 1 << 13
+    RAY_GENERATION,
+    RAY_INTERSECTION,
+    RAY_ANY_HIT,
+    RAY_CLOSEST_HIT,
+    RAY_MISS,
+    RAY_CALLABLE,
+
+    LIB
 };
 
 enum class ShaderFormat : uint32
@@ -356,8 +360,6 @@ enum class ShaderFormat : uint32
     UNDEFINED = 0,
     HLSL6,			// For D3D12, DXCompiler
     HLSL_TO_SPIRV,	// For vulkan, DXCompiler
-    GLSL_TO_HLSL6,	// For D3D12, compiler will use spirv-cross. This feature will be implemented in the future
-    GLSL_TO_SPIRV,	// For vulkan, Shaderc 
 };
 
 enum class HLSLShaderModel : uint32
@@ -439,6 +441,7 @@ struct alignas(64) Buffer
         {
             VkBuffer buffer = VK_NULL_HANDLE;
             VmaAllocation_T* allocation;
+            VkDeviceAddress address = 0;
         } vk;
 #endif // VULKAN
     };
@@ -656,6 +659,13 @@ struct Shader
     ShaderType type = ShaderType::UNDEFINED;
 };
 
+struct ShaderLibrary
+{
+    rhi::Shader* shader = nullptr;
+    rhi::ShaderType type = rhi::ShaderType::RAY_GENERATION;
+    std::string entryPoint;
+};
+
 enum class TopologyType
 {
     UNDEFINED,
@@ -848,6 +858,32 @@ struct ComputePipelineInfo
     Shader* shaderStage;
 };
 
+struct ShaderHitGroup
+{
+    enum Type
+    {
+        GENERAL, // raygen or miss
+        TRIANGLES,
+        PROCEDURAL
+    };
+
+    Type type = GENERAL;
+    std::string name;
+    uint32 generalShader = ~0u;
+    uint32 closestHitShader = ~0u;
+    uint32 anyHitShader = ~0u;
+    uint32 intersectionShader = ~0u;
+};
+
+struct RayTracingPipelineInfo
+{
+    std::vector<ShaderLibrary> shaderLibraries;
+    std::vector<ShaderHitGroup> shaderHitGroups;
+    uint32 maxTraceDepthRecursion = 1;
+    uint32 maxAttributeSizeInBytes = 0;
+    uint32 maxPayloadSizeInBytes = 0;
+};
+
 enum class PipelineType : uint32
 {
     UNDEFINED,
@@ -870,6 +906,137 @@ struct Pipeline
     };
 
     PipelineType type{PipelineType::UNDEFINED};
+};
+
+struct BLAS
+{
+    struct Geometry
+    {
+        enum class Flags
+        {
+            UNDEFINED = 0,
+            OPAQUE = 1 << 0,
+            NO_DUPLICATE_ANYHIT_INVOCATION = 1 << 1,
+            USE_TRANSFORM = 1 << 2
+        };
+
+        enum Type
+        {
+            TRIANGLES,
+            PROCEDURAL_AABBS
+        };
+
+        struct Triangles
+        {
+            Buffer* vertexBuffer = nullptr;
+            Buffer* indexBuffer = nullptr;
+            uint32 indexCount = 0;
+            uint32 indexOffset = 0;
+            uint32 vertexCount = 0;
+            uint32 vertexOffset = 0;
+            uint32 vertexStride = 0;
+            rhi::Format vertexFormat = rhi::Format::R32G32B32_SFLOAT;
+            Buffer* transform3x4Buffer = nullptr;
+            uint32 transform3x4BufferOffset = 0;
+        };
+
+        struct ProceduralAABBs
+        {
+            Buffer* aabbBuffer = nullptr;
+            uint32 ofsset = 0;
+            uint32 count = 0;
+            uint32 stride = 0;
+        };
+
+        Flags flags = Flags::UNDEFINED;
+        Type type = TRIANGLES;
+
+        Triangles triangles;
+        ProceduralAABBs aabbs;
+    };
+
+    std::vector<Geometry> geometries;
+};
+
+struct AccelerationStructure;
+
+struct TLAS
+{
+    struct Instance
+    {
+        enum class Flags
+        {
+            UNDEFINED = 0,
+            TRIANGLE_CULL_DiSABLE = 1 << 0,
+            TRIANGLE_FRONT_COUNTERCLOCKWISE = 1 << 1,
+            FORCE_OPAQUE = 1 << 2,
+            FORCE_NON_OPAQUE = 1 << 3
+        };
+
+        Flags flags = Flags::UNDEFINED;
+        float transform[3][4];
+        uint32 instanceID = 0;
+        uint32 instanceMask = 0;
+        uint32 instanceContributionToHitGroupIndex = 0;
+        AccelerationStructure* blas = nullptr;
+    };
+
+    Buffer* instanceBuffer = nullptr;
+    uint32 offset = 0;
+    uint32 count = 0;
+};
+
+struct AccelerationStructureInfo
+{
+    AccelerationStructureInfo() { }
+    ~AccelerationStructureInfo() { }
+
+    enum class Flags
+    {
+        UNDEFINED = 0,
+        ALLOW_UPDATE = 1 << 0,
+        ALLOW_COMPACTION = 1 << 1,
+        PREFER_FAST_TRACE = 1 << 2,
+        PREFER_FAST_BUILD = 1 << 3,
+        LOW_MEMORY = 1 << 4
+    };
+
+    enum Type
+    {
+        BOTTOM_LEVEL,
+        TOP_LEVEL
+    };
+    
+    Flags flags = Flags::UNDEFINED;
+    Type type = Type::BOTTOM_LEVEL;
+
+    BLAS blas;
+    TLAS tlas;
+};
+
+struct AccelerationStructure
+{
+    AccelerationStructure() { }
+    ~AccelerationStructure() { }
+
+    union
+    {
+#if defined(VULKAN)
+        struct
+        {
+            VmaAllocation_T* allocation = nullptr;
+            VkBuffer buffer = VK_NULL_HANDLE;
+            VkAccelerationStructureKHR accelerationStructure = VK_NULL_HANDLE;
+
+            VkDeviceAddress scratchAddress = 0;
+            VkDeviceAddress accelerationStructureAddress = 0;
+        } vk;
+#endif // VULKAN
+    };
+
+    AccelerationStructureInfo info;
+    uint64 size = 0;
+    uint32 descriptorIndex; 
 };
 
 struct CommandPoolInfo
@@ -1053,12 +1220,12 @@ enum class StoreOp
 
 struct ClearValues
 {
-    float color[4];
+    std::array<float, 4> color = { 0.0f, 0.0f, 0.0f, 0.0f };
 
     struct
     {
-        float depth;
-        uint32_t stencil;
+        float depth = 1.0f;
+        uint32 stencil = 0;
     } depthStencil;
 };
 
@@ -1186,6 +1353,26 @@ struct GPUProperties
     std::string driverDescription;
 };
 
+using TextureHandle = Texture*;
+using TextureViewHandle = TextureView*;
+using BufferHandle = Buffer*;
+using BufferViewHandle = BufferView*;
+
+using ResourceVariant = std::variant<
+    Buffer*,
+    BufferView*,
+    Texture*,
+    TextureView*,
+    Shader*,
+    Sampler*,
+    Pipeline*,
+    CommandPool*,
+    CommandBuffer*,
+    SwapChain*,
+    Fence*,
+    Semaphore*,
+    AccelerationStructure*
+>;
 }
 
 ENABLE_BIT_MASK(fe::rhi::GPUCapability)
@@ -1193,4 +1380,6 @@ ENABLE_BIT_MASK(fe::rhi::ResourceUsage)
 ENABLE_BIT_MASK(fe::rhi::ResourceFlags)
 ENABLE_BIT_MASK(fe::rhi::ResourceLayout)
 ENABLE_BIT_MASK(fe::rhi::RenderingBeginInfoFlags)
-ENABLE_BIT_MASK(fe::rhi::ShaderType)
+ENABLE_BIT_MASK(fe::rhi::BLAS::Geometry::Flags)
+ENABLE_BIT_MASK(fe::rhi::TLAS::Instance::Flags)
+ENABLE_BIT_MASK(fe::rhi::AccelerationStructureInfo::Flags)

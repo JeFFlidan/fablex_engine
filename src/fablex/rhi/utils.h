@@ -2,6 +2,7 @@
 
 #include "resources.h"
 #include "core/logger.h"
+#include "core/utils.h"
 
 namespace fe::rhi
 {
@@ -11,6 +12,21 @@ inline bool support_stencil(Format format)
     if (format == Format::D32_SFLOAT || format == Format::D16_UNORM)
         return false;
     return true;
+}
+
+inline bool is_depth_stencil_format(Format format)
+{
+    switch (format)
+    {
+    case Format::D16_UNORM:
+    case Format::D16_UNORM_S8_UINT:
+    case Format::D24_UNORM_S8_UINT:
+    case Format::D32_SFLOAT:
+    case Format::D32_SFLOAT_S8_UINT:
+        return true;
+    default:
+        return false;
+    }
 }
 
 inline uint32_t get_format_stride(Format format)
@@ -136,7 +152,7 @@ inline bool is_format_srgb(Format format)
     }
 }
 
-inline std::string get_format_str(Format format)
+inline std::string format_to_str(Format format)
 {
     switch (format)
     {
@@ -306,7 +322,7 @@ inline std::string get_format_str(Format format)
     }
 }
 
-inline Format get_format_enum(const std::string& format)
+inline Format format_to_enum(const std::string& format)
 {
     if (format == "R4G4_UNORM")
         return Format::R4G4_UNORM;
@@ -472,7 +488,7 @@ inline Format get_format_enum(const std::string& format)
     return Format::UNDEFINED;
 }
 
-inline char get_component_swizzle_str(ComponentSwizzle swizzle)
+inline char component_swizzle_to_str(ComponentSwizzle swizzle)
 {
     switch (swizzle)
     {
@@ -494,7 +510,7 @@ inline char get_component_swizzle_str(ComponentSwizzle swizzle)
     }
 }
 
-inline ComponentSwizzle get_component_swizzle_enum(char swizzle)
+inline ComponentSwizzle component_swizzle_to_enum(char swizzle)
 {
     switch (swizzle)
     {
@@ -516,18 +532,18 @@ inline ComponentSwizzle get_component_swizzle_enum(char swizzle)
     }
 }
 
-inline std::string get_component_mapping_str(ComponentMapping mapping)
+inline std::string component_mapping_to_str(ComponentMapping mapping)
 {
     std::string result;
     result.resize(4);
-    result[0] = get_component_swizzle_str(mapping.r);
-    result[1] = get_component_swizzle_str(mapping.g);
-    result[2] = get_component_swizzle_str(mapping.b);
-    result[3] = get_component_swizzle_str(mapping.a);
+    result[0] = component_swizzle_to_str(mapping.r);
+    result[1] = component_swizzle_to_str(mapping.g);
+    result[2] = component_swizzle_to_str(mapping.b);
+    result[3] = component_swizzle_to_str(mapping.a);
     return result;
 }
 
-inline ComponentMapping get_component_mapping(const std::string& mappingStr)
+inline ComponentMapping component_mapping_to_enum(const std::string& mappingStr)
 {
     ComponentMapping componentMapping;
     if (mappingStr.size() != 4)
@@ -535,10 +551,10 @@ inline ComponentMapping get_component_mapping(const std::string& mappingStr)
         FE_LOG(LogDefault, FATAL, "rhi::Utils::get_component_mapping(): Mapping string is invalid");
         return componentMapping;
     }
-    componentMapping.r = get_component_swizzle_enum(mappingStr[0]);
-    componentMapping.g = get_component_swizzle_enum(mappingStr[1]);
-    componentMapping.b = get_component_swizzle_enum(mappingStr[2]);
-    componentMapping.a = get_component_swizzle_enum(mappingStr[3]);
+    componentMapping.r = component_swizzle_to_enum(mappingStr[0]);
+    componentMapping.g = component_swizzle_to_enum(mappingStr[1]);
+    componentMapping.b = component_swizzle_to_enum(mappingStr[2]);
+    componentMapping.a = component_swizzle_to_enum(mappingStr[3]);
     return componentMapping;
 }
 
@@ -548,42 +564,6 @@ inline bool is_component_mapping_valid(const ComponentMapping& mapping)
         mapping.g != ComponentSwizzle::UNDEFINED &&
         mapping.b != ComponentSwizzle::UNDEFINED &&
         mapping.a != ComponentSwizzle::UNDEFINED;
-}
-
-inline std::string get_address_mode_str(AddressMode mode)
-{
-    switch (mode)
-    {
-        case AddressMode::REPEAT:
-            return "repeat";
-        case AddressMode::MIRRORED_REPEAT:
-            return "mirrored_repeat";
-        case AddressMode::CLAMP_TO_EDGE:
-            return "clamp_to_edge";
-        case AddressMode::CLAMP_TO_BORDER:
-            return "clamp_to_border";
-        case AddressMode::MIRROR_CLAMP_TO_EDGE:
-            return "mirror_clamp_to_edge";
-        default:
-            FE_LOG(LogDefault, FATAL, "rhi::Utils::get_address_mode_str(): Address mode is undefined");
-            return "undefined";
-    }
-}
-
-inline AddressMode get_address_mode_enum(const std::string& mode)
-{
-    if (mode == "repeat")
-        return AddressMode::REPEAT;
-    if (mode == "mirrored_repeat")
-        return AddressMode::MIRRORED_REPEAT;
-    if (mode == "clamp_to_edge")
-        return AddressMode::CLAMP_TO_EDGE;
-    if (mode == "clamp_to_border")
-        return AddressMode::CLAMP_TO_BORDER;
-    if (mode == "mirror_clamp_to_edge")
-        return AddressMode::MIRROR_CLAMP_TO_EDGE;
-    FE_LOG(LogDefault, FATAL, "rhi::Utils::get_address_mode_enum(): Address mode is undefined");
-    return AddressMode::UNDEFINED;
 }
 
 inline bool is_format_block_compressed(Format format)
