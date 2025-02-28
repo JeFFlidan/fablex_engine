@@ -1,4 +1,5 @@
-#include "shader_compiler.h"
+#include "shader_manager.h"
+#include "common.h"
 #include "core/utils.h"
 #include "core/logger.h"
 #include "core/file_system/file_system.h"
@@ -18,6 +19,7 @@ using ComPtr = Microsoft::WRL::ComPtr<T>;
 #include "json.hpp"
 
 #include <memory>
+#include <mutex>
 #include <unordered_set>
 
 #define DX_ENSURE(Value) SUCCEEDED(Value)
@@ -27,33 +29,6 @@ DEFINE_LOG_CATEGORY(LogShaderCompiler)
 
 namespace fe::renderer
 {
-
-
-struct ShaderInputInfo
-{
-    std::string path;
-    rhi::ShaderType type = rhi::ShaderType::UNDEFINED;
-    rhi::ShaderFormat format = rhi::ShaderFormat::UNDEFINED;
-    rhi::HLSLShaderModel minHlslShaderModel = rhi::HLSLShaderModel::SM_6_5;
-    std::string entryPoint = "main";
-    std::vector<std::string> defines;
-    std::vector<std::string> includePaths;
-};
-
-struct ShaderOutputInfo
-{
-    std::shared_ptr<void> internalBlob;
-    const uint8_t* data{ nullptr };
-    uint64_t dataSize;
-    std::unordered_set<std::string> dependencies;
-};
-
-class IShaderCompiler
-{
-public:
-    virtual ~IShaderCompiler() = default;
-    virtual void compile(ShaderInputInfo& inputInfo, ShaderOutputInfo& outputInfo) = 0;
-};
 
 #ifdef DXCOMPILER_ENABLED
 
@@ -96,7 +71,7 @@ private:
 class DXCompiler : public IShaderCompiler
 {
 public:
-    void init()
+    DXCompiler()
     {
         ComPtr<IDxcCompiler3> dxcCompiler;
         DX_CHECK(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler)));
@@ -184,9 +159,6 @@ private:
         {
         case rhi::ShaderFormat::UNDEFINED:
             FE_LOG(LogShaderCompiler, FATAL, "DXCompiler::compile(): Can't compile shader with undefined format.");
-        case rhi::ShaderFormat::GLSL_TO_SPIRV:
-        case rhi::ShaderFormat::GLSL_TO_HLSL6:
-            FE_LOG(LogShaderCompiler, FATAL, "DXCompiler::compile(): Can't compile glsl shader.");
         case rhi::ShaderFormat::HLSL6:
             // TODO FOR D3D12
             break;
@@ -439,32 +411,31 @@ private:
     }
 };
 
-std::unique_ptr<IShaderCompiler> g_shaderCompiler = nullptr;
-std::unordered_map<std::string, rhi::Shader*> g_shaderByRelativePath;
-
-void init_shader_compiler()
+void ShaderManager::init()
 {
-#ifdef DXCOMPILER_ENABLED
-    g_shaderCompiler.reset(new DXCompiler());
+    #ifdef DXCOMPILER_ENABLED
+    m_shaderCompiler.reset(new DXCompiler());
 #endif // DXCOMPILER_ENABLED
+    
+    FE_CHECK(m_shaderCompiler);
 
     ShaderCache::init();
-
-    FE_CHECK(g_shaderCompiler);
 
     FE_LOG(LogShaderCompiler, INFO, "Shader Compiler initialization completed.");
 }
 
-rhi::Shader* load_shader(
+rhi::Shader* ShaderManager::load_shader(
     const std::string& relativePath, 
-    rhi::ShaderType shaderType, 
+    rhi::ShaderType shaderType,
+    const std::string& entryPoint,
     rhi::HLSLShaderModel shaderModel,
     const std::vector<std::string>& defines
 )
 {
-    auto it = g_shaderByRelativePath.find(relativePath);
-    if (it != g_shaderByRelativePath.end())
-        return it->second; 
+    if (rhi::Shader* shader = get_shader(relativePath))
+        return shader;
+
+    rhi::Shader* shader = nullptr;
 
     if (ShaderCache::is_shader_outdated(relativePath))
     {
@@ -493,10 +464,11 @@ rhi::Shader* load_shader(
         inputInfo.type = shaderType;
         inputInfo.minHlslShaderModel = shaderModel;
         inputInfo.defines = defines;
+        inputInfo.entryPoint = entryPoint;
         inputInfo.includePaths.push_back(FileSystem::get_root_path() + "/src/fablex/shaders");
 
         ShaderOutputInfo outputInfo;
-        g_shaderCompiler->compile(inputInfo, outputInfo);
+        m_shaderCompiler->compile(inputInfo, outputInfo);
         ShaderCache::update_shader_cache(inputInfo, outputInfo);
 
         rhi::ShaderInfo shaderInfo;
@@ -504,9 +476,8 @@ rhi::Shader* load_shader(
         shaderInfo.data = const_cast<uint8_t*>(outputInfo.data);
         shaderInfo.size = outputInfo.dataSize;
 
-        rhi::Shader* shader;
         rhi::create_shader(&shader, &shaderInfo);
-        g_shaderByRelativePath[relativePath] = shader;
+        add_shader(relativePath, shader);
     }
     else
     {
@@ -519,21 +490,39 @@ rhi::Shader* load_shader(
         shaderInfo.size = shaderData.size();
         shaderInfo.shaderType = shaderType;
 
-        rhi::Shader* shader;
         rhi::create_shader(&shader, &shaderInfo);
-        g_shaderByRelativePath[relativePath] = shader;
+        add_shader(relativePath, shader);
     }
 
-    return g_shaderByRelativePath[relativePath];
+    return shader;
 }
 
-rhi::Shader* get_shader(const std::string& relativePath)
+rhi::Shader* ShaderManager::get_shader(const std::string& relativePath)
 {
-    auto it = g_shaderByRelativePath.find(relativePath);
-    if (it != g_shaderByRelativePath.end())
-        return it->second;
-    FE_LOG(LogShaderCompiler, FATAL, "get_shader(): There is no shader {}", relativePath.c_str());
-    return nullptr;
+    std::scoped_lock locker(m_mutex);
+
+    auto it = m_shaderByRelativePath.find(relativePath);
+    if (it == m_shaderByRelativePath.end())
+        return nullptr;
+    return it->second;
+}
+
+rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
+{
+    return load_shader(
+        shaderMetadata.filePath,
+        shaderMetadata.type,
+        shaderMetadata.entryPoint,
+        rhi::HLSLShaderModel::SM_6_7,
+        shaderMetadata.defines
+    );
+}
+
+void ShaderManager::add_shader(const std::string& relativePath, rhi::Shader* shader)
+{
+    FE_CHECK(shader);
+    std::scoped_lock locker(m_mutex);
+    m_shaderByRelativePath[relativePath] = shader;
 }
 
 }
