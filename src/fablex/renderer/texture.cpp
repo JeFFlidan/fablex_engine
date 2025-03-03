@@ -1,0 +1,87 @@
+#include "texture.h"
+#include "rhi/rhi.h"
+#include "core/macro.h"
+
+namespace fe::renderer
+{
+
+Texture::Texture(rhi::TextureHandle handle) : m_handle(handle) { }
+
+Texture::~Texture()
+{
+    if (m_dsTextureView) rhi::destroy_texture_view(m_dsTextureView);
+    if (m_srTextureView) rhi::destroy_texture_view(m_srTextureView);
+
+    for (uint32 i = 0; i < m_handle->mipLevels; ++i)
+    {
+        rhi::TextureViewHandle rtv = m_rtTextureViews[i];
+        rhi::TextureViewHandle uav = m_uaTextureViews[i];
+
+        if (rtv) rhi::destroy_texture_view(rtv);
+        if (uav) rhi::destroy_texture_view(uav);
+    }
+
+    if (m_handle) rhi::destroy_texture(m_handle);
+}
+
+uint32 Texture::get_dsv_descriptor() const
+{
+    if (m_dsTextureView)
+    {
+        rhi::TextureViewInfo info;
+        info.type = rhi::ViewType::DSV;
+        rhi::create_texture_view(&m_dsTextureView, &info, m_handle);
+    }
+
+    return m_dsTextureView->descriptorIndex;
+}
+
+uint32 Texture::get_srv_descriptor() const
+{
+    if (m_srTextureView)
+    {
+        rhi::TextureViewInfo info;
+        info.type = rhi::ViewType::SRV;
+        rhi::create_texture_view(&m_srTextureView, &info, m_handle);
+    }
+
+    return m_srTextureView->descriptorIndex;
+}
+
+uint32 Texture::get_rtv_descriptor(uint32 mipLevel) const
+{
+    FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested RT texture view exceeds texture's amount of mip level.");
+
+    if (!m_rtTextureViews[mipLevel])
+    {
+        rhi::TextureViewInfo info;
+        info.baseMipLevel = mipLevel;
+        info.type = rhi::ViewType::RTV;
+        rhi::create_texture_view(&m_rtTextureViews.emplace_back(), &info, m_handle);
+    }
+
+    return m_rtTextureViews[mipLevel]->descriptorIndex;
+}
+
+uint32 Texture::get_uav_descriptor(uint32 mipLevel) const
+{
+    FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested UA texture view exceeds texture's amount of mip level.");
+
+    if (!m_uaTextureViews[mipLevel])
+    {
+        rhi::TextureViewInfo info;
+        info.baseMipLevel = mipLevel;
+        info.type = rhi::ViewType::UAV;
+        rhi::create_texture_view(&m_uaTextureViews.emplace_back(), &info, m_handle);
+    }
+
+    return m_uaTextureViews[mipLevel]->descriptorIndex;
+}
+
+void Texture::reserve_texture_view_arrays()
+{
+    m_rtTextureViews.resize(m_handle->mipLevels);
+    m_uaTextureViews.resize(m_handle->mipLevels);
+}
+
+}

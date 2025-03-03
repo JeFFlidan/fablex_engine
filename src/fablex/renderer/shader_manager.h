@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rhi/resources.h"
+#include "core/task_types.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -54,11 +55,15 @@ public:
     
     static rhi::Shader* get_shader(const std::string& relativePath);
     static rhi::Shader* get_shader(const ShaderMetadata& shaderMetadata);
+    
+    static void request_shader_loading(const ShaderMetadata& shaderMetadata);
+    static void wait_shaders_loading();
 
 private:
-    inline static std::unique_ptr<IShaderCompiler> m_shaderCompiler = nullptr;
-    inline static std::unordered_map<std::string, rhi::Shader*> m_shaderByRelativePath{};
-    inline static std::mutex m_mutex{};
+    inline static std::unique_ptr<IShaderCompiler> s_shaderCompiler = nullptr;
+    inline static std::unordered_map<std::string, rhi::Shader*> s_shaderByRelativePath{};
+    inline static TaskGroup* s_taskGroup = nullptr;
+    inline static std::mutex s_mutex{};
 
     static void add_shader(const std::string& relativePath, rhi::Shader* shader);
 };

@@ -867,12 +867,14 @@ struct ShaderHitGroup
         PROCEDURAL
     };
 
+    static constexpr uint32 s_invalidIndex = ~0u;
+
     Type type = GENERAL;
     std::string name;
-    uint32 generalShader = ~0u;
-    uint32 closestHitShader = ~0u;
-    uint32 anyHitShader = ~0u;
-    uint32 intersectionShader = ~0u;
+    uint32 generalShader = s_invalidIndex;
+    uint32 closestHitShader = s_invalidIndex;
+    uint32 anyHitShader = s_invalidIndex;
+    uint32 intersectionShader = s_invalidIndex;
 };
 
 struct RayTracingPipelineInfo

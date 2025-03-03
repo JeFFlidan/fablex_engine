@@ -3,6 +3,7 @@
 #include "core/utils.h"
 #include "core/logger.h"
 #include "core/file_system/file_system.h"
+#include "core/task_composer.h"
 #include "rhi/rhi.h"
 
 #ifdef WIN32
@@ -214,6 +215,9 @@ private:
         case rhi::ShaderType::TASK:
             targetProfile = L"as";
             break;
+        case rhi::ShaderType::LIB:
+            targetProfile = L"lib";
+            break;
         default:
             FE_LOG(LogShaderCompiler, FATAL, "DXCompiler::compile(): Unsupported shader type.");
         }
@@ -414,12 +418,13 @@ private:
 void ShaderManager::init()
 {
     #ifdef DXCOMPILER_ENABLED
-    m_shaderCompiler.reset(new DXCompiler());
+    s_shaderCompiler.reset(new DXCompiler());
 #endif // DXCOMPILER_ENABLED
     
-    FE_CHECK(m_shaderCompiler);
+    FE_CHECK(s_shaderCompiler);
 
     ShaderCache::init();
+    s_taskGroup = TaskComposer::allocate_task_group();
 
     FE_LOG(LogShaderCompiler, INFO, "Shader Compiler initialization completed.");
 }
@@ -468,7 +473,7 @@ rhi::Shader* ShaderManager::load_shader(
         inputInfo.includePaths.push_back(FileSystem::get_root_path() + "/src/fablex/shaders");
 
         ShaderOutputInfo outputInfo;
-        m_shaderCompiler->compile(inputInfo, outputInfo);
+        s_shaderCompiler->compile(inputInfo, outputInfo);
         ShaderCache::update_shader_cache(inputInfo, outputInfo);
 
         rhi::ShaderInfo shaderInfo;
@@ -499,10 +504,10 @@ rhi::Shader* ShaderManager::load_shader(
 
 rhi::Shader* ShaderManager::get_shader(const std::string& relativePath)
 {
-    std::scoped_lock locker(m_mutex);
+    std::scoped_lock locker(s_mutex);
 
-    auto it = m_shaderByRelativePath.find(relativePath);
-    if (it == m_shaderByRelativePath.end())
+    auto it = s_shaderByRelativePath.find(relativePath);
+    if (it == s_shaderByRelativePath.end())
         return nullptr;
     return it->second;
 }
@@ -521,8 +526,21 @@ rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
 void ShaderManager::add_shader(const std::string& relativePath, rhi::Shader* shader)
 {
     FE_CHECK(shader);
-    std::scoped_lock locker(m_mutex);
-    m_shaderByRelativePath[relativePath] = shader;
+    std::scoped_lock locker(s_mutex);
+    s_shaderByRelativePath[relativePath] = shader;
+}
+
+void ShaderManager::request_shader_loading(const ShaderMetadata& shaderMetadata)
+{
+    TaskComposer::execute(*s_taskGroup, [&shaderMetadata](TaskExecutionInfo execInfo)
+    {
+        get_shader(shaderMetadata);
+    });
+}
+
+void ShaderManager::wait_shaders_loading()
+{
+    TaskComposer::wait(*s_taskGroup);
 }
 
 }
