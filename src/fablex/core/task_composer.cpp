@@ -5,43 +5,43 @@ namespace fe
 
 std::vector<TaskHandler> g_taskHandlers;
 
-TaskComposer::TaskComposer(uint32 maxThreadCount)
+void TaskComposer::init(uint32 maxThreadCount)
 {
     maxThreadCount = std::max(1u, maxThreadCount);
 
     uint32 coreCount = std::thread::hardware_concurrency();
-    m_threadCount = std::min(maxThreadCount, std::max(1u, coreCount - 1));
-    FE_LOG(LogTasks, INFO, "Thread count: {}", m_threadCount);
-    m_threads.reserve(m_threadCount);
-    m_taskQueueGroup = std::make_unique<TaskQueueGroup>(m_threadCount);
+    s_threadCount = std::min(maxThreadCount, std::max(1u, coreCount - 1));
+    FE_LOG(LogTasks, INFO, "Thread count: {}", s_threadCount);
+    s_threads.reserve(s_threadCount);
+    s_taskQueueGroup = std::make_unique<TaskQueueGroup>(s_threadCount);
 
-    for (auto threadID = 0; threadID != m_threadCount; ++threadID)
+    for (auto threadID = 0; threadID != s_threadCount; ++threadID)
     {
-        m_threads.emplace_back([this, threadID]
+        s_threads.emplace_back([threadID]
         {
-            while (m_isAlive.load())
+            while (s_isAlive.load())
             {
                 execute_tasks(threadID);
 
-                std::unique_lock<std::mutex> lock(m_mutex);
-                m_wakeCondition.wait(lock);
+                std::unique_lock<std::mutex> lock(s_mutex);
+                s_wakeCondition.wait(lock);
             }
         });
     }
 }
 
-TaskComposer::~TaskComposer()
+void TaskComposer::cleanup()
 {
-    m_isAlive.store(false);
+    s_isAlive.store(false);
     bool executeWakeLoop = true;
 
     std::thread waker([&]()
     {
         while (executeWakeLoop)
-            m_wakeCondition.notify_all();
+            s_wakeCondition.notify_all();
     });
 
-    for (auto& thread : m_threads)
+    for (auto& thread : s_threads)
     {
         thread.join();
     }
@@ -61,8 +61,8 @@ void TaskComposer::execute(TaskGroup& taskGroup, const TaskHandler& taskHandler)
     task.taskSubgroupEnd = 1;
     task.taskSubgroupID = 0;
 
-    m_taskQueueGroup->get_next_queue().push_back(task);
-    m_wakeCondition.notify_one();
+    s_taskQueueGroup->get_next_queue().push_back(task);
+    s_wakeCondition.notify_one();
 }
 
 void TaskComposer::dispatch(TaskGroup& taskGroup, uint32 taskCount, uint32 groupSize, const TaskHandler& taskHandler)
@@ -83,10 +83,10 @@ void TaskComposer::dispatch(TaskGroup& taskGroup, uint32 taskCount, uint32 group
         task.taskSubgroupBeginning = groupID * groupSize;
         task.taskSubgroupEnd = std::min(task.taskSubgroupBeginning + groupSize, taskCount);
         task.taskSubgroupID = groupID;
-        m_taskQueueGroup->get_next_queue().push_back(task);
+        s_taskQueueGroup->get_next_queue().push_back(task);
     }
 
-    m_wakeCondition.notify_all();
+    s_wakeCondition.notify_all();
 }
 
 bool TaskComposer::is_busy(TaskGroup& taskGroup)
@@ -98,8 +98,8 @@ void TaskComposer::wait(TaskGroup& taskGroup)
 {
     if (is_busy(taskGroup))
     {
-        m_wakeCondition.notify_all();
-        execute_tasks(m_taskQueueGroup->get_next_queue_index());
+        s_wakeCondition.notify_all();
+        execute_tasks(s_taskQueueGroup->get_next_queue_index());
 
         while (is_busy(taskGroup))
         {
@@ -112,9 +112,9 @@ void TaskComposer::execute_tasks(uint32 beginningQueueIndex)
 {
     TaskExecutionInfo executionInfo;
     Task task;
-    for (auto i = 0; i != m_threadCount; ++i)
+    for (auto i = 0; i != s_threadCount; ++i)
     {
-        TaskQueue& taskQueue = m_taskQueueGroup->get_queue(beginningQueueIndex);
+        TaskQueue& taskQueue = s_taskQueueGroup->get_queue(beginningQueueIndex);
         while (taskQueue.pop_front(task))
         {
             task.taskGroup->wait_for_other_groups();

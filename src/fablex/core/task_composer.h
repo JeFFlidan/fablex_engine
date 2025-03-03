@@ -12,38 +12,39 @@ namespace fe
 class TaskComposer
 {
     public:
-        explicit TaskComposer(uint32 threadCount = ~0u);
-        ~TaskComposer();
-        void execute(TaskGroup& taskGroup, const TaskHandler& taskHandler);
-        void dispatch(TaskGroup& taskGroup, uint32 taskCount, uint32 groupSize, const TaskHandler& taskHandler);
-        bool is_busy(TaskGroup& taskGroup);
-        void wait(TaskGroup& taskGroup);
+        static void init(uint32 maxThreadCount = ~0u);
+        static void cleanup();
+        static void execute(TaskGroup& taskGroup, const TaskHandler& taskHandler);
+        static void dispatch(TaskGroup& taskGroup, uint32 taskCount, uint32 groupSize, const TaskHandler& taskHandler);
+        static bool is_busy(TaskGroup& taskGroup);
+        static void wait(TaskGroup& taskGroup);
 
-        TaskGroup* allocate_task_group()
+        static TaskGroup* allocate_task_group()
         {
-            return m_taskGroupPool.allocate();
+            return s_taskGroupPool.allocate();
         }
 
-        void free_task_group(TaskGroup* taskGroup)
+        static void free_task_group(TaskGroup* taskGroup)
         {
-            return m_taskGroupPool.free(taskGroup);
+            return s_taskGroupPool.free(taskGroup);
         }
 
-        uint32 get_thread_count()
+        static uint32 get_thread_count()
         {
-            return m_threadCount;
+            return s_threadCount;
         }
     
     private:
-        std::unique_ptr<TaskQueueGroup> m_taskQueueGroup{ nullptr };
-        ThreadSafePoolAllocator<TaskGroup, 128> m_taskGroupPool;
-        std::vector<std::thread> m_threads;
-        std::condition_variable m_wakeCondition;
-        std::mutex m_mutex;
-        uint32 m_threadCount;
-        std::atomic_bool m_isAlive{ true };
+        inline static std::unique_ptr<TaskQueueGroup> s_taskQueueGroup = nullptr;
+        inline static ThreadSafePoolAllocator<TaskGroup, 128> s_taskGroupPool;
+        inline static std::vector<std::thread> s_threads;
+        inline static std::condition_variable s_wakeCondition;
+        inline static std::mutex s_mutex;
+        inline static uint32 s_threadCount;
+        inline static std::atomic_bool s_isAlive = true;
 
-        void execute_tasks(uint32 beginningQueueIndex);
-        uint32 calculate_group_count(uint32 taskCount, uint32 groupSize);
-}; 
+        static void execute_tasks(uint32 beginningQueueIndex);
+        static uint32 calculate_group_count(uint32 taskCount, uint32 groupSize);
+};
+
 }
