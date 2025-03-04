@@ -10,6 +10,8 @@ namespace fe::renderer
 using RenderPassName = Name;
 using ResourceName = Name;
 using PipelineName = Name;
+using FieldName = Name;
+using PushConstantsName = Name;
 
 DEFINE_LOG_CATEGORY(LogRenderer);
 
@@ -44,6 +46,7 @@ struct RenderPassMetadata
 {
     RenderPassName renderPassName;
     PipelineName pipelineName;
+    PushConstantsName pushConstantsName;
     std::vector<ResourceName> inputTextureNames;
     std::vector<RenderTargetMetadata> renderTargetsMetadata;
     std::vector<ResourceName> outputStorageTextureNames;
@@ -65,5 +68,34 @@ struct PipelineMetadata
     std::vector<rhi::Format> colorAttachmentFormats;
     rhi::Format depthStencilFormat = rhi::Format::UNDEFINED;
 };
+
+enum class PushConstantType
+{
+    FLOAT,
+    INT32,
+    UINT32,
+    FLOAT2,
+    FLOAT3,
+    FLOAT4,
+    INT2,
+    INT3,
+    INT4,
+    UINT2,
+    UINT3,
+    UINT4
+};
+
+struct PushConstantsMetadata
+{
+    struct FieldMetadata
+    {
+        FieldName name;
+        PushConstantType type;
+    };
+
+    PushConstantsName name;
+    std::vector<FieldMetadata> fieldsMetadata;
+};
+
 
 }

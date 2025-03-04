@@ -37,6 +37,8 @@ public:
         ViewNameSet m_allViews; 
     };
 
+    void load_metadata(const std::string& metadataPath);
+
     Node* get_node(RenderPassName renderPassName) const;
 
 private:

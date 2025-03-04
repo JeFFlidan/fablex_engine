@@ -2,18 +2,21 @@
 #include "shader_manager.h"
 #include "core/json_serialization.h"
 #include "rhi/json_serialization.h"
+#include "push_constants_serialization.h"
 #include "rhi/utils.h"
 
 namespace fe::renderer
 {
 
 constexpr const char* g_renderTexturesKey = "RenderTextures";
+constexpr const char* g_pushConstantsKey = "PushConstants";
 constexpr const char* g_renderPassesKey = "RenderPasses";
 constexpr const char* g_formatKey = "Format";
 constexpr const char* g_isTransferDstKey = "IsTransferDst";
 constexpr const char* g_useMipsKey = "UseMips";
 constexpr const char* g_layerCountKey = "LayerCount";
 constexpr const char* g_sampleCountKey = "SampleCount";
+constexpr const char* g_fieldsKey = "Fields";
 constexpr const char* g_inputTexturesKey = "InputTextures";
 constexpr const char* g_renderTargetTexturesKey = "RenderTargets";
 constexpr const char* g_outputStorageTexturesKey = "OutputStorageTextures";
@@ -30,10 +33,11 @@ constexpr const char* g_pathKey = "Path";
 
 void RenderGraphMetadata::deserialize(const nlohmann::json& json)
 {
-    const std::vector<nlohmann::json>& renderTexturesMetadata = json[g_renderTexturesKey];
-    const std::vector<nlohmann::json>& renderPassesMetadata = json[g_renderPassesKey];
+    const std::vector<nlohmann::json>& renderTextureMetadataJsons = json[g_renderTexturesKey];
+    const std::vector<nlohmann::json>& pushConstantsMetadataJsons = json[g_pushConstantsKey];
+    const std::vector<nlohmann::json>& renderPassMetadataJsons = json[g_renderPassesKey];
     
-    for (const nlohmann::json& textureMetadataJson : renderTexturesMetadata)
+    for (const nlohmann::json& textureMetadataJson : renderTextureMetadataJsons)
     {
         ResourceName textureName = textureMetadataJson[g_nameKey];
         TextureMetadata& textureMetadata = m_renderTextureMetadataByName[textureName];
@@ -68,7 +72,27 @@ void RenderGraphMetadata::deserialize(const nlohmann::json& json)
         }
     }
 
-    for (const nlohmann::json& renderPassMetadataJson : renderPassesMetadata)
+    for (const nlohmann::json& pushConstantsMetadataJson : pushConstantsMetadataJsons)
+    {
+        PushConstantsName pushConstantsName = pushConstantsMetadataJson[g_nameKey];
+        PushConstantsMetadata& pushConstantsMetadata = m_pushConstantsMetadataByName[pushConstantsName];
+
+        if (!pushConstantsMetadataJson.contains(g_fieldsKey))
+        {
+            FE_LOG(LogRenderer, ERROR, "Push constants {} does not have fields info.", pushConstantsName);
+            continue;
+        }
+
+        const std::vector<nlohmann::json>& fieldMetadataJsons = pushConstantsMetadataJson[g_fieldsKey];
+        for (const nlohmann::json& fieldMetadataJson : fieldMetadataJsons)
+        {
+            PushConstantsMetadata::FieldMetadata& fieldMetadata = pushConstantsMetadata.fieldsMetadata.emplace_back();
+            fieldMetadata.name = fieldMetadataJson[g_nameKey];
+            fieldMetadata.type = fieldMetadataJson[g_typeKey];
+        }
+    }
+
+    for (const nlohmann::json& renderPassMetadataJson : renderPassMetadataJsons)
     {
         RenderPassName renderPassName = renderPassMetadataJson[g_nameKey];
         RenderPassMetadata& renderPassMetadata = m_renderPassMetadataByName[renderPassName];
@@ -168,10 +192,28 @@ const TextureMetadata* RenderGraphMetadata::get_texture_metadata(ResourceName te
     return &it->second;
 }
 
+const PushConstantsMetadata* RenderGraphMetadata::get_push_constants_metadata(PushConstantsName pushConstantsName) const
+{
+    auto it = m_pushConstantsMetadataByName.find(pushConstantsName);
+    if (it == m_pushConstantsMetadataByName.end())
+        return nullptr;
+
+    return &it->second;
+}
+
 const RenderPassMetadata* RenderGraphMetadata::get_render_pass_metadata(RenderPassName renderPassName) const
 {
     auto it = m_renderPassMetadataByName.find(renderPassName);
     if (it == m_renderPassMetadataByName.end())
+        return nullptr;
+
+    return &it->second;
+}
+
+const PipelineMetadata* RenderGraphMetadata::get_pipeline_metadata(PipelineName pipelineName) const
+{
+    auto it = m_pipelineMetadataByName.find(pipelineName);
+    if (it == m_pipelineMetadataByName.end())
         return nullptr;
 
     return &it->second;
