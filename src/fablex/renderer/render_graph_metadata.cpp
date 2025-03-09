@@ -2,7 +2,7 @@
 #include "shader_manager.h"
 #include "core/json_serialization.h"
 #include "rhi/json_serialization.h"
-#include "push_constants_serialization.h"
+#include "json_serialization.h"
 #include "rhi/utils.h"
 
 namespace fe::renderer
@@ -98,6 +98,9 @@ void RenderGraphMetadata::deserialize(const nlohmann::json& json)
         RenderPassMetadata& renderPassMetadata = m_renderPassMetadataByName[renderPassName];
         
         renderPassMetadata.renderPassName = renderPassName;
+
+        if (renderPassMetadataJson.contains(g_typeKey))
+            renderPassMetadata.type = renderPassMetadataJson[g_typeKey];
 
         if (renderPassMetadataJson.contains(g_inputTexturesKey))
             renderPassMetadata.inputTextureNames = renderPassMetadataJson[g_inputTexturesKey];

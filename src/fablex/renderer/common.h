@@ -42,9 +42,16 @@ struct RenderTargetMetadata
     rhi::ClearValues clearValues;
 };
 
+enum class RenderPassType
+{
+    GRAPHICS,
+    ASYNC_COMPUTE
+};
+
 struct RenderPassMetadata
 {
     RenderPassName renderPassName;
+    RenderPassType type = RenderPassType::GRAPHICS;
     PipelineName pipelineName;
     PushConstantsName pushConstantsName;
     std::vector<ResourceName> inputTextureNames;

@@ -8,13 +8,15 @@ namespace fe::renderer
 class ResourceManager;
 class RenderGraph;
 class PipelineManager;
+class PushConstantsManager;
 
 struct RenderContextInfo
 {
     RenderSurface renderSurface;
-    ResourceManager* resourceManager;
-    PipelineManager* pipelineManager;
-    RenderGraph* renderGraph;
+    ResourceManager* resourceManager = nullptr;
+    PipelineManager* pipelineManager = nullptr;
+    PushConstantsManager* pushConstantsManager = nullptr;
+    RenderGraph* renderGraph = nullptr;
 };
 
 class RenderContext
@@ -24,6 +26,7 @@ public:
     {
         FE_CHECK(m_info.resourceManager);
         FE_CHECK(m_info.pipelineManager);
+        FE_CHECK(m_info.pushConstantsManager);
         FE_CHECK(m_info.renderGraph);
     }
 

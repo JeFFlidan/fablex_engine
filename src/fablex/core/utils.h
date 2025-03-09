@@ -84,4 +84,13 @@ public:
     }
 };
 
+template <typename T, typename Tuple>
+struct TupleHasType;
+
+template <typename T, typename... Us>
+struct TupleHasType<T, std::tuple<Us...>> : std::disjunction<std::is_base_of<T, Us>...> {};
+
+template <typename T, typename Tuple>
+inline constexpr bool TupleHasTypeV = TupleHasType<T, Tuple>::value;
+
 }
