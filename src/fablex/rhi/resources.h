@@ -1292,18 +1292,15 @@ struct RenderingBeginInfo
 struct SubmitInfo
 {
     QueueType queueType = QueueType::GRAPHICS;
-    Fence* signalFence;
     std::vector<CommandBuffer*> cmdBuffers;
     std::vector<Semaphore*> waitSemaphores;
     std::vector<Semaphore*> signalSemaphores;
-    bool isSubmitDone = false;
 };
 
 struct PresentInfo
 {
     std::vector<SwapChain*> swapChains;
     std::vector<Semaphore*> waitSemaphores;
-    bool isSubmitDone = false;
 };
 
 struct Viewport

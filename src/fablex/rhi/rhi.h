@@ -97,7 +97,7 @@ inline void (*dispatch)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t group
 inline void (*add_pipeline_barriers)(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers);
 
 inline void (*acquire_next_image)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex);
-inline void (*submit)(SubmitInfo* submitInfo);
+inline void (*submit)(const std::vector<SubmitInfo>& submitInfos, rhi::Fence* signalFence);
 inline void (*present)(PresentInfo* presentInfo);
 inline void (*wait_queue_idle)(QueueType queueType);
 inline void (*wait_for_fences)(const std::vector<Fence*>& fences);

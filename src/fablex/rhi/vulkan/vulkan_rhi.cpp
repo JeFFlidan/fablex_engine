@@ -4809,66 +4809,92 @@ void acquire_next_image(SwapChain* swapChain, Semaphore* signalSemaphore, Fence*
     swapChain->vk.imageIndex = *frameIndex;
 }
 
-void submit(SubmitInfo* submitInfo)
+void submit(const std::vector<SubmitInfo>& submitInfos, rhi::Fence* signalFence)
 {
-    FE_CHECK(submitInfo);
-    FE_CHECK(submitInfo->signalFence);
+    FE_CHECK(signalFence);
+    FE_CHECK(!submitInfos.empty());
 
-	std::vector<VkCommandBufferSubmitInfo> cmdSubmitInfos;
-	std::vector<VkSemaphoreSubmitInfo> waitSemaphoreSubmitInfos;
-    std::vector<VkSemaphoreSubmitInfo> signalSemaphoreSubmitInfos;
+	std::vector<std::vector<VkCommandBufferSubmitInfo>> cmdSubmitInfosForAllBatches;
+    cmdSubmitInfosForAllBatches.reserve(submitInfos.size());
 
-    VkPipelineStageFlags2 stageMask;
+	std::vector<std::vector<VkSemaphoreSubmitInfo>> waitSemaphoreSubmitInfosForAllBatches;
+    waitSemaphoreSubmitInfosForAllBatches.reserve(submitInfos.size());
 
-    switch (submitInfo->queueType)
+    std::vector<std::vector<VkSemaphoreSubmitInfo>> signalSemaphoreSubmitInfosForAllBatches;
+    signalSemaphoreSubmitInfosForAllBatches.reserve(submitInfos.size());
+
+    std::vector<VkSubmitInfo2> vkSubmitInfos;
+    vkSubmitInfos.reserve(submitInfos.size());
+
+    rhi::QueueType queueType = submitInfos[0].queueType;
+
+    for (const SubmitInfo& submitInfo : submitInfos)
     {
-    case QueueType::GRAPHICS:
-        stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-        break;
-    case QueueType::COMPUTE:
-        stageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-        break;
-    case QueueType::TRANSFER:
-        stageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        break;
+        if (queueType != submitInfo.queueType)
+            FE_LOG(LogVulkanRHI, FATAL, "Submit infos do not have the same queue type.");
+
+        std::vector<VkCommandBufferSubmitInfo>& cmdSubmitInfos = cmdSubmitInfosForAllBatches.emplace_back();
+        std::vector<VkSemaphoreSubmitInfo>& waitSemaphoreSubmitInfos = waitSemaphoreSubmitInfosForAllBatches.emplace_back();
+        std::vector<VkSemaphoreSubmitInfo>& signalSemaphoreSubmitInfos = signalSemaphoreSubmitInfosForAllBatches.emplace_back();
+
+        VkPipelineStageFlags2 stageMask;
+    
+        switch (submitInfo.queueType)
+        {
+        case QueueType::GRAPHICS:
+            stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+            break;
+        case QueueType::COMPUTE:
+            stageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+            break;
+        case QueueType::TRANSFER:
+            stageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            break;
+        }
+    
+        for (CommandBuffer* cmd : submitInfo.cmdBuffers)
+        {
+            VkCommandBufferSubmitInfo& cmdSubmitInfo = cmdSubmitInfos.emplace_back();
+            cmdSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+            cmdSubmitInfo.commandBuffer = cmd->vk.cmdBuffer;
+            cmdSubmitInfo.deviceMask = 0;
+        }
+    
+        for (Semaphore* semaphore : submitInfo.waitSemaphores)
+        {
+            VkSemaphoreSubmitInfo& semaphoreSubmitInfo = waitSemaphoreSubmitInfos.emplace_back();
+            semaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+            semaphoreSubmitInfo.semaphore = semaphore->vk.semaphore;
+            semaphoreSubmitInfo.stageMask = stageMask;
+            semaphoreSubmitInfo.deviceIndex = 0;
+        }
+    
+        for (Semaphore* semaphore : submitInfo.signalSemaphores)
+        {
+            VkSemaphoreSubmitInfo& semaphoreSubmitInfo = waitSemaphoreSubmitInfos.emplace_back();
+            semaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+            semaphoreSubmitInfo.semaphore = semaphore->vk.semaphore;
+            semaphoreSubmitInfo.stageMask = stageMask;
+            semaphoreSubmitInfo.deviceIndex = 0;
+        }
+    
+        VkSubmitInfo2& vkSubmitInfo = vkSubmitInfos.emplace_back();
+        vkSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+        vkSubmitInfo.pNext = nullptr;
+        vkSubmitInfo.commandBufferInfoCount = cmdSubmitInfos.size();
+        vkSubmitInfo.pCommandBufferInfos = cmdSubmitInfos.data();
+        vkSubmitInfo.waitSemaphoreInfoCount = waitSemaphoreSubmitInfos.size();
+        vkSubmitInfo.pWaitSemaphoreInfos = waitSemaphoreSubmitInfos.data();
+        vkSubmitInfo.signalSemaphoreInfoCount = signalSemaphoreSubmitInfos.size();
+        vkSubmitInfo.pSignalSemaphoreInfos = signalSemaphoreSubmitInfos.data();
     }
 
-    for (CommandBuffer* cmd : submitInfo->cmdBuffers)
-    {
-        VkCommandBufferSubmitInfo& cmdSubmitInfo = cmdSubmitInfos.emplace_back();
-        cmdSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-        cmdSubmitInfo.commandBuffer = cmd->vk.cmdBuffer;
-        cmdSubmitInfo.deviceMask = 0;
-    }
-
-    for (Semaphore* semaphore : submitInfo->waitSemaphores)
-    {
-        VkSemaphoreSubmitInfo& semaphoreSubmitInfo = waitSemaphoreSubmitInfos.emplace_back();
-        semaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-        semaphoreSubmitInfo.semaphore = semaphore->vk.semaphore;
-        semaphoreSubmitInfo.stageMask = stageMask;
-        semaphoreSubmitInfo.deviceIndex = 0;
-    }
-
-    for (Semaphore* semaphore : submitInfo->signalSemaphores)
-    {
-        VkSemaphoreSubmitInfo& semaphoreSubmitInfo = waitSemaphoreSubmitInfos.emplace_back();
-        semaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-        semaphoreSubmitInfo.semaphore = semaphore->vk.semaphore;
-        semaphoreSubmitInfo.stageMask = stageMask;
-        semaphoreSubmitInfo.deviceIndex = 0;
-    }
-
-    VkSubmitInfo2 vkSubmitInfo{};
-    vkSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-    vkSubmitInfo.commandBufferInfoCount = cmdSubmitInfos.size();
-    vkSubmitInfo.pCommandBufferInfos = cmdSubmitInfos.data();
-    vkSubmitInfo.waitSemaphoreInfoCount = waitSemaphoreSubmitInfos.size();
-    vkSubmitInfo.pWaitSemaphoreInfos = waitSemaphoreSubmitInfos.data();
-    vkSubmitInfo.signalSemaphoreInfoCount = signalSemaphoreSubmitInfos.size();
-    vkSubmitInfo.pSignalSemaphoreInfos = signalSemaphoreSubmitInfos.data();
-
-    VK_CHECK(vkQueueSubmit2(g_device.get_queue(submitInfo->queueType).handle, 1, &vkSubmitInfo, submitInfo->signalFence->vk.fence));
+    VK_CHECK(vkQueueSubmit2(
+        g_device.get_queue(queueType).handle, 
+        vkSubmitInfos.size(), 
+        vkSubmitInfos.data(), 
+        signalFence->vk.fence
+    ));
 }
 
 void present(PresentInfo* presentInfo)
