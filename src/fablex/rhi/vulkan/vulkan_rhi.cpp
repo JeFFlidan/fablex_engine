@@ -4064,11 +4064,6 @@ void end_command_buffer(CommandBuffer* cmd)
         vkEndCommandBuffer(cmd->vk.cmdBuffer);
 }
 
-void wait_command_buffer(CommandBuffer* cmd1, CommandBuffer* cmd2)
-{
-    // TODO
-}
-
 void reset_command_pool(CommandPool* cmdPool)
 {
     FE_CHECK(cmdPool);
@@ -5121,7 +5116,6 @@ void fill_function_table()
     fe::rhi::destroy_command_buffer = destroy_command_buffer;
     fe::rhi::begin_command_buffer = begin_command_buffer;
     fe::rhi::end_command_buffer = end_command_buffer;
-    fe::rhi::wait_command_buffer = wait_command_buffer;
     fe::rhi::reset_command_pool = reset_command_pool;
 
     fe::rhi::create_semaphore = create_semaphore;

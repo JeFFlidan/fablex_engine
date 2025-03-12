@@ -133,10 +133,7 @@ void ResourceManager::allocate_scheduled_resources()
 
         auto resIdxIt = m_currentFrameResourceMap.find(resource.get_name());
         const ResourceCreationRequest* creationRequest = nullptr;
-        if (resIdxIt->second < m_primaryResourceCreationRequests.size())
-        {
-            creationRequest = &m_primaryResourceCreationRequests.at(resIdxIt->second);
-        }
+        creationRequest = &m_primaryResourceCreationRequests.at(resIdxIt->second);
 
         std::visit(Utils::make_visitor(
             [&resource](const rhi::TextureInfo& textureInfo)
@@ -144,12 +141,14 @@ void ResourceManager::allocate_scheduled_resources()
                 rhi::TextureHandle textureHandle;
                 rhi::create_texture(&textureHandle, &textureInfo);
                 resource.set_texture(Texture(textureHandle));
+                rhi::set_name(textureHandle, resource.get_name().to_string());
             },
             [&resource](const rhi::BufferInfo& bufferInfo)
             {
                 rhi::BufferHandle bufferHandle;
                 rhi::create_buffer(&bufferHandle, &bufferInfo);
                 resource.set_buffer(Buffer(bufferHandle));
+                rhi::set_name(bufferHandle, resource.get_name().to_string());
             }
         ), creationRequest->info);
     }
@@ -232,10 +231,10 @@ bool ResourceManager::transfer_previous_frame_resources()
         Resource& prevResource = m_previousFrameResourceList.at(resIdxInPrevFrameIt->second);
         Resource& currResource = m_currentFrameResourceList.at(resIdxInCurrFrameIt->second);
 
-        if (currResource.is_buffer())
+        if (prevResource.is_buffer())
             currResource.set_buffer(std::move(prevResource.get_buffer()));
 
-        if (currResource.is_texture())
+        if (prevResource.is_texture())
             currResource.set_texture(std::move(prevResource.get_texture()));
     }
 

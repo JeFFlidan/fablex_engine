@@ -417,6 +417,8 @@ enum class QueueType : uint32
     GRAPHICS,
     COMPUTE,
     TRANSFER,
+
+    COUNT
 };
 
 struct BufferInfo
@@ -1372,6 +1374,8 @@ using ResourceVariant = std::variant<
     Semaphore*,
     AccelerationStructure*
 >;
+
+constexpr uint32 g_queueCount = std::underlying_type_t<rhi::QueueType>(rhi::QueueType::COUNT);
 }
 
 ENABLE_BIT_MASK(fe::rhi::GPUCapability)

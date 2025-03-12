@@ -51,7 +51,6 @@ inline void (*create_command_buffer)(CommandBuffer** cmd, const CommandBufferInf
 inline void (*destroy_command_buffer)(CommandBuffer* cmd);
 inline void (*begin_command_buffer)(CommandBuffer* cmd);
 inline void (*end_command_buffer)(CommandBuffer* cmd);
-inline void (*wait_command_buffer)(CommandBuffer* cmd1, CommandBuffer* cmd2);
 inline void (*reset_command_pool)(CommandPool* cmdPool);
 
 inline void (*create_semaphore)(Semaphore** semaphore);

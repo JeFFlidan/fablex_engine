@@ -590,4 +590,9 @@ inline bool is_format_block_compressed(Format format)
     }
 }
 
+inline uint32 get_queue_index(rhi::QueueType queueType)
+{
+    return std::underlying_type_t<rhi::QueueType>(queueType);
+}
+
 }
