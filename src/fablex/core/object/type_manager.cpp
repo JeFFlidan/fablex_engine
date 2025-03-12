@@ -27,8 +27,6 @@ const TypeInfo* TypeManager::get_type_info(Name typeName)
 
 Object* TypeManager::create_object_by_name(const char* typeName)
 {
-    FE_LOG(LogDefault, INFO, "CREATE BY NAME {}", typeName);
-
     const TypeInfo* typeInfo = get_type_info(typeName);
     FE_CHECK(typeInfo);
     return typeInfo->get_allocator_handler()();

@@ -5,7 +5,7 @@ namespace fe::renderer
 
 FE_DEFINE_OBJECT(RenderPass, Object)
 
-void RenderPass::init(const RenderPassMetadata& metadata, RenderContext* renderContext)
+void RenderPass::init(const RenderPassMetadata& metadata, const RenderContext* renderContext)
 {
     FE_CHECK(renderContext);
     m_renderContext = renderContext;

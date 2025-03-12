@@ -15,7 +15,7 @@ class Object;
         static void static_constructor(void* ptr) { reinterpret_cast<TypeName*>(ptr)->TypeName::TypeName(); }   \
         static Object* allocate() { return (Object*)memory_new<TypeName>(); }                                   \
         static const TypeInfo* get_static_type_info() { return &TypeName::s_typeInfo; }                         \
-        const TypeInfo* get_type_info() const { return &TypeName::s_typeInfo; }
+        virtual const TypeInfo* get_type_info() const { return &TypeName::s_typeInfo; }
 
 #define FE_DEFINE_ROOT_OBJECT(TypeName)             \
     const TypeInfo TypeName::s_typeInfo(            \

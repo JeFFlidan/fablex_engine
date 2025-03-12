@@ -21,7 +21,7 @@ class RenderPass : public Object
 public:
     virtual ~RenderPass() = default;
 
-    void init(const RenderPassMetadata& metadata, RenderContext* renderContext);
+    void init(const RenderPassMetadata& metadata, const RenderContext* renderContext);
 
     virtual void create_pipelines() { }
     virtual void allocate_push_constants() { }
