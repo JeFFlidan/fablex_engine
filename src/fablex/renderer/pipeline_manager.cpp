@@ -1,10 +1,19 @@
 #include "pipeline_manager.h"
 #include "shader_manager.h"
+#include "render_pass_container.h"
+#include "render_pass.h"
+#include "core/task_composer.h"
 #include "rhi/rhi.h"
 #include "core/math.h"
 
 namespace fe::renderer
 {
+
+PipelineManager::PipelineManager(ShaderManager* shaderManager) : m_shaderManager(shaderManager)
+{
+    FE_CHECK(m_shaderManager);
+    m_taskGroup = TaskComposer::allocate_task_group();
+}
 
 void PipelineManager::create_graphics_pipeline(const PipelineMetadata& pipelineMetadata)
 {
@@ -42,7 +51,7 @@ void PipelineManager::create_compute_pipeline(const PipelineMetadata& pipelineMe
 
     FE_CHECK(shaderMetadata);
 
-    info.shaderStage = ShaderManager::get_shader(*shaderMetadata);
+    info.shaderStage = m_shaderManager->get_shader(*shaderMetadata);
 
     create_pipeline(pipelineMetadata.pipelineName, &info);
 }
@@ -65,6 +74,31 @@ void PipelineManager::create_ray_tracing_pipeline(
     configurator(info);
 
     create_pipeline(pipelineMetadata.pipelineName, &info);
+}
+
+void PipelineManager::create_pipelines(RenderPassContainer* renderPassContainer)
+{
+    m_shaderManager->wait_shaders_loading();
+    RenderPassContainer::RenderPassMap& renderPassMap = renderPassContainer->get_render_passes();
+
+    for (auto [renderPassName, renderPass] : renderPassMap)
+    {
+        FE_CHECK(renderPass);
+
+        const RenderPassInfo& info = renderPass->get_info();
+        if (get_pipeline(info.pipelineName))
+            continue;
+
+        TaskComposer::execute(*m_taskGroup, [renderPass](TaskExecutionInfo execInfo)
+        {
+            renderPass->create_pipeline();
+        });
+    }
+}
+
+void PipelineManager::wait_pipelines_creation()
+{
+    TaskComposer::wait(*m_taskGroup);
 }
 
 rhi::Pipeline* PipelineManager::get_pipeline(PipelineName name) const
@@ -110,7 +144,7 @@ void PipelineManager::configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo
 
     for (const ShaderMetadata& shaderMetadata : pipelineMetadata.shadersMetadata)
     {
-        outInfo.shaderStages.push_back(ShaderManager::get_shader(shaderMetadata));
+        outInfo.shaderStages.push_back(m_shaderManager->get_shader(shaderMetadata));
     }
 }
 
@@ -194,7 +228,7 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
     for (uint32 i = 0; i != shadersMetadata.size(); ++i)
     {
         const ShaderMetadata& shaderMetadata = shadersMetadata[i];
-        rhi::Shader* shader = ShaderManager::get_shader(shaderMetadata);
+        rhi::Shader* shader = m_shaderManager->get_shader(shaderMetadata);
         FE_CHECK(shader);
 
         rhi::ShaderLibrary& shaderLibrary = outInfo.shaderLibraries.emplace_back();

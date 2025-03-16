@@ -2,6 +2,7 @@
 
 #include "macro.h"
 #include <DirectXMath.h>
+#include <DirectXPackedVector.h>
 #include <cmath>
 
 namespace fe::math

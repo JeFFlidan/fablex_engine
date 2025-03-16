@@ -4,8 +4,26 @@
 #include "core/logger.h"
 #include "core/utils.h"
 
+#ifdef FE_VULKAN
+#include "rhi/vulkan/vulkan_rhi.h"
+#endif // FE_VULKAN
+
 namespace fe::rhi
 {
+
+inline void fill_function_table(API api)
+{
+    switch (api)
+    {
+    case API::VK:
+#ifdef FE_VULKAN
+        vulkan::fill_function_table();
+#endif // FE_VULKAN
+        break;
+    case API::D3D12:
+        break;
+    }
+}
 
 inline bool support_stencil(Format format)
 {

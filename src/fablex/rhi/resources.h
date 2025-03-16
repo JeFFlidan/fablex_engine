@@ -6,7 +6,7 @@
 #include "core/flags_operations.h"
 
 #ifdef WIN32
-#define VULKAN
+#define FE_VULKAN
 #include <vulkan/vulkan.h>
 #endif // WIN32
 
@@ -438,14 +438,14 @@ struct alignas(64) Buffer
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkBuffer buffer = VK_NULL_HANDLE;
             VmaAllocation_T* allocation;
             VkDeviceAddress address = 0;
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     uint64 size : 32;
@@ -482,13 +482,13 @@ struct alignas(64) Texture
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkImage image = VK_NULL_HANDLE;
             VmaAllocation_T* allocation;
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     uint32 width : 16;
@@ -526,12 +526,12 @@ struct TextureView
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkImageView imageView = VK_NULL_HANDLE;
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     const Texture* texture;
@@ -560,12 +560,12 @@ struct BufferView
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkBufferView bufferView = VK_NULL_HANDLE;
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     const Buffer* buffer = nullptr;
@@ -591,12 +591,12 @@ struct Sampler
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkSampler sampler = VK_NULL_HANDLE;
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     uint32 descriptorIndex;
@@ -619,7 +619,7 @@ struct SwapChain
 
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkSwapchainKHR swapChain = VK_NULL_HANDLE;
@@ -628,7 +628,7 @@ struct SwapChain
             std::vector<VkImageView> imageViews;
             uint32 imageIndex;
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     Window* window = nullptr;
@@ -649,13 +649,13 @@ struct Shader
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkShaderModule shader = VK_NULL_HANDLE;
             // TODO: Add reflection data
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     ShaderType type = ShaderType::UNDEFINED;
@@ -900,7 +900,7 @@ struct Pipeline
 {
     union
     {
-#if defined (VULKAN)
+#if defined (FE_VULKAN)
         struct
         {
             VkPipeline pipeline = VK_NULL_HANDLE;
@@ -1025,7 +1025,7 @@ struct AccelerationStructure
 
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VmaAllocation_T* allocation = nullptr;
@@ -1035,7 +1035,7 @@ struct AccelerationStructure
             VkDeviceAddress scratchAddress = 0;
             VkDeviceAddress accelerationStructureAddress = 0;
         } vk;
-#endif // VULKAN
+#endif // FE_VULKAN
     };
 
     AccelerationStructureInfo info;
@@ -1052,7 +1052,7 @@ struct CommandPool
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkCommandPool cmdPool = VK_NULL_HANDLE;
@@ -1072,7 +1072,7 @@ struct CommandBuffer
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
@@ -1187,7 +1187,7 @@ struct Semaphore
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkSemaphore semaphore = VK_NULL_HANDLE;
@@ -1200,7 +1200,7 @@ struct Fence
 {
     union
     {
-#if defined(VULKAN)
+#if defined(FE_VULKAN)
         struct
         {
             VkFence fence = VK_NULL_HANDLE;
@@ -1261,6 +1261,8 @@ struct RenderingBeginInfo
         SWAP_CHAIN_PASS,
     };
 
+    RenderingBeginInfo(Type inType) : type(inType) { }
+
     Type type;
     MultiviewInfo multiviewInfo;
     RenderingBeginInfoFlags flags;
@@ -1297,6 +1299,13 @@ struct SubmitInfo
     std::vector<CommandBuffer*> cmdBuffers;
     std::vector<Semaphore*> waitSemaphores;
     std::vector<Semaphore*> signalSemaphores;
+
+    void clear()
+    {
+        cmdBuffers.clear();
+        waitSemaphores.clear();
+        signalSemaphores.clear();
+    }
 };
 
 struct PresentInfo

@@ -13,7 +13,12 @@ public:
     Texture(rhi::TextureHandle handle);
     ~Texture();
 
-    const rhi::TextureHandle get_handle() const { return m_handle; }
+    rhi::TextureHandle get_handle() const { return m_handle; }
+
+    rhi::TextureViewHandle get_dsv() const;
+    rhi::TextureViewHandle get_srv() const;
+    rhi::TextureViewHandle get_rtv(uint32 mipLevel = 0) const;
+    rhi::TextureViewHandle get_uav(uint32 mipLevel = 0) const;
 
     uint32 get_dsv_descriptor() const;
     uint32 get_srv_descriptor() const;

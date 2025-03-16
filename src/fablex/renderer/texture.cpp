@@ -24,31 +24,31 @@ Texture::~Texture()
     if (m_handle) rhi::destroy_texture(m_handle);
 }
 
-uint32 Texture::get_dsv_descriptor() const
+rhi::TextureViewHandle Texture::get_dsv() const
 {
-    if (m_dsTextureView)
+    if (!m_dsTextureView)
     {
         rhi::TextureViewInfo info;
         info.type = rhi::ViewType::DSV;
         rhi::create_texture_view(&m_dsTextureView, &info, m_handle);
     }
 
-    return m_dsTextureView->descriptorIndex;
+    return m_dsTextureView;
 }
 
-uint32 Texture::get_srv_descriptor() const
+rhi::TextureViewHandle Texture::get_srv() const
 {
-    if (m_srTextureView)
+    if (!m_srTextureView)
     {
         rhi::TextureViewInfo info;
         info.type = rhi::ViewType::SRV;
         rhi::create_texture_view(&m_srTextureView, &info, m_handle);
     }
 
-    return m_srTextureView->descriptorIndex;
+    return m_srTextureView;
 }
 
-uint32 Texture::get_rtv_descriptor(uint32 mipLevel) const
+rhi::TextureViewHandle Texture::get_rtv(uint32 mipLevel) const
 {
     FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested RT texture view exceeds texture's amount of mip level.");
 
@@ -60,10 +60,10 @@ uint32 Texture::get_rtv_descriptor(uint32 mipLevel) const
         rhi::create_texture_view(&m_rtTextureViews.emplace_back(), &info, m_handle);
     }
 
-    return m_rtTextureViews[mipLevel]->descriptorIndex;
+    return m_rtTextureViews[mipLevel];
 }
 
-uint32 Texture::get_uav_descriptor(uint32 mipLevel) const
+rhi::TextureViewHandle Texture::get_uav(uint32 mipLevel) const
 {
     FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested UA texture view exceeds texture's amount of mip level.");
 
@@ -75,7 +75,27 @@ uint32 Texture::get_uav_descriptor(uint32 mipLevel) const
         rhi::create_texture_view(&m_uaTextureViews.emplace_back(), &info, m_handle);
     }
 
-    return m_uaTextureViews[mipLevel]->descriptorIndex;
+    return m_uaTextureViews[mipLevel];
+}
+
+uint32 Texture::get_dsv_descriptor() const
+{
+    return get_dsv()->descriptorIndex;
+}
+
+uint32 Texture::get_srv_descriptor() const
+{
+    return get_srv()->descriptorIndex;
+}
+
+uint32 Texture::get_rtv_descriptor(uint32 mipLevel) const
+{
+    return get_rtv(mipLevel)->descriptorIndex;
+}
+
+uint32 Texture::get_uav_descriptor(uint32 mipLevel) const
+{
+    return get_uav(mipLevel)->descriptorIndex;
 }
 
 void Texture::reserve_texture_view_arrays()

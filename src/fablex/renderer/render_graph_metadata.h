@@ -6,6 +6,9 @@
 namespace fe::renderer
 {
 
+class RenderContext;
+class ShaderManager;
+
 class RenderGraphMetadata
 {
 public:
@@ -13,6 +16,8 @@ public:
     using RenderPassMetadataMap = std::unordered_map<RenderPassName, RenderPassMetadata>;
     using PipelineMetadataMap = std::unordered_map<PipelineName, PipelineMetadata>;
     using PushConstantsMetadataMap = std::unordered_map<PushConstantsName, PushConstantsMetadata>;
+
+    RenderGraphMetadata(const RenderContext* renderContext);
 
     void deserialize(const nlohmann::json& json);
 
@@ -28,6 +33,8 @@ private:
     PushConstantsMetadataMap m_pushConstantsMetadataByName;
     RenderPassMetadataMap m_renderPassMetadataByName;
     PipelineMetadataMap m_pipelineMetadataByName;
+
+    ShaderManager* m_shaderManager = nullptr;
 };
 
 }

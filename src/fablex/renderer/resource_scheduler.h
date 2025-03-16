@@ -40,7 +40,10 @@ public:
         const rhi::TextureInfo* textureInfo = nullptr
     );
     
+    static void write_to_back_buffer(RenderPassName renderPassName);
     static void read_texture(RenderPassName renderPassName, ResourceName resourceName);
+
+    static void use_ray_tracing(RenderPassName renderPassName);
 
 private:
     inline static const RenderContext* s_renderContext = nullptr;

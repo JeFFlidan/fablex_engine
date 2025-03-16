@@ -129,3 +129,57 @@ FE_SERIALIZE_ENUM(fe::rhi::PipelineType,
     {fe::rhi::PipelineType::RAY_TRACING, "RAY_TRACING"},
     {fe::rhi::PipelineType::UNDEFINED, "UNDEFINED"}
 })
+
+FE_SERIALIZE_ENUM(fe::rhi::API, 
+{
+    {fe::rhi::API::VK, "VULKAN"},
+    {fe::rhi::API::D3D12, "D3D12"}
+})
+
+FE_SERIALIZE_ENUM(fe::rhi::ValidationMode, 
+{
+    {fe::rhi::ValidationMode::DISABLED, "DISABLED"},
+    {fe::rhi::ValidationMode::ENABLED, "ENABLED"},
+    {fe::rhi::ValidationMode::GPU, "GPU"},
+    {fe::rhi::ValidationMode::VERBOSE, "VERBOSE"}
+})
+
+FE_SERIALIZE_ENUM(fe::rhi::ResourceLayout,
+{
+    {fe::rhi::ResourceLayout::UNDEFINED, "UNDEFINED"},
+    {fe::rhi::ResourceLayout::GENERAL, "GENERAL"},
+    {fe::rhi::ResourceLayout::SHADER_READ, "SHADER_READ"},
+    {fe::rhi::ResourceLayout::SHADER_WRITE, "SHADER_WRITE"},
+    {fe::rhi::ResourceLayout::MEMORY_READ, "MEMORY_READ"},
+    {fe::rhi::ResourceLayout::MEMORY_WRITE, "MEMORY_WRITE"},
+    {fe::rhi::ResourceLayout::TRANSFER_SRC, "TRANSFER_SRC"},
+    {fe::rhi::ResourceLayout::TRANSFER_DST, "TRANSFER_DST"},
+    {fe::rhi::ResourceLayout::COLOR_ATTACHMENT, "COLOR_ATTACHMENT"},
+    {fe::rhi::ResourceLayout::DEPTH_STENCIL, "DEPTH_STENCIL"},
+    {fe::rhi::ResourceLayout::DEPTH_STENCIL_READ_ONLY, "DEPTH_STENCIL_READ_ONLY"},
+    {fe::rhi::ResourceLayout::INDIRECT_COMMAND_BUFFER, "INDIRECT_COMMAND_BUFFER"},
+    {fe::rhi::ResourceLayout::VERTEX_BUFFER, "VERTEX_BUFFER"},
+    {fe::rhi::ResourceLayout::INDEX_BUFFER, "INDEX_BUFFER"},
+    {fe::rhi::ResourceLayout::UNIFORM_BUFFER, "UNIFORM_BUFFER"},
+    {fe::rhi::ResourceLayout::PRESENT_ATTACHMENT, "PRESENT_ATTACHMENT"}
+})
+
+FE_SERIALIZE_ENUM(fe::rhi::ResourceUsage,
+{
+    {fe::rhi::ResourceUsage::UNDEFINED, "UNDEFINED"},
+    {fe::rhi::ResourceUsage::TRANSFER_SRC, "TRANSFER_SRC"},
+    {fe::rhi::ResourceUsage::TRANSFER_DST, "TRANSFER_DST"},
+    {fe::rhi::ResourceUsage::SAMPLED_TEXTURE, "SAMPLED_TEXTURE"},
+    {fe::rhi::ResourceUsage::STORAGE_TEXTURE, "STORAGE_TEXTURE"},
+    {fe::rhi::ResourceUsage::COLOR_ATTACHMENT, "COLOR_ATTACHMENT"},
+    {fe::rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT, "DEPTH_STENCIL_ATTACHMENT"},
+    {fe::rhi::ResourceUsage::TRANSIENT_ATTACHMENT, "TRANSIENT_ATTACHMENT"},
+    {fe::rhi::ResourceUsage::INPUT_ATTACHMENT, "INPUT_ATTACHMENT"},
+    {fe::rhi::ResourceUsage::UNIFORM_TEXEL_BUFFER, "UNIFORM_TEXEL_BUFFER"},
+    {fe::rhi::ResourceUsage::STORAGE_TEXEL_BUFFER, "STORAGE_TEXEL_BUFFER"},
+    {fe::rhi::ResourceUsage::UNIFORM_BUFFER, "UNIFORM_BUFFER"},
+    {fe::rhi::ResourceUsage::STORAGE_BUFFER, "STORAGE_BUFFER"},
+    {fe::rhi::ResourceUsage::INDEX_BUFFER, "INDEX_BUFFER"},
+    {fe::rhi::ResourceUsage::VERTEX_BUFFER, "VERTEX_BUFFER"},
+    {fe::rhi::ResourceUsage::INDIRECT_BUFFER, "INDIRECT_BUFFER"}
+})

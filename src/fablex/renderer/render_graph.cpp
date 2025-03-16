@@ -8,7 +8,7 @@ void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPass
 {
     clear();
     
-    m_metadata = std::make_unique<RenderGraphMetadata>();
+    m_metadata = std::make_unique<RenderGraphMetadata>(renderPassContainer->get_render_context());
     m_metadata->deserialize(metadataPath);
 
     const RenderGraphMetadata::RenderPassMetadataMap& renderPassMetadataMap = 
@@ -23,12 +23,12 @@ void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPass
 
 void RenderGraph::add_node(const RenderPassInfo& info)
 {
-    if (m_nodeIndexByName.find(info.name) != m_nodeIndexByName.end())
+    if (m_nodeIndexByName.find(info.renderPassName) != m_nodeIndexByName.end())
         return;
 
     Node& node = m_passNodes.emplace_back(info, &m_globalWriteDependencyRegistry);
     node.m_indexInUnorderedArray = m_passNodes.size() - 1;
-    m_nodeIndexByName[info.name] = (uint32)node.m_indexInUnorderedArray;
+    m_nodeIndexByName[info.renderPassName] = (uint32)node.m_indexInUnorderedArray;
 }
 
 void RenderGraph::build()
@@ -62,6 +62,19 @@ RenderGraph::Node* RenderGraph::get_node(RenderPassName renderPassName) const
         return nullptr;
 
     return const_cast<Node*>(&m_passNodes.at(it->second));
+}
+
+RenderGraph::ViewName RenderGraph::encode_view_name(ResourceName resourceName, uint32 viewIndex)
+{
+    ViewName viewName = resourceName.to_id();
+    viewName <<= 32;
+    viewName |= viewIndex;
+    return viewName;
+}
+
+std::pair<ResourceName, uint32> RenderGraph::decode_view_name(ViewName viewName)
+{
+    return {ResourceName{uint32(viewName >> 32)}, uint32(viewName & 0x0000FFFF)};
 }
 
 void RenderGraph::build_adjacency_lists()
@@ -149,7 +162,7 @@ void RenderGraph::topological_sort()
         {
             depth_first_search(nodeIdx, visitedNodes, onStackNodes, isCyclic);
             if (isCyclic)
-                FE_LOG(LogRenderer, FATAL, "Detected cyclic dependency in pass {}", node.get_info().name);
+                FE_LOG(LogRenderer, FATAL, "Detected cyclic dependency in pass {}", node.get_info().renderPassName);
         }
     }
 
@@ -355,19 +368,6 @@ void RenderGraph::remove_redundant_syncs()
     }
 }
 
-RenderGraph::ViewName RenderGraph::encode_view_name(ResourceName resourceName, uint32 viewIndex)
-{
-    ViewName viewName = resourceName.to_id();
-    viewName <<= 32;
-    viewName |= viewIndex;
-    return viewName;
-}
-
-std::pair<ResourceName, uint32> RenderGraph::decode_view_name(ViewName viewName)
-{
-    return {ResourceName{uint32(viewName >> 32)}, uint32(viewName & 0x0000FFFF)};
-}
-
 RenderGraph::Node::Node(const RenderPassInfo& info, WriteDependencyRegistry* writeDependencyRegistry)
     : m_renderPassInfo(info), m_writeDependencyRegistry(writeDependencyRegistry)
 {
@@ -414,10 +414,10 @@ void RenderGraph::Node::check_single_write_dependency(ViewName name)
     if (it != m_writeDependencyRegistry->end())
     {
         FE_LOG(LogRenderer, FATAL, "Resource {} can't be written in {} because it already has a write dependency in {}.", 
-            resourceName.first, m_renderPassInfo.name, it->second);    
+            resourceName.first, m_renderPassInfo.renderPassName, it->second);    
     }
 
-    m_writeDependencyRegistry->insert({name, m_renderPassInfo.name});
+    m_writeDependencyRegistry->insert({name, m_renderPassInfo.renderPassName});
 }
 
 void RenderGraph::Node::clear()
@@ -425,6 +425,13 @@ void RenderGraph::Node::clear()
     m_readViews.clear();
     m_writtenViews.clear();
     m_allViews.clear();
+    m_syncIndices.clear();
+    m_nodesToSyncWith.clear();
+    m_globalExecIndex = 0;
+    m_dependencyLevelIndex = 0;
+    m_queueLocalExecIdx = 0;
+    m_dependencyLevelLocalExecIdx = 0;
+    m_syncSignalRequired = false;
 }
 
 bool RenderGraph::Node::has_dependency(ResourceName resourceName, uint32 viewIndex) const

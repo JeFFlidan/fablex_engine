@@ -1,6 +1,7 @@
 #include "resource_scheduler.h"
-#include "resource_manager.h"
+#include "render_graph_resource_manager.h"
 #include "render_graph.h"
+#include "constants.h"
 
 namespace fe::renderer
 {
@@ -22,10 +23,11 @@ void ResourceScheduler::create_render_target(
     newTextureInfo.width = s_renderContext->get_render_surface().width;
     newTextureInfo.height = s_renderContext->get_render_surface().height;
     newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
+    newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
 
     fill_info_from_base(newTextureInfo, textureInfo);
 
-    s_renderContext->get_resource_manager()->queue_resource_allocation(
+    s_renderContext->get_render_graph_resource_manager()->queue_resource_allocation(
         renderPassName,
         resourceName, 
         newTextureInfo, 
@@ -55,7 +57,7 @@ void ResourceScheduler::create_depth_stencil(
 
     fill_info_from_base(newTextureInfo, textureInfo);
 
-    s_renderContext->get_resource_manager()->queue_resource_allocation(
+    s_renderContext->get_render_graph_resource_manager()->queue_resource_allocation(
         renderPassName, 
         resourceName, 
         newTextureInfo,
@@ -78,14 +80,14 @@ void ResourceScheduler::create_storage_texture(
 {
     rhi::TextureInfo newTextureInfo;
     newTextureInfo.format = rhi::Format::R32_SFLOAT;
-    newTextureInfo.textureUsage = rhi::ResourceUsage::STORAGE_TEXTURE | rhi::ResourceUsage::SAMPLED_TEXTURE;
+    newTextureInfo.textureUsage = rhi::ResourceUsage::STORAGE_TEXTURE | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
     newTextureInfo.width = s_renderContext->get_render_surface().width;
     newTextureInfo.height = s_renderContext->get_render_surface().height;
     newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
 
     fill_info_from_base(newTextureInfo, textureInfo);
 
-    s_renderContext->get_resource_manager()->queue_resource_allocation(
+    s_renderContext->get_render_graph_resource_manager()->queue_resource_allocation(
         renderPassName, 
         resourceName, 
         newTextureInfo,
@@ -95,14 +97,14 @@ void ResourceScheduler::create_storage_texture(
         ](ResourceSchedulingInfo& schedulingInfo)
         {
             add_render_graph_write_dependency(renderPassName, resourceName, 1);
-            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::GENERAL, 1);
+            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::GENERAL | rhi::ResourceLayout::SHADER_WRITE, 1);
         }
     );
 }
 
 void ResourceScheduler::read_texture(ResourceName resourceName, RenderPassName renderPassName)
 {
-    s_renderContext->get_resource_manager()->queue_resource_usage(
+    s_renderContext->get_render_graph_resource_manager()->queue_resource_usage(
         renderPassName, 
         resourceName,
         [
@@ -114,6 +116,22 @@ void ResourceScheduler::read_texture(ResourceName resourceName, RenderPassName r
             update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::SHADER_READ, 1);
         } 
     );
+}
+
+void ResourceScheduler::write_to_back_buffer(RenderPassName renderPassName)
+{
+    RenderGraph::Node* node = s_renderContext->get_render_graph()->get_node(renderPassName);
+    FE_CHECK(node);
+
+    node->add_write_dependency(g_backBufferName, 1);
+}
+
+void ResourceScheduler::use_ray_tracing(RenderPassName renderPassName)
+{
+    RenderGraph::Node* node = s_renderContext->get_render_graph()->get_node(renderPassName);
+    FE_CHECK(node);
+    
+    node->useRayTracing = true;
 }
 
 void ResourceScheduler::add_render_graph_read_dependency(
@@ -172,9 +190,11 @@ void ResourceScheduler::fill_info_from_base(rhi::TextureInfo& outInfo, const rhi
     if (baseInfo->format != rhi::Format::UNDEFINED)
         outInfo.format = baseInfo->format;
 
+    if (baseInfo->samplesCount != rhi::SampleCount::UNDEFINED)
+        outInfo.samplesCount = baseInfo->samplesCount;
+
+    outInfo.flags |= baseInfo->flags;
     outInfo.textureUsage |= baseInfo->textureUsage;
-    outInfo.samplesCount = baseInfo->samplesCount;
-    outInfo.flags = baseInfo->flags;
 }
 
 }

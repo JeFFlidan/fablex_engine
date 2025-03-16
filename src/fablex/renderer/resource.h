@@ -31,6 +31,7 @@ public:
     const Texture& get_texture() const { return m_texture; }
     ResourceSchedulingInfo& get_scheduling_info() { return m_schedulingInfo; }
     const ResourceSchedulingInfo& get_scheduling_info() const { return m_schedulingInfo; }
+    uint64 get_view_count() const { return m_viewCount; }
 
     void set_buffer(Buffer&& buffer);
     void set_texture(Texture&& textureHandle);
@@ -40,6 +41,7 @@ private:
     Buffer m_buffer;
     Texture m_texture;
     ResourceSchedulingInfo m_schedulingInfo;
+    uint64 m_viewCount;
 };
 
 }

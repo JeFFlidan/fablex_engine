@@ -1237,6 +1237,7 @@ public:
     Queue graphicsQueue;
     Queue computeQueue;
     Queue transferQueue;
+    std::vector<uint32> queueFamilies;
 
     void init(GPUPreference gpuPreference)
     {
@@ -1350,11 +1351,11 @@ public:
             }
         }
 
-        std::vector<uint32_t> uniqueQueueFamilies = {graphicsQueue.family, computeQueue.family, transferQueue.family};
+        queueFamilies = {graphicsQueue.family, computeQueue.family, transferQueue.family};
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
         const float queuePriority = 1.0f;
-        for (const auto queueFamily : uniqueQueueFamilies)
+        for (const auto queueFamily : queueFamilies)
         {
             VkDeviceQueueCreateInfo& createInfo = queueCreateInfos.emplace_back();
             createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -3124,6 +3125,17 @@ void create_texture(Texture** texture, const TextureInfo* info)
         createInfo.flags |= VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
     }
 
+    if (g_device.queueFamilies.size() > 1)
+    {
+        createInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = g_device.queueFamilies.size();
+        createInfo.pQueueFamilyIndices = g_device.queueFamilies.data();
+    }
+    else
+    {
+        createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
+
     VkImageUsageFlags imgUsage = get_image_usage(info->textureUsage);
     createInfo.usage = imgUsage;
     createInfo.imageType = get_image_type(info->dimension);
@@ -3897,7 +3909,16 @@ void create_acceleration_structure(AccelerationStructure** accelerationStructure
         | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if (g_device.queueFamilies.size() > 1)
+    {
+        bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        bufferInfo.queueFamilyIndexCount = g_device.queueFamilies.size();
+        bufferInfo.pQueueFamilyIndices = g_device.queueFamilies.data();
+    }
+    else
+    {
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
 
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -4947,6 +4968,7 @@ void wait_for_fences(const std::vector<Fence*>& fences)
     }
 
     VK_CHECK(vkWaitForFences(g_device.device, vkFences.size(), vkFences.data(), VK_TRUE, 1000000000));
+    VK_CHECK(vkResetFences(g_device.device, vkFences.size(), vkFences.data()));
 }
 
 API get_api()

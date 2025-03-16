@@ -418,13 +418,13 @@ private:
 void ShaderManager::init()
 {
     #ifdef DXCOMPILER_ENABLED
-    s_shaderCompiler.reset(new DXCompiler());
+    m_shaderCompiler.reset(new DXCompiler());
 #endif // DXCOMPILER_ENABLED
     
-    FE_CHECK(s_shaderCompiler);
+    FE_CHECK(m_shaderCompiler);
 
     ShaderCache::init();
-    s_taskGroup = TaskComposer::allocate_task_group();
+    m_taskGroup = TaskComposer::allocate_task_group();
 
     FE_LOG(LogShaderCompiler, INFO, "Shader Compiler initialization completed.");
 }
@@ -473,7 +473,7 @@ rhi::Shader* ShaderManager::load_shader(
         inputInfo.includePaths.push_back(FileSystem::get_root_path() + "/src/fablex/shaders");
 
         ShaderOutputInfo outputInfo;
-        s_shaderCompiler->compile(inputInfo, outputInfo);
+        m_shaderCompiler->compile(inputInfo, outputInfo);
         ShaderCache::update_shader_cache(inputInfo, outputInfo);
 
         rhi::ShaderInfo shaderInfo;
@@ -504,10 +504,10 @@ rhi::Shader* ShaderManager::load_shader(
 
 rhi::Shader* ShaderManager::get_shader(const std::string& relativePath)
 {
-    std::scoped_lock locker(s_mutex);
+    std::scoped_lock locker(m_mutex);
 
-    auto it = s_shaderByRelativePath.find(relativePath);
-    if (it == s_shaderByRelativePath.end())
+    auto it = m_shaderByRelativePath.find(relativePath);
+    if (it == m_shaderByRelativePath.end())
         return nullptr;
     return it->second;
 }
@@ -526,13 +526,13 @@ rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
 void ShaderManager::add_shader(const std::string& relativePath, rhi::Shader* shader)
 {
     FE_CHECK(shader);
-    std::scoped_lock locker(s_mutex);
-    s_shaderByRelativePath[relativePath] = shader;
+    std::scoped_lock locker(m_mutex);
+    m_shaderByRelativePath[relativePath] = shader;
 }
 
 void ShaderManager::request_shader_loading(const ShaderMetadata& shaderMetadata)
 {
-    TaskComposer::execute(*s_taskGroup, [&shaderMetadata](TaskExecutionInfo execInfo)
+    TaskComposer::execute(*m_taskGroup, [&shaderMetadata, this](TaskExecutionInfo execInfo)
     {
         get_shader(shaderMetadata);
     });
@@ -540,7 +540,7 @@ void ShaderManager::request_shader_loading(const ShaderMetadata& shaderMetadata)
 
 void ShaderManager::wait_shaders_loading()
 {
-    TaskComposer::wait(*s_taskGroup);
+    TaskComposer::wait(*m_taskGroup);
 }
 
 }

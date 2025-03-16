@@ -42,10 +42,10 @@ public:
 class ShaderManager
 {
 public:
-    static void init();
+    void init();
     
     // Relative path must not include src/fablex/shaders, only file names or subfolders of shaders + file names
-    static rhi::Shader* load_shader(
+    rhi::Shader* load_shader(
         const std::string& relativePath, 
         rhi::ShaderType shaderType,
         const std::string& entryPoint = "main",
@@ -53,19 +53,19 @@ public:
         const std::vector<std::string>& defines = {}
     );
     
-    static rhi::Shader* get_shader(const std::string& relativePath);
-    static rhi::Shader* get_shader(const ShaderMetadata& shaderMetadata);
+    rhi::Shader* get_shader(const std::string& relativePath);
+    rhi::Shader* get_shader(const ShaderMetadata& shaderMetadata);
     
-    static void request_shader_loading(const ShaderMetadata& shaderMetadata);
-    static void wait_shaders_loading();
+    void request_shader_loading(const ShaderMetadata& shaderMetadata);
+    void wait_shaders_loading();
 
 private:
-    inline static std::unique_ptr<IShaderCompiler> s_shaderCompiler = nullptr;
-    inline static std::unordered_map<std::string, rhi::Shader*> s_shaderByRelativePath{};
-    inline static TaskGroup* s_taskGroup = nullptr;
-    inline static std::mutex s_mutex{};
+    std::unique_ptr<IShaderCompiler> m_shaderCompiler = nullptr;
+    std::unordered_map<std::string, rhi::Shader*> m_shaderByRelativePath{};
+    TaskGroup* m_taskGroup = nullptr;
+    std::mutex m_mutex{};
 
-    static void add_shader(const std::string& relativePath, rhi::Shader* shader);
+    void add_shader(const std::string& relativePath, rhi::Shader* shader);
 };
 
 }

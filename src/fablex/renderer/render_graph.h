@@ -27,6 +27,8 @@ public:
         using NodePtrArray = std::vector<const Node*>;
         constexpr static uint32 s_invalidSyncIndex = ~0u;
 
+        bool useRayTracing = false;
+
         Node(const RenderPassInfo& info, WriteDependencyRegistry* writeDependencyRegistry);
 
         void add_read_dependency(ResourceName resourceName, uint32 viewCount);
@@ -45,7 +47,7 @@ public:
         const ViewNameSet& get_read_views() const { return m_readViews; }
         const ViewNameSet& get_written_views() const { return m_writtenViews; }
         const ViewNameSet& get_all_views() const { return m_allViews; }
-        bool is_sync_required() const { return m_syncSignalRequired; }
+        bool is_sync_signal_required() const { return m_syncSignalRequired; }
         const NodePtrArray& get_nodes_to_sync_with() const { return m_nodesToSyncWith; }
         uint32 get_dependency_level_index() const { return m_dependencyLevelIndex; }
         uint32 get_queue_index() const { return m_queueIndex; }
@@ -90,7 +92,7 @@ public:
         uint32 get_level_index() const { return m_levelIndex; }
         const NodeList& get_nodes() const { return m_nodes; }
         const NodePtrArray& get_nodes_for_queue(QueueIndex index) const { return m_nodesPerQueue.at(index); }
-        const ViewNameSet& get_views_read_by_multiple_queues() { return m_viewsReadByMultipleQueues;}
+        const ViewNameSet& get_views_read_by_multiple_queues() const { return m_viewsReadByMultipleQueues;}
         const QueueIndexSet& get_queues_involved_in_cross_queue_resource_reads() const 
             { return m_queuesInvolvedInCrossQueueResourceReads; }
 
@@ -111,6 +113,8 @@ public:
         Node* remove_node(NodeListIterator it);
     };
 
+    using DependencyLevelArray = std::vector<DependencyLevel>;
+
     void load_from_metadata(const std::string& metadataPath, RenderPassContainer* renderPassContainer);
 
     void add_node(const RenderPassInfo& info);
@@ -123,13 +127,16 @@ public:
     const OrderedNodeArray& get_nodes_in_global_exec_order() const { return m_nodesInGlobalExecOrder; }
     const NodeArray& get_nodes() const { return m_passNodes; }
     NodeArray& get_nodes() { return m_passNodes; }
+    const DependencyLevelArray& get_dependency_levels() const { return m_dependencyLevels; }
     uint32 get_detected_queue_count() const { return m_detectedQueueCount; }
+
+    static ViewName encode_view_name(ResourceName resourceName, uint32 viewIndex);
+    static std::pair<ResourceName, uint32> decode_view_name(ViewName viewName);
 
 private:
     using NodeMap = std::unordered_map<RenderPassName, uint32>;
     using AdjacencyArray = std::vector<uint32>;
     using AdjacencyArrays = std::vector<AdjacencyArray>;
-    using DependencyLevelArray = std::vector<DependencyLevel>;
     using QueueNodeCounters = std::unordered_map<QueueIndex, uint32>;
 
     std::unique_ptr<RenderGraphMetadata> m_metadata;
@@ -153,9 +160,6 @@ private:
     void build_dependency_levels();
     void finalize_dependency_levels();
     void remove_redundant_syncs();
-
-    static ViewName encode_view_name(ResourceName resourceName, uint32 viewIndex);
-    static std::pair<ResourceName, uint32> decode_view_name(ViewName viewName);
 };
 
 }

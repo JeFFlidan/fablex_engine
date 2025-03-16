@@ -12,16 +12,25 @@ namespace fe::renderer
 
 using ResourceInfoVariant = std::variant<rhi::BufferInfo, rhi::TextureInfo>;
 
-class ResourceManager
+class ResourceLayoutTracker;
+
+// Must be used to create resources that are used as input and output by render passes in render graph. 
+// In most cases those resources are color/depth targets and storage textures.
+// Resources like vertex, index buffers, model textures, etc. must be allocated by another objects
+class RenderGraphResourceManager
 {
 public:
     using SchedulingInfoConfigurator = std::function<void(ResourceSchedulingInfo&)>;
 
+    RenderGraphResourceManager(ResourceLayoutTracker* resourceLayoutTracker);
+
     void begin_frame();
     void end_frame();
 
-    uint32 get_render_target_descriptor(RenderPassName renderPassName, ResourceName resourceName, uint32 mipLevel = 0) const;
-    uint32 get_depth_stencil_desciptor(RenderPassName renderPassName, ResourceName resourceName) const;
+    uint32 get_rtv_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
+    uint32 get_dsv_desciptor(RenderPassName renderPassName, ResourceName textureName) const;
+    uint32 get_texture_uav_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
+    uint32 get_texture_srv_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
     uint32 get_sampler_descriptor(ResourceName samplerName) const;
 
     Resource* get_resource(ResourceName resourceName);
@@ -61,6 +70,8 @@ private:
         ResourceName resourceName;
     };
 
+    ResourceLayoutTracker* m_resourceLayoutTracker;
+
     std::vector<SchedulingRequest> m_schedulingAllocationRequests;
     std::vector<SchedulingRequest> m_schedulingUsageRequests;
     std::vector<ResourceCreationRequest> m_primaryResourceCreationRequests;
@@ -76,6 +87,14 @@ private:
 
     void create_resource(const ResourceCreationRequest& request);
     bool transfer_previous_frame_resources();
+
+    const Texture& get_texture_internal(
+        RenderPassName renderPassName,
+        ResourceName textureName,
+        uint32 mipLevel,
+        rhi::ResourceUsage mustHaveUsage,
+        rhi::ResourceLayout mustHaveLayout
+    ) const;
 };
 
 }

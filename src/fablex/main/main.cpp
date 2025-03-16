@@ -2,12 +2,15 @@
 #include "application.h"
 #include "renderer/render_pass.h"
 #include "core/logger.h"
+#include "rhi/json_serialization.h"
 #include <iostream>
 
 int main(int argc, char* argv[])
 {   
     fe::Application app;
     app.init();
+
+    FE_LOG(LogDefault, INFO, "ENUM VALUE: {}", to_string(fe::rhi::ResourceUsage::COLOR_ATTACHMENT));
 
     fe::renderer::RenderPass* renderPass = (fe::renderer::RenderPass*)fe::create_object("TestPass");
     FE_CHECK(renderPass);

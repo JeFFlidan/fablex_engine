@@ -1,14 +1,22 @@
-#include "resource_manager.h"
+#include "render_graph_resource_manager.h"
+#include "resource_layout_tracker.h"
 #include "rhi/rhi.h"
 #include "core/logger.h"
 #include "core/utils.h"
+#include "rhi/json_serialization.h"
 
 #include <algorithm>
 
 namespace fe::renderer
 {
 
-void ResourceManager::begin_frame()
+RenderGraphResourceManager::RenderGraphResourceManager(ResourceLayoutTracker* resourceLayoutTracker)
+    : m_resourceLayoutTracker(resourceLayoutTracker)
+{
+    FE_CHECK(m_resourceLayoutTracker);
+}
+
+void RenderGraphResourceManager::begin_frame()
 {
     m_previousFrameResourceList.clear();
     m_previousFrameResourceMap.clear();
@@ -19,48 +27,68 @@ void ResourceManager::begin_frame()
     std::swap(m_previousFrameIntersectionEntryList, m_currentFrameIntersectionEntryList);
 }
 
-void ResourceManager::end_frame()
+void RenderGraphResourceManager::end_frame()
 {
 
 }
 
-uint32 ResourceManager::get_render_target_descriptor(RenderPassName renderPassName, ResourceName resourceName, uint32 mipLevel) const
+uint32 RenderGraphResourceManager::get_rtv_descriptor(
+    RenderPassName renderPassName, 
+    ResourceName textureName, 
+    uint32 mipLevel
+) const
 {
-    const Resource* resource = get_resource(resourceName);
-    if (!resource->is_texture())
-        FE_LOG(LogRenderer, FATAL, "Resource {} is not a texture.", resourceName.to_string());
-
-    const ResourceSchedulingInfo::RenderPassInfo* passInfo = resource->get_scheduling_info().get_render_pass_info(renderPassName);
-    if (!passInfo)
-        FE_LOG(LogRenderer, FATAL, "Resource {} is not scheduled for render pass {}.", resourceName.to_string(), renderPassName.to_string());
-
-    const Texture& texture = resource->get_texture();
-    FE_CHECK(has_flag(texture.get_handle()->textureUsage, rhi::ResourceUsage::COLOR_ATTACHMENT));
-
-    const std::optional<ResourceSchedulingInfo::ViewInfo>& viewInfo = passInfo->viewInfos[mipLevel];
-    if (viewInfo == std::nullopt)
-        FE_LOG(LogRenderer, FATAL, "Resource {} does not have view for mip level {}", resourceName.to_string(), mipLevel);
-
-    return resource->get_texture().get_rtv_descriptor();
+    return get_texture_internal(
+        renderPassName, 
+        textureName, 
+        mipLevel, 
+        rhi::ResourceUsage::COLOR_ATTACHMENT, 
+        rhi::ResourceLayout::COLOR_ATTACHMENT
+    ).get_rtv_descriptor();
 }
 
-uint32 ResourceManager::get_depth_stencil_desciptor(RenderPassName renderPassName, ResourceName resourceName) const
+uint32 RenderGraphResourceManager::get_dsv_desciptor(RenderPassName renderPassName, ResourceName textureName) const
 {
-    const Resource* resource = get_resource(resourceName);
-    if (!resource->is_texture())
-        FE_LOG(LogRenderer, FATAL, "Resource {} is not a texture.", resourceName.to_string());
-
-    const ResourceSchedulingInfo::RenderPassInfo* passInfo = resource->get_scheduling_info().get_render_pass_info(renderPassName);
-    if (!passInfo)
-        FE_LOG(LogRenderer, FATAL, "Resource {} is not scheduled for render pass {}.", resourceName.to_string(), renderPassName.to_string());
-
-    const Texture& texture = resource->get_texture();
-    FE_CHECK(has_flag(texture.get_handle()->textureUsage, rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT));
-
-    return texture.get_dsv_descriptor();
+    return get_texture_internal(
+        renderPassName, 
+        textureName, 
+        0, 
+        rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT, 
+        rhi::ResourceLayout::DEPTH_STENCIL
+    ).get_dsv_descriptor();
 }
 
-uint32 ResourceManager::get_sampler_descriptor(ResourceName samplerName) const
+uint32 RenderGraphResourceManager::get_texture_uav_descriptor(
+    RenderPassName renderPassName, 
+    ResourceName textureName, 
+    uint32 mipLevel
+) const
+{
+    return get_texture_internal(
+        renderPassName, 
+        textureName, 
+        mipLevel, 
+        rhi::ResourceUsage::STORAGE_TEXTURE, 
+        rhi::ResourceLayout::GENERAL
+    ).get_uav_descriptor();
+}
+
+uint32 RenderGraphResourceManager::get_texture_srv_descriptor(
+    RenderPassName renderPassName, 
+    ResourceName textureName, 
+    uint32 mipLevel
+) const
+{
+    return get_texture_internal(
+        renderPassName, 
+        textureName, 
+        mipLevel, 
+        rhi::ResourceUsage::SAMPLED_TEXTURE, 
+        rhi::ResourceLayout::SHADER_READ
+    ).get_srv_descriptor();
+}
+
+uint32 RenderGraphResourceManager::get_sampler_descriptor(ResourceName samplerName) const
 {
     auto it = m_samplers.find(samplerName);
 
@@ -70,7 +98,7 @@ uint32 ResourceManager::get_sampler_descriptor(ResourceName samplerName) const
     return it->second->descriptorIndex;
 }
 
-Resource* ResourceManager::get_resource(ResourceName resourceName)
+Resource* RenderGraphResourceManager::get_resource(ResourceName resourceName)
 {
     auto it = m_currentFrameResourceMap.find(resourceName);
     if (it == m_currentFrameResourceMap.end())
@@ -79,7 +107,7 @@ Resource* ResourceManager::get_resource(ResourceName resourceName)
     return &m_currentFrameResourceList.at(it->second);
 }
 
-const Resource* ResourceManager::get_resource(ResourceName resourceName) const
+const Resource* RenderGraphResourceManager::get_resource(ResourceName resourceName) const
 {
     auto it = m_currentFrameResourceMap.find(resourceName);
     if (it == m_currentFrameResourceMap.end())
@@ -88,14 +116,14 @@ const Resource* ResourceManager::get_resource(ResourceName resourceName) const
     return &m_currentFrameResourceList.at(it->second);
 }
 
-void ResourceManager::begin_resource_scheduling()
+void RenderGraphResourceManager::begin_resource_scheduling()
 {
     m_schedulingAllocationRequests.clear();
     m_schedulingUsageRequests.clear();
     m_primaryResourceCreationRequests.clear();
 }
 
-void ResourceManager::end_resource_scheduling()
+void RenderGraphResourceManager::end_resource_scheduling()
 {
     for (const ResourceCreationRequest& request : m_primaryResourceCreationRequests)
     {
@@ -122,7 +150,7 @@ void ResourceManager::end_resource_scheduling()
     }
 }
 
-void ResourceManager::allocate_scheduled_resources()
+void RenderGraphResourceManager::allocate_scheduled_resources()
 {
     if (transfer_previous_frame_resources())
         return;
@@ -136,25 +164,27 @@ void ResourceManager::allocate_scheduled_resources()
         creationRequest = &m_primaryResourceCreationRequests.at(resIdxIt->second);
 
         std::visit(Utils::make_visitor(
-            [&resource](const rhi::TextureInfo& textureInfo)
+            [this, &resource](const rhi::TextureInfo& textureInfo)
             {
                 rhi::TextureHandle textureHandle;
                 rhi::create_texture(&textureHandle, &textureInfo);
                 resource.set_texture(Texture(textureHandle));
                 rhi::set_name(textureHandle, resource.get_name().to_string());
+                m_resourceLayoutTracker->begin_resource_tracking(&resource);
             },
-            [&resource](const rhi::BufferInfo& bufferInfo)
+            [this, &resource](const rhi::BufferInfo& bufferInfo)
             {
                 rhi::BufferHandle bufferHandle;
                 rhi::create_buffer(&bufferHandle, &bufferInfo);
                 resource.set_buffer(Buffer(bufferHandle));
                 rhi::set_name(bufferHandle, resource.get_name().to_string());
+                m_resourceLayoutTracker->begin_resource_tracking(&resource);
             }
         ), creationRequest->info);
     }
 }
 
-void ResourceManager::queue_resource_allocation(
+void RenderGraphResourceManager::queue_resource_allocation(
     RenderPassName renderPassName,
     ResourceName resourceName,
     const ResourceInfoVariant& info,
@@ -165,12 +195,12 @@ void ResourceManager::queue_resource_allocation(
     m_primaryResourceCreationRequests.emplace_back(ResourceCreationRequest(info, renderPassName, resourceName));
 }
 
-void ResourceManager::queue_resource_usage(RenderPassName renderPassName, ResourceName resourceName, const SchedulingInfoConfigurator& configurator)
+void RenderGraphResourceManager::queue_resource_usage(RenderPassName renderPassName, ResourceName resourceName, const SchedulingInfoConfigurator& configurator)
 {
     m_schedulingUsageRequests.emplace_back(SchedulingRequest(configurator, renderPassName, resourceName));
 }
 
-void ResourceManager::create_sampler(ResourceName samplerName, const rhi::SamplerInfo& samplerInfo)
+void RenderGraphResourceManager::create_sampler(ResourceName samplerName, const rhi::SamplerInfo& samplerInfo)
 {
     if (m_samplers.contains(samplerName))
     {
@@ -183,7 +213,7 @@ void ResourceManager::create_sampler(ResourceName samplerName, const rhi::Sample
     m_samplers[samplerName] = sampler;
 }
 
-void ResourceManager::create_resource(const ResourceCreationRequest& request)
+void RenderGraphResourceManager::create_resource(const ResourceCreationRequest& request)
 {
     std::visit(Utils::make_visitor(
         [&request, this](const rhi::TextureInfo& textureInfo)
@@ -199,7 +229,7 @@ void ResourceManager::create_resource(const ResourceCreationRequest& request)
     ), request.info);
 }
 
-bool ResourceManager::transfer_previous_frame_resources()
+bool RenderGraphResourceManager::transfer_previous_frame_resources()
 {
     for (const Resource& resource : m_currentFrameResourceList)
     {
@@ -242,6 +272,37 @@ bool ResourceManager::transfer_previous_frame_resources()
         && intersectionResult.size() == m_currentFrameIntersectionEntryList.size();
 
     return isMemoryLayoutValid;
+}
+
+const Texture& RenderGraphResourceManager::get_texture_internal(
+    RenderPassName renderPassName,
+    ResourceName textureName,
+    uint32 mipLevel,
+    rhi::ResourceUsage mustHaveUsage,
+    rhi::ResourceLayout mustHaveLayout
+) const
+{
+    const Resource* resource = get_resource(textureName);
+    if (!resource->is_texture())
+        FE_LOG(LogRenderer, FATAL, "Resource {} is not a valid texture.", textureName.to_string());
+
+    const ResourceSchedulingInfo::RenderPassInfo* passInfo = resource->get_scheduling_info().get_render_pass_info(renderPassName);
+    if (!passInfo)
+        FE_LOG(LogRenderer, FATAL, "Resource {} is not scheduled for render pass {}.", textureName.to_string(), renderPassName.to_string());
+
+    const Texture& texture = resource->get_texture();
+
+    if (!has_flag(texture.get_handle()->textureUsage, mustHaveUsage))
+        FE_LOG(LogRenderer, FATAL, "Texture {} does not have usage {}", textureName, to_string(mustHaveUsage));
+
+    const std::optional<ResourceSchedulingInfo::ViewInfo>& viewInfo = passInfo->viewInfos[mipLevel];
+    if (viewInfo == std::nullopt)
+        FE_LOG(LogRenderer, FATAL, "Texture {} does not have view for mip level {}", textureName, mipLevel);
+
+    if (!has_flag(viewInfo->requestedLayout, mustHaveLayout))
+        FE_LOG(LogRenderer, FATAL, "Texture {} requested layout is not {} for render pass {}", textureName, to_string(mustHaveLayout), renderPassName);
+    
+    return texture;
 }
     
 }
