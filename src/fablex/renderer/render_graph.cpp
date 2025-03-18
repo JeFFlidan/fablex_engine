@@ -6,6 +6,8 @@ namespace fe::renderer
 
 void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPassContainer* renderPassContainer)
 {
+    FE_LOG(LogRenderer, INFO, "Starting loading render graph from metadata.");
+
     clear();
     
     m_metadata = std::make_unique<RenderGraphMetadata>(renderPassContainer->get_render_context());
@@ -19,6 +21,8 @@ void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPass
         RenderPass* renderPass = renderPassContainer->add_render_pass(it.second);
         add_node(renderPass->get_info());
     }
+
+    FE_LOG(LogRenderer, INFO, "Loading render graph from metadata completed.");
 }
 
 void RenderGraph::add_node(const RenderPassInfo& info)
@@ -196,7 +200,7 @@ void RenderGraph::build_dependency_levels()
     for (uint32 nodeIdx = 0; nodeIdx != m_topologicallySortedNodes.size(); ++nodeIdx)
     {
         Node* node = m_topologicallySortedNodes[nodeIdx];
-        uint32 levelIdx = longestDistances[nodeIdx];
+        uint32 levelIdx = longestDistances[node->m_indexInUnorderedArray];
         DependencyLevel& dependencyLevel = m_dependencyLevels[levelIdx];
         dependencyLevel.add_node(node);
         dependencyLevel.m_levelIndex = levelIdx;
@@ -226,7 +230,8 @@ void RenderGraph::finalize_dependency_levels()
                 resourceReadingQueueTracker[viewName].insert(node->m_queueIndex);
 
             node->m_globalExecIndex = globalExecIdx;
-            node->m_dependencyLevelIndex = localExecIdx;
+            node->m_dependencyLevelLocalExecIdx = localExecIdx;
+            node->m_dependencyLevelIndex = dependencyLevel.get_level_index();
             node->m_queueLocalExecIdx = m_queueNodeCounters[node->m_queueIndex]++;
 
             m_nodesInGlobalExecOrder[globalExecIdx] = node;
@@ -274,7 +279,7 @@ void RenderGraph::remove_redundant_syncs()
         for (Node* node : dependencyLevel.m_nodes)
         {
             NodePtrArray closestNodesToSyncWith(m_detectedQueueCount, nullptr);
-            
+
             for (const Node* dependencyNode : node->m_nodesToSyncWith)
             {
                 const Node* currentClosestNode = closestNodesToSyncWith.at(dependencyNode->m_queueIndex);
@@ -349,14 +354,18 @@ void RenderGraph::remove_redundant_syncs()
                 {
                     const Node* nodeToSyncWith = syncCoverage.nodeToSyncWith;
 
-                    if (nodeToSyncWith->m_queueIndex == node->m_queueIndex)
-                        continue;
+                    if (syncsCoveredByNodeMaxCount >= syncCoverage.syncedQueueIndices.size())
+                    {
+                        if (nodeToSyncWith->m_queueIndex != node->m_queueIndex)
+                        {
+                            optimalNodesToSyncWith.push_back(syncCoverage.nodeToSyncWith);
+                            node->m_syncIndices[nodeToSyncWith->m_queueIndex] = nodeToSyncWith->m_queueIndex;
+                        }
 
-                    optimalNodesToSyncWith.push_back(syncCoverage.nodeToSyncWith);
-                    node->m_syncIndices[nodeToSyncWith->m_queueIndex] = nodeToSyncWith->m_queueLocalExecIdx;
+                        for (uint32 syncedQueueIdx : syncCoverage.syncedQueueIndices)
+                            queuesToSyncWith.erase(syncedQueueIdx);
+                    }
 
-                    for (uint32 syncedQueueIdx : syncCoverage.syncedQueueIndices)
-                        queuesToSyncWith.erase(syncedQueueIdx);
                 }
 
                 for (auto syncCoverageIt = syncCoverages.rbegin(); syncCoverageIt != syncCoverages.rend(); ++syncCoverageIt)
@@ -398,7 +407,7 @@ void RenderGraph::Node::add_write_dependency(ResourceName resourceName, uint32 v
 
 void RenderGraph::Node::add_write_dependency(ResourceName resourceName, uint32 firstViewIndex, uint32 lastViewIndex)
 {
-    for (uint32 i = firstViewIndex; i != lastViewIndex; ++i)
+    for (uint32 i = firstViewIndex; i <= lastViewIndex; ++i)
     {
         ViewName viewName = encode_view_name(resourceName, i);
         check_single_write_dependency(viewName);

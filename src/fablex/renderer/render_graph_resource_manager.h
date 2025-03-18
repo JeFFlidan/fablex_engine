@@ -23,6 +23,7 @@ public:
     using SchedulingInfoConfigurator = std::function<void(ResourceSchedulingInfo&)>;
 
     RenderGraphResourceManager(ResourceLayoutTracker* resourceLayoutTracker);
+    ~RenderGraphResourceManager();
 
     void begin_frame();
     void end_frame();

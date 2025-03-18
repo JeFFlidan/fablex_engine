@@ -19,7 +19,7 @@ public:
 
     RenderGraphMetadata(const RenderContext* renderContext);
 
-    void deserialize(const nlohmann::json& json);
+    void deserialize(const std::string& path);
 
     const TextureMetadata* get_texture_metadata(ResourceName textureName) const;
     const PushConstantsMetadata* get_push_constants_metadata(PushConstantsName pushConstantsName) const;

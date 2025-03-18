@@ -23,6 +23,7 @@ public:
     using RayTracingPipelineConfigurator = std::function<void(rhi::RayTracingPipelineInfo&)>;
 
     PipelineManager(ShaderManager* shaderManager);
+    ~PipelineManager();
 
     void create_graphics_pipeline(const PipelineMetadata& pipelineMetadata);
     void create_graphics_pipeline(const PipelineMetadata& pipelineMetadata, const GraphicsPipelineConfigurator& configurator);
@@ -35,6 +36,7 @@ public:
     void wait_pipelines_creation();
     
     void bind_pipeline(rhi::CommandBuffer* cmd, PipelineName name) const;
+    void push_constants(rhi::CommandBuffer* cmd, PipelineName name, void* data) const;
     rhi::Pipeline* get_pipeline(PipelineName name) const;
 
 private:

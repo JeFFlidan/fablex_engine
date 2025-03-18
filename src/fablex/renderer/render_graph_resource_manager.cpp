@@ -16,15 +16,31 @@ RenderGraphResourceManager::RenderGraphResourceManager(ResourceLayoutTracker* re
     FE_CHECK(m_resourceLayoutTracker);
 }
 
+RenderGraphResourceManager::~RenderGraphResourceManager()
+{
+    m_currentFrameResourceList.clear();
+    m_previousFrameResourceList.clear();
+
+    for (auto [name, sampler] : m_samplers)
+        rhi::destroy_sampler(sampler);
+}
+
+template <typename T>
+void move_swap(T& a, T& b) {
+    T temp = std::move(a);
+    a = std::move(b);
+    b = std::move(temp);
+}
+
 void RenderGraphResourceManager::begin_frame()
 {
     m_previousFrameResourceList.clear();
     m_previousFrameResourceMap.clear();
     m_previousFrameIntersectionEntryList.clear();
     
-    std::swap(m_previousFrameResourceList, m_currentFrameResourceList);
-    std::swap(m_previousFrameResourceMap, m_currentFrameResourceMap);
-    std::swap(m_previousFrameIntersectionEntryList, m_currentFrameIntersectionEntryList);
+    move_swap(m_previousFrameResourceList, m_currentFrameResourceList);
+    move_swap(m_previousFrameResourceMap, m_currentFrameResourceMap);
+    move_swap(m_previousFrameIntersectionEntryList, m_currentFrameIntersectionEntryList);
 }
 
 void RenderGraphResourceManager::end_frame()
@@ -100,6 +116,8 @@ uint32 RenderGraphResourceManager::get_sampler_descriptor(ResourceName samplerNa
 
 Resource* RenderGraphResourceManager::get_resource(ResourceName resourceName)
 {
+    FE_CHECK(resourceName.is_valid());
+
     auto it = m_currentFrameResourceMap.find(resourceName);
     if (it == m_currentFrameResourceMap.end())
         return nullptr;
@@ -168,16 +186,14 @@ void RenderGraphResourceManager::allocate_scheduled_resources()
             {
                 rhi::TextureHandle textureHandle;
                 rhi::create_texture(&textureHandle, &textureInfo);
-                resource.set_texture(Texture(textureHandle));
-                rhi::set_name(textureHandle, resource.get_name().to_string());
+                resource.set_texture(textureHandle);
                 m_resourceLayoutTracker->begin_resource_tracking(&resource);
             },
             [this, &resource](const rhi::BufferInfo& bufferInfo)
             {
                 rhi::BufferHandle bufferHandle;
                 rhi::create_buffer(&bufferHandle, &bufferInfo);
-                resource.set_buffer(Buffer(bufferHandle));
-                rhi::set_name(bufferHandle, resource.get_name().to_string());
+                resource.set_buffer(bufferHandle);
                 m_resourceLayoutTracker->begin_resource_tracking(&resource);
             }
         ), creationRequest->info);
@@ -249,7 +265,7 @@ bool RenderGraphResourceManager::transfer_previous_frame_resources()
         std::back_inserter(intersectionResult),
         [](Resource::IntersectionEntry& first, Resource::IntersectionEntry& second)
         {
-            return first == second;
+            return first < second;
         }
     );
 
@@ -261,11 +277,7 @@ bool RenderGraphResourceManager::transfer_previous_frame_resources()
         Resource& prevResource = m_previousFrameResourceList.at(resIdxInPrevFrameIt->second);
         Resource& currResource = m_currentFrameResourceList.at(resIdxInCurrFrameIt->second);
 
-        if (prevResource.is_buffer())
-            currResource.set_buffer(std::move(prevResource.get_buffer()));
-
-        if (prevResource.is_texture())
-            currResource.set_texture(std::move(prevResource.get_texture()));
+        currResource.set_from_resource(prevResource);
     }
 
     bool isMemoryLayoutValid = m_previousFrameIntersectionEntryList.size() == m_currentFrameIntersectionEntryList.size()

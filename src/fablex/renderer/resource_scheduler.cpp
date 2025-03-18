@@ -1,7 +1,7 @@
 #include "resource_scheduler.h"
 #include "render_graph_resource_manager.h"
 #include "render_graph.h"
-#include "constants.h"
+#include "globals.h"
 
 namespace fe::renderer
 {
@@ -102,7 +102,7 @@ void ResourceScheduler::create_storage_texture(
     );
 }
 
-void ResourceScheduler::read_texture(ResourceName resourceName, RenderPassName renderPassName)
+void ResourceScheduler::read_texture(RenderPassName renderPassName, ResourceName resourceName)
 {
     s_renderContext->get_render_graph_resource_manager()->queue_resource_usage(
         renderPassName, 

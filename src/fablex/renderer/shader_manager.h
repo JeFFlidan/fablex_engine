@@ -42,7 +42,8 @@ public:
 class ShaderManager
 {
 public:
-    void init();
+    ShaderManager();
+    ~ShaderManager();
     
     // Relative path must not include src/fablex/shaders, only file names or subfolders of shaders + file names
     rhi::Shader* load_shader(

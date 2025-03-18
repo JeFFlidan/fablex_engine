@@ -21,6 +21,9 @@ public:
 
     using ViewLayoutArray = std::vector<ViewLayout>;
 
+    void begin_frame();
+    void end_frame();
+
     void begin_resource_tracking(const Resource* resource);
 
     std::optional<rhi::PipelineBarrier> get_transition_to_layout(

@@ -15,6 +15,12 @@ PipelineManager::PipelineManager(ShaderManager* shaderManager) : m_shaderManager
     m_taskGroup = TaskComposer::allocate_task_group();
 }
 
+PipelineManager::~PipelineManager()
+{
+    for (auto [name, pipeline] : m_pipelineByName)
+        rhi::destroy_pipeline(pipeline);
+}
+
 void PipelineManager::create_graphics_pipeline(const PipelineMetadata& pipelineMetadata)
 {
     rhi::GraphicsPipelineInfo info;
@@ -85,8 +91,8 @@ void PipelineManager::create_pipelines(RenderPassContainer* renderPassContainer)
     {
         FE_CHECK(renderPass);
 
-        const RenderPassInfo& info = renderPass->get_info();
-        if (get_pipeline(info.pipelineName))
+        const RenderPassMetadata& passMetadata = renderPass->get_metadata();
+        if (get_pipeline(passMetadata.pipelineName))
             continue;
 
         TaskComposer::execute(*m_taskGroup, [renderPass](TaskExecutionInfo execInfo)
@@ -111,10 +117,23 @@ rhi::Pipeline* PipelineManager::get_pipeline(PipelineName name) const
 
 void PipelineManager::bind_pipeline(rhi::CommandBuffer* cmd, PipelineName name) const
 {
+    FE_CHECK(cmd);
+
     rhi::Pipeline* pipeline = get_pipeline(name);
     FE_CHECK(pipeline);
 
     rhi::bind_pipeline(cmd, pipeline);
+}
+
+void PipelineManager::push_constants(rhi::CommandBuffer* cmd, PipelineName name, void* data) const
+{
+    FE_CHECK(cmd);
+    FE_CHECK(data);
+
+    rhi::Pipeline* pipeline = get_pipeline(name);
+    FE_CHECK(pipeline);
+
+    rhi::push_constants(cmd, pipeline, data);
 }
 
 void PipelineManager::configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo, const PipelineMetadata& pipelineMetadata)
@@ -124,7 +143,7 @@ void PipelineManager::configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo
     outInfo.multisampleState.isEnabled = false;
     outInfo.multisampleState.sampleCount = rhi::SampleCount::BIT_1;
 
-    outInfo.rasterizationState.cullMode = rhi::CullMode::BACK;
+    outInfo.rasterizationState.cullMode = rhi::CullMode::NONE;
     outInfo.rasterizationState.polygonMode = rhi::PolygonMode::FILL;
     outInfo.rasterizationState.isBiasEnabled = false;
     outInfo.rasterizationState.frontFace = rhi::FrontFace::CLOCKWISE;

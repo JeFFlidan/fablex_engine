@@ -38,7 +38,7 @@ struct RenderTargetMetadata
     ResourceName textureName;
     rhi::Format format = rhi::Format::UNDEFINED;
     rhi::StoreOp storeOp = rhi::StoreOp::STORE;
-    rhi::LoadOp loadOp = rhi::LoadOp::DONT_CARE;
+    rhi::LoadOp loadOp = rhi::LoadOp::CLEAR;
     rhi::ClearValues clearValues;
 };
 
@@ -103,6 +103,5 @@ struct PushConstantsMetadata
     PushConstantsName name;
     std::vector<FieldMetadata> fieldsMetadata;
 };
-
 
 }

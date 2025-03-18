@@ -3,13 +3,13 @@
 #include "common.h"
 #include "core/json_serialization.h"
 
-FE_SERIALIZE_ENUM(fe::renderer::RenderPassType, 
+FE_SERIALIZE_ENUM(fe::renderer, fe::renderer::RenderPassType, 
 {
     {fe::renderer::RenderPassType::GRAPHICS, "GRAPHICS"},
     {fe::renderer::RenderPassType::ASYNC_COMPUTE, "ASYNC_COMPUTE"}
 })
 
-FE_SERIALIZE_ENUM(fe::renderer::PushConstantType, 
+FE_SERIALIZE_ENUM(fe::renderer, fe::renderer::PushConstantType, 
 {
     {fe::renderer::PushConstantType::FLOAT, "FLOAT"},
     {fe::renderer::PushConstantType::INT32, "INT32"},

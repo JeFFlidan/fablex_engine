@@ -1,11 +1,16 @@
 #include "texture.h"
 #include "rhi/rhi.h"
 #include "core/macro.h"
-
+#include "core/logger.h"
 namespace fe::renderer
 {
 
-Texture::Texture(rhi::TextureHandle handle) : m_handle(handle) { }
+Texture::Texture(rhi::TextureHandle handle, Name textureName) 
+    : m_name(textureName), m_handle(handle) 
+{
+    reserve_texture_view_arrays();
+    rhi::set_name(m_handle, m_name.to_string().c_str());
+}
 
 Texture::~Texture()
 {
@@ -31,6 +36,7 @@ rhi::TextureViewHandle Texture::get_dsv() const
         rhi::TextureViewInfo info;
         info.type = rhi::ViewType::DSV;
         rhi::create_texture_view(&m_dsTextureView, &info, m_handle);
+        rhi::set_name(m_handle, get_view_name(0));
     }
 
     return m_dsTextureView;
@@ -43,6 +49,7 @@ rhi::TextureViewHandle Texture::get_srv() const
         rhi::TextureViewInfo info;
         info.type = rhi::ViewType::SRV;
         rhi::create_texture_view(&m_srTextureView, &info, m_handle);
+        rhi::set_name(m_handle, get_view_name(0));
     }
 
     return m_srTextureView;
@@ -57,7 +64,8 @@ rhi::TextureViewHandle Texture::get_rtv(uint32 mipLevel) const
         rhi::TextureViewInfo info;
         info.baseMipLevel = mipLevel;
         info.type = rhi::ViewType::RTV;
-        rhi::create_texture_view(&m_rtTextureViews.emplace_back(), &info, m_handle);
+        rhi::create_texture_view(&m_rtTextureViews[mipLevel], &info, m_handle);
+        rhi::set_name(m_handle, get_view_name(mipLevel));
     }
 
     return m_rtTextureViews[mipLevel];
@@ -72,7 +80,8 @@ rhi::TextureViewHandle Texture::get_uav(uint32 mipLevel) const
         rhi::TextureViewInfo info;
         info.baseMipLevel = mipLevel;
         info.type = rhi::ViewType::UAV;
-        rhi::create_texture_view(&m_uaTextureViews.emplace_back(), &info, m_handle);
+        rhi::create_texture_view(&m_uaTextureViews[mipLevel], &info, m_handle);
+        rhi::set_name(m_handle, get_view_name(mipLevel));
     }
 
     return m_uaTextureViews[mipLevel];
@@ -100,8 +109,13 @@ uint32 Texture::get_uav_descriptor(uint32 mipLevel) const
 
 void Texture::reserve_texture_view_arrays()
 {
-    m_rtTextureViews.resize(m_handle->mipLevels);
-    m_uaTextureViews.resize(m_handle->mipLevels);
+    m_rtTextureViews.resize(m_handle->mipLevels, nullptr);
+    m_uaTextureViews.resize(m_handle->mipLevels, nullptr);
+}
+
+std::string Texture::get_view_name(uint32 mipLevel) const
+{
+    return m_name.to_string() + "View" + std::to_string(mipLevel);
 }
 
 }

@@ -5,9 +5,9 @@ namespace fe::renderer
 {
 
 constexpr const char* g_rendererKey = "Renderer";
-constexpr const char* g_graphicsAPIKey = "Graphics API";
-constexpr const char* g_validationModeKey = "Validation Mode";
-constexpr const char* g_renderGraphMetadataPathKey = "Render Graph Metadata Path";
+constexpr const char* g_graphicsAPIKey = "GraphicsAPI";
+constexpr const char* g_validationModeKey = "ValidationMode";
+constexpr const char* g_renderGraphMetadataPathKey = "RenderGraphConfigPath";
 
 void RendererConfig::init(const nlohmann::json& engineConfigJson)
 {

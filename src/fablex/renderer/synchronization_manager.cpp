@@ -1,10 +1,16 @@
 #include "synchronization_manager.h"
+#include "globals.h"
 #include "rhi/rhi.h"
 
 namespace fe::renderer
 {
 
-void SynchronizationManager::cleanup()
+SynchronizationManager::SynchronizationManager()
+{
+    begin_frame();
+}
+
+SynchronizationManager::~SynchronizationManager()
 {
     for (SemaphoreArray& semaphores : m_semaphoresPerFrame)
         for (rhi::Semaphore* semaphore : semaphores)
@@ -27,13 +33,12 @@ void SynchronizationManager::cleanup()
 void SynchronizationManager::begin_frame()
 {
     m_freeSemaphoreIndex = 0;
-    uint32 frameIndex = rhi::get_frame_index();
 
-    if (m_semaphoresPerFrame.size() < frameIndex + 1)
+    if (m_semaphoresPerFrame.size() < g_frameIndex + 1)
         m_semaphoresPerFrame.emplace_back();
-    if (m_freeFencesPerFrame.size() < frameIndex + 1)
+    if (m_freeFencesPerFrame.size() < g_frameIndex + 1)
         m_freeFencesPerFrame.emplace_back();
-    if (m_usedFencesPerFrame.size() < frameIndex + 1)
+    if (m_usedFencesPerFrame.size() < g_frameIndex + 1)
         m_usedFencesPerFrame.emplace_back();
 
     CurrentFrameFenceArrays fenceArrays = get_current_frame_fences();
@@ -42,6 +47,11 @@ void SynchronizationManager::begin_frame()
         fenceArrays.freeFences.push_back(usedFence);
 
     fenceArrays.usedFences.clear();
+}
+
+void SynchronizationManager::end_frame()
+{
+        
 }
 
 void SynchronizationManager::wait_fences()
@@ -57,12 +67,20 @@ void SynchronizationManager::wait_fences()
 
 rhi::Semaphore* SynchronizationManager::get_semaphore()
 {
-    SemaphoreArray& curFrameSemaphores = m_semaphoresPerFrame.at(rhi::get_frame_index());
+    SemaphoreArray& curFrameSemaphores = m_semaphoresPerFrame.at(g_frameIndex);
 
     if (m_freeSemaphoreIndex + 1 > curFrameSemaphores.size())
         rhi::create_semaphore(&curFrameSemaphores.emplace_back());
 
     return curFrameSemaphores.at(m_freeSemaphoreIndex++);
+}
+
+rhi::Semaphore* SynchronizationManager::get_acquire_semaphore()
+{
+    if (m_acquireSemaphores.size() < g_frameIndex + 1)
+        rhi::create_semaphore(&m_acquireSemaphores.emplace_back());
+
+    return m_acquireSemaphores.at(g_frameIndex);
 }
 
 rhi::Fence* SynchronizationManager::get_fence()
@@ -85,9 +103,14 @@ rhi::Fence* SynchronizationManager::get_fence()
 
 SynchronizationManager::CurrentFrameFenceArrays SynchronizationManager::get_current_frame_fences()
 {
+    if (m_freeFencesPerFrame.size() < g_frameIndex + 1)
+        m_freeFencesPerFrame.emplace_back();
+    if (m_usedFencesPerFrame.size() < g_frameIndex + 1)
+        m_usedFencesPerFrame.emplace_back();
+
     return CurrentFrameFenceArrays(
-        m_freeFencesPerFrame.at(rhi::get_frame_index()),
-        m_usedFencesPerFrame.at(rhi::get_frame_index())
+        m_freeFencesPerFrame.at(g_frameIndex),
+        m_usedFencesPerFrame.at(g_frameIndex)
     );
 }
 

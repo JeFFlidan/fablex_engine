@@ -1,0 +1,7 @@
+{
+    "Renderer": {
+        "GraphicsAPI": "VULKAN",
+        "ValidationMode": "ENABLED",
+        "RenderGraphConfigPath": "configs/default_render_graph.json"
+    }
+}

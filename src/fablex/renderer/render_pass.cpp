@@ -27,14 +27,21 @@ void RenderPass::schedule_resources()
 
     for (const RenderTargetMetadata& renderTargetMetadata : m_metadata->renderTargetsMetadata)
     {
-        const TextureMetadata& textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
-        rhi::TextureInfo info;
-        fill_texture_info(textureMetadata, info);
-        
-        if (rhi::is_depth_stencil_format(textureMetadata.format))
-            ResourceScheduler::create_depth_stencil(get_name(), textureMetadata.textureName);
+        if (renderTargetMetadata.textureName.is_valid())
+        {     
+            const TextureMetadata& textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
+            rhi::TextureInfo info;
+            fill_texture_info(textureMetadata, info);
+            
+            if (rhi::is_depth_stencil_format(textureMetadata.format))
+                ResourceScheduler::create_depth_stencil(get_name(), textureMetadata.textureName);
+            else
+                ResourceScheduler::create_render_target(get_name(), textureMetadata.textureName, &info);
+        }
         else
-            ResourceScheduler::create_render_target(get_name(), textureMetadata.textureName, &info);
+        {
+            ResourceScheduler::write_to_back_buffer(get_name());
+        }
     }
 
     for (ResourceName textureName : m_metadata->outputStorageTextureNames)
@@ -69,6 +76,7 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
         {
             Texture& texture = resourceManager->get_resource(renderTargetMetadata.textureName)->get_texture();
             FE_CHECK(texture.get_handle());
+            
             const TextureMetadata& textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
 
             rhi::RenderTarget& renderTarget = outBeginInfo.offscreenPass.renderTargets.emplace_back();
@@ -77,6 +85,8 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
                 renderTarget.target = texture.get_dsv();
             else
                 renderTarget.target = texture.get_rtv();
+
+            FE_CHECK(renderTarget.target);
 
             renderTarget.clearValue = renderTargetMetadata.clearValues;
             renderTarget.loadOp = renderTargetMetadata.loadOp;
@@ -95,7 +105,7 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
 
 uint32 RenderPass::get_input_texture_descriptor(uint64 pushConstantsOffset, rhi::ViewType viewType, uint32 mipLevel) const
 {
-    ResourceName textureName = m_metadata->inputTextureNames.at(pushConstantsOffset / 4 - 1);
+    ResourceName textureName = m_metadata->inputTextureNames.at(pushConstantsOffset / 4);
     RenderPassName renderPassName = m_metadata->renderPassName;
     RenderGraphResourceManager* resourceManager = m_renderContext->get_render_graph_resource_manager();
 
@@ -120,8 +130,54 @@ uint32 RenderPass::get_sampler_descriptor(ResourceName samplerName) const
     return m_renderContext->get_render_graph_resource_manager()->get_sampler_descriptor(samplerName);
 }
 
+void RenderPass::create_compute_pipeline()
+{
+    m_renderContext->get_pipeline_manager()->create_compute_pipeline(get_pipeline_metadata());
+}
+    
+void RenderPass::create_graphics_pipeline()
+{
+    m_renderContext->get_pipeline_manager()->create_graphics_pipeline(get_pipeline_metadata());
+}
+
+void RenderPass::create_graphics_pipeline(const PipelineManager::GraphicsPipelineConfigurator& configurator)
+{
+    m_renderContext->get_pipeline_manager()->create_graphics_pipeline(get_pipeline_metadata(), configurator);
+}
+
+void RenderPass::create_ray_tracing_pipeline()
+{
+    m_renderContext->get_pipeline_manager()->create_ray_tracing_pipeline(get_pipeline_metadata());
+}
+
+void RenderPass::create_ray_tracing_pipeline(const PipelineManager::RayTracingPipelineConfigurator& configurator)
+{
+    m_renderContext->get_pipeline_manager()->create_ray_tracing_pipeline(get_pipeline_metadata(), configurator);
+}
+
+void RenderPass::bind_pipeline(rhi::CommandBuffer* cmd)
+{
+    m_renderContext->get_pipeline_manager()->bind_pipeline(cmd, m_metadata->pipelineName);
+}
+
+void RenderPass::push_constants(rhi::CommandBuffer* cmd, void* data)
+{
+    m_renderContext->get_pipeline_manager()->push_constants(cmd, m_metadata->pipelineName, data);
+}
+
+const PipelineMetadata& RenderPass::get_pipeline_metadata() const
+{
+    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->get_render_graph()->get_metadata();
+    const PipelineMetadata* pipelineMetadata = renderGraphMetadata->get_pipeline_metadata(m_metadata->pipelineName);
+    if (!pipelineMetadata)
+        FE_LOG(LogRenderer, FATAL, "No pipeline metadata for name {}", m_metadata->pipelineName);
+    return *pipelineMetadata;
+}
+
 const TextureMetadata& RenderPass::get_texture_metadata(ResourceName textureName) const
 {
+    FE_CHECK(textureName.is_valid());
+
     const RenderGraphMetadata* renderGraphMetadata = m_renderContext->get_render_graph()->get_metadata();
     const TextureMetadata* textureMetadata = renderGraphMetadata->get_texture_metadata(textureName);
     if (!textureMetadata)

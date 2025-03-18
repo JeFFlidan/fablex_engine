@@ -6,6 +6,7 @@
 #include "rhi/json_serialization.h"
 #include "json_serialization.h"
 #include "rhi/utils.h"
+#include "core/file_system/file_system.h"
 
 namespace fe::renderer
 {
@@ -40,34 +41,44 @@ RenderGraphMetadata::RenderGraphMetadata(const RenderContext* renderContext)
     FE_CHECK(m_shaderManager);
 }
 
-void RenderGraphMetadata::deserialize(const nlohmann::json& json)
+void RenderGraphMetadata::deserialize(const std::string& path)
 {
-    const std::vector<nlohmann::json>& renderTextureMetadataJsons = json[g_renderTexturesKey];
-    // const std::vector<nlohmann::json>& pushConstantsMetadataJsons = json[g_pushConstantsKey];
-    const std::vector<nlohmann::json>& renderPassMetadataJsons = json[g_renderPassesKey];
-    
-    TaskGroup taskGroup;
+    m_renderPassMetadataByName.clear();
+    m_pipelineMetadataByName.clear();
+    m_renderTextureMetadataByName.clear();
+    m_pushConstantsMetadataByName.clear();
 
-    TaskComposer::execute(taskGroup, [this, &renderTextureMetadataJsons](TaskExecutionInfo execInfo)
+    FE_LOG(LogRenderer, INFO, "Starting deserializing render graph metadata '{}'", path);
+
+    std::string jsonStr;
+    FileSystem::read(FileSystem::get_absolute_path(path), jsonStr);
+    nlohmann::json json = nlohmann::json::parse(jsonStr);
+
+    // const std::vector<nlohmann::json>& pushConstantsMetadataJsons = json[g_pushConstantsKey];
+
+    if (json.contains(g_renderTexturesKey))
     {
+        const std::vector<nlohmann::json>& renderTextureMetadataJsons = json[g_renderTexturesKey];
+        m_renderTextureMetadataByName.reserve(renderTextureMetadataJsons.size());
+
         for (const nlohmann::json& textureMetadataJson : renderTextureMetadataJsons)
         {
             ResourceName textureName = textureMetadataJson[g_nameKey];
             TextureMetadata& textureMetadata = m_renderTextureMetadataByName[textureName];
             textureMetadata.textureName = textureName;
-    
+
             if (textureMetadataJson.contains(g_formatKey))
                 textureMetadata.format = textureMetadataJson[g_formatKey];
-    
+
             if (textureMetadataJson.contains(g_isTransferDstKey))
                 textureMetadata.isTransferDst = textureMetadataJson[g_isTransferDstKey];
-    
+
             if (textureMetadataJson.contains(g_useMipsKey))
                 textureMetadata.useMips = textureMetadataJson[g_useMipsKey];
-    
+
             if (textureMetadataJson.contains(g_layerCountKey))
                 textureMetadata.layerCount = textureMetadataJson[g_layerCountKey];
-    
+
             if (textureMetadataJson.contains(g_sampleCountKey))
             {
                 uint32 sampleCount = textureMetadataJson[g_sampleCountKey];
@@ -84,7 +95,7 @@ void RenderGraphMetadata::deserialize(const nlohmann::json& json)
                 }
             }
         }
-    });
+    }
 
     // TaskComposer::execute(taskGroup, [this, &pushConstantsMetadataJsons](TaskExecutionInfo execInfo)
     // {
@@ -109,111 +120,117 @@ void RenderGraphMetadata::deserialize(const nlohmann::json& json)
     //     }
     // });
 
-    TaskComposer::execute(taskGroup, [this, &renderPassMetadataJsons](TaskExecutionInfo execInfo)
+    const std::vector<nlohmann::json>& renderPassMetadataJsons = json[g_renderPassesKey];
+    m_renderPassMetadataByName.reserve(renderPassMetadataJsons.size());
+    m_pipelineMetadataByName.reserve(m_renderPassMetadataByName.size());
+
+    for (const nlohmann::json& renderPassMetadataJson : renderPassMetadataJsons)
     {
-        for (const nlohmann::json& renderPassMetadataJson : renderPassMetadataJsons)
+        RenderPassName renderPassName = renderPassMetadataJson[g_nameKey];
+        RenderPassMetadata& renderPassMetadata = m_renderPassMetadataByName[renderPassName];
+
+        renderPassMetadata.renderPassName = renderPassName;
+
+        if (renderPassMetadataJson.contains(g_typeKey))
+            renderPassMetadata.type = renderPassMetadataJson[g_typeKey];
+
+        if (renderPassMetadataJson.contains(g_inputTexturesKey))
+            renderPassMetadata.inputTextureNames = renderPassMetadataJson[g_inputTexturesKey];
+
+        if (renderPassMetadataJson.contains(g_outputStorageTexturesKey))
+            renderPassMetadata.outputStorageTextureNames = renderPassMetadataJson[g_outputStorageTexturesKey];
+
+        if (renderPassMetadataJson.contains(g_renderTargetTexturesKey))
         {
-            RenderPassName renderPassName = renderPassMetadataJson[g_nameKey];
-            RenderPassMetadata& renderPassMetadata = m_renderPassMetadataByName[renderPassName];
-            
-            renderPassMetadata.renderPassName = renderPassName;
-    
-            if (renderPassMetadataJson.contains(g_typeKey))
-                renderPassMetadata.type = renderPassMetadataJson[g_typeKey];
-    
-            if (renderPassMetadataJson.contains(g_inputTexturesKey))
-                renderPassMetadata.inputTextureNames = renderPassMetadataJson[g_inputTexturesKey];
-    
-            if (renderPassMetadataJson.contains(g_outputStorageTexturesKey))
-                renderPassMetadata.outputStorageTextureNames = renderPassMetadataJson[g_outputStorageTexturesKey];
-    
-            if (renderPassMetadataJson.contains(g_renderTargetTexturesKey))
+            const std::vector<nlohmann::json>& renderTargetMetadataJsons = renderPassMetadataJson[g_renderTargetTexturesKey];
+            renderPassMetadata.renderTargetsMetadata.reserve(renderTargetMetadataJsons.size());
+
+            for (const nlohmann::json& renderTargetMetadataJson : renderTargetMetadataJsons)
             {
-                const std::vector<nlohmann::json>& renderTargetMetadataJsons = renderPassMetadataJson[g_renderTargetTexturesKey];
-    
-                for (const nlohmann::json& renderTargetMetadataJson : renderTargetMetadataJsons)
+                RenderTargetMetadata& renderTargetMetadata = renderPassMetadata.renderTargetsMetadata.emplace_back();
+
+                // Make render target name unnecessary because swap chain pass can describe render target without metadata
+                if (renderTargetMetadataJson.contains(g_nameKey))
                 {
-                    RenderTargetMetadata& renderTargetMetadata = renderPassMetadata.renderTargetsMetadata.emplace_back();
-
-                    // Make render target name unnecessary because swap chain pass can describe render target without metadata
-                    if (renderTargetMetadataJson.contains(g_nameKey))
-                    {
-                        renderTargetMetadata.textureName = renderTargetMetadataJson[g_nameKey];
-                        const TextureMetadata* textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
-                        FE_CHECK(textureMetadata);
-                        renderTargetMetadata.format = textureMetadata->format;
-                    }
-    
-                    if (renderTargetMetadataJson.contains(g_storeOpKey))
-                        renderTargetMetadata.storeOp = renderTargetMetadataJson[g_storeOpKey];
-    
-                    if (renderTargetMetadataJson.contains(g_loadOpKey))
-                        renderTargetMetadata.loadOp = renderTargetMetadataJson[g_loadOpKey];
-    
-                    if (renderTargetMetadataJson.contains(g_colorClearValueKey))
-                        renderTargetMetadata.clearValues.color = renderTargetMetadataJson[g_colorClearValueKey];
-    
-                    if (renderTargetMetadataJson.contains(g_depthStencilClearValueKay))
-                    {
-                        std::array<float, 2> values = renderTargetMetadataJson[g_depthStencilClearValueKay];
-                        renderTargetMetadata.clearValues.depthStencil.depth = values[0];
-                        renderTargetMetadata.clearValues.depthStencil.stencil = (uint32)values[1];
-                    }
+                    renderTargetMetadata.textureName = renderTargetMetadataJson[g_nameKey];
+                    const TextureMetadata* textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
+                    FE_CHECK(textureMetadata);
+                    renderTargetMetadata.format = textureMetadata->format;
                 }
-    
+
+                if (renderTargetMetadataJson.contains(g_storeOpKey))
+                    renderTargetMetadata.storeOp = renderTargetMetadataJson[g_storeOpKey];
+
+                if (renderTargetMetadataJson.contains(g_loadOpKey))
+                    renderTargetMetadata.loadOp = renderTargetMetadataJson[g_loadOpKey];
+
+                if (renderTargetMetadataJson.contains(g_colorClearValueKey))
+                    renderTargetMetadata.clearValues.color = renderTargetMetadataJson[g_colorClearValueKey];
+
+                if (renderTargetMetadataJson.contains(g_depthStencilClearValueKay))
+                {
+                    std::array<float, 2> values = renderTargetMetadataJson[g_depthStencilClearValueKay];
+                    renderTargetMetadata.clearValues.depthStencil.depth = values[0];
+                    renderTargetMetadata.clearValues.depthStencil.stencil = (uint32)values[1];
+                }
             }
 
-            // if (renderPassMetadataJson.contains(g_pushConstantsKey))
-            //     renderPassMetadata.pushConstantsName = renderPassMetadataJson[g_pushConstantsKey];
-            
-            if (!renderPassMetadataJson.contains(g_pipelineKey))
-            {
-                FE_LOG(LogRenderer, ERROR, "No pipeline metadata for render pass {}", renderPassMetadata.renderPassName);
-                continue;
-            }
-
-            const nlohmann::json& pipelineMetadataJson = renderPassMetadataJson[g_pipelineKey];
-            
-            PipelineName pipelineName = renderPassName;
-            if (pipelineMetadataJson.contains(g_nameKey))
-                pipelineName = pipelineMetadataJson[g_nameKey];
-
-            PipelineMetadata& pipelineMetadata = m_pipelineMetadataByName[pipelineName];
-            pipelineMetadata.pipelineName = pipelineName;
-
-            if (!pipelineMetadataJson.contains(g_shadersKey))
-            {
-                FE_LOG(LogRenderer, ERROR, "No 'Shaders' key in render pass {}", renderPassName);
-                continue;
-            }
-
-            const std::vector<nlohmann::json>& shaderJsons = pipelineMetadataJson[g_shadersKey];
-            for (const nlohmann::json& shaderMetadataJson : shaderJsons)
-            {
-                ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
-                shaderMetadata.type = shaderMetadataJson[g_typeKey];
-                shaderMetadata.filePath = shaderMetadataJson[g_pathKey];
-                
-                if (shaderMetadataJson.contains(g_definesKey))
-                    shaderMetadata.defines = shaderMetadataJson[g_definesKey];
-
-                if (shaderMetadataJson.contains(g_hitGroupTypeKey))
-                    shaderMetadata.hitGroupType = shaderMetadataJson[g_hitGroupTypeKey];
-
-                m_shaderManager->request_shader_loading(shaderMetadata);
-            }
-
-            for (const RenderTargetMetadata& renderTargetMetadata : renderPassMetadata.renderTargetsMetadata)
-            {
-                if (rhi::is_depth_stencil_format(renderTargetMetadata.format))
-                    pipelineMetadata.depthStencilFormat = renderTargetMetadata.format;
-                else
-                    pipelineMetadata.colorAttachmentFormats.push_back(renderTargetMetadata.format);
-            }
         }
-    });
 
-    TaskComposer::wait(taskGroup);
+        // if (renderPassMetadataJson.contains(g_pushConstantsKey))
+        //     renderPassMetadata.pushConstantsName = renderPassMetadataJson[g_pushConstantsKey];
+        
+        if (!renderPassMetadataJson.contains(g_pipelineKey))
+        {
+            FE_LOG(LogRenderer, ERROR, "No pipeline metadata for render pass {}", renderPassMetadata.renderPassName);
+            continue;
+        }
+
+        const nlohmann::json& pipelineMetadataJson = renderPassMetadataJson[g_pipelineKey];
+        
+        PipelineName pipelineName = renderPassName;
+        if (pipelineMetadataJson.contains(g_nameKey))
+            pipelineName = pipelineMetadataJson[g_nameKey];
+
+        renderPassMetadata.pipelineName = pipelineName;
+
+        PipelineMetadata& pipelineMetadata = m_pipelineMetadataByName[pipelineName];
+        pipelineMetadata.pipelineName = pipelineName;
+
+        if (!pipelineMetadataJson.contains(g_shadersKey))
+        {
+            FE_LOG(LogRenderer, ERROR, "No 'Shaders' key in render pass {}", renderPassName);
+            continue;
+        }
+
+        const std::vector<nlohmann::json>& shaderJsons = pipelineMetadataJson[g_shadersKey];
+        pipelineMetadata.shadersMetadata.reserve(shaderJsons.size());
+
+        for (const nlohmann::json& shaderMetadataJson : shaderJsons)
+        {
+            ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
+            shaderMetadata.type = shaderMetadataJson[g_typeKey];
+            shaderMetadata.filePath = shaderMetadataJson[g_pathKey];
+            
+            if (shaderMetadataJson.contains(g_definesKey))
+                shaderMetadata.defines = shaderMetadataJson[g_definesKey];
+
+            if (shaderMetadataJson.contains(g_hitGroupTypeKey))
+                shaderMetadata.hitGroupType = shaderMetadataJson[g_hitGroupTypeKey];
+
+            m_shaderManager->request_shader_loading(shaderMetadata);
+        }
+
+        for (const RenderTargetMetadata& renderTargetMetadata : renderPassMetadata.renderTargetsMetadata)
+        {
+            if (rhi::is_depth_stencil_format(renderTargetMetadata.format))
+                pipelineMetadata.depthStencilFormat = renderTargetMetadata.format;
+            else
+                pipelineMetadata.colorAttachmentFormats.push_back(renderTargetMetadata.format);
+        }
+    }
+
+    FE_LOG(LogRenderer, INFO, "Deserializing render graph metadata '{}' completed", path);
 }
 
 const TextureMetadata* RenderGraphMetadata::get_texture_metadata(ResourceName textureName) const

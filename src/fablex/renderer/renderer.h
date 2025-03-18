@@ -26,6 +26,7 @@ class Renderer
 {
 public:
     Renderer(const RendererInfo& rendererInfo);
+    ~Renderer();
 
     void draw();
 
@@ -39,6 +40,7 @@ private:
 
         rhi::CommandBuffer* workerCmd = nullptr;
         uint32 dependencyLevelIndex = s_undefinedDependencyLevel;
+        std::vector<const RenderGraph::Node*> nodesToRecord;
     };
 
     struct SubmitContext
@@ -86,6 +88,7 @@ private:
     void init_managers();
     void init_render_context();
     void create_main_swap_chain();
+    void create_samplers();
 
     void acquire_next_image();
     void begin_frame();
@@ -102,6 +105,9 @@ private:
     void record_bvh_build_cmd();
     void record_worker_cmds();
     void submit();
+
+    bool is_upload_cmd_submit_required() const;
+    bool is_bvh_build_cmd_submit_required() const;
 };
 
 }

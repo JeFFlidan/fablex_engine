@@ -3,6 +3,7 @@
 #include "rhi/resources.h"
 #include <thread>
 #include <unordered_map>
+#include <mutex>
 
 namespace fe::renderer
 {
@@ -10,10 +11,12 @@ namespace fe::renderer
 class CommandManager
 {
 public:
-    void begin_frame();
-    void cleanup();
+    ~CommandManager();
 
-    rhi::CommandBuffer* get_command_buffer(rhi::QueueType queueType);
+    void begin_frame();
+    void end_frame();
+
+    rhi::CommandBuffer* get_cmd(rhi::QueueType queueType);
 
 private:
     using CommandBufferArray = std::vector<rhi::CommandBuffer*>;
@@ -36,7 +39,7 @@ private:
         void reset();
         void cleanup();
 
-        rhi::CommandBuffer* get_command_buffer(rhi::QueueType queueType);
+        rhi::CommandBuffer* get_cmd(rhi::QueueType queueType);
 
     private:
         CommandPoolContextArray m_cmdPoolContextPerQueue;
@@ -46,6 +49,7 @@ private:
     using ThreadID = std::thread::id;
 
     uint32 m_freeAllocatorIndex = 0;
+    std::mutex m_mutex;
     std::vector<CommandAllocatorArray> m_freeAllocatorsPerFrame;
     std::unordered_map<ThreadID, uint32> m_allocatorIndexPerThread;
 };

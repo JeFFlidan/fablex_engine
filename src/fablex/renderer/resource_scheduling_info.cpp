@@ -16,6 +16,7 @@ void ResourceSchedulingInfo::add_view_info(RenderPassName renderPassName, uint64
 
     RenderPassInfo& passInfo = m_renderPassInfoMap[renderPassName];
     passInfo.viewInfos.resize(m_viewCount);
+    passInfo.viewInfos[viewIndex] = ViewInfo();
     passInfo.viewInfos[viewIndex]->requestedLayout = layout;
 }
 

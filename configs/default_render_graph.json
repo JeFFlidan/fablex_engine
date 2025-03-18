@@ -1,0 +1,56 @@
+{
+    "RenderPasses": [
+        {
+            "Name": "SwapChainPass",
+            "Type": "GRAPHICS",
+            "RenderTargets": [
+                {"ColorClearValues": [0.1, 0.1, 0.1, 1.0]}
+            ],
+            "InputTextures": [
+                "TriangleColorOutput"
+            ],
+            "Pipeline": {
+                "Name": "SwapChainPipeline",
+                "Shaders": [
+                    {
+                        "Type": "VERTEX",
+                        "Path": "output_plane_vs.hlsl"
+                    },
+                    {
+                        "Type": "FRAGMENT",
+                        "Path": "output_plane_fs.hlsl"
+                    }
+                ]
+            }
+        },
+        {
+            "Name": "TrianglePass",
+            "Type": "GRAPHICS",
+            "RenderTargets": [
+                {
+                    "Name": "TriangleColorOutput",
+                    "ColorClearValues": [0.1, 0.1, 0.1, 1.0]
+                }
+            ],
+            "Pipeline": {
+                "Name": "TrianglePipeline",
+                "Shaders": [
+                    {
+                        "Type": "VERTEX",
+                        "Path": "triangle_vs.hlsl"
+                    },
+                    {
+                        "Type": "FRAGMENT",
+                        "Path": "triangle_fs.hlsl"
+                    }
+                ]
+            }
+        }
+    ],
+    "RenderTextures": [
+        {
+            "Name": "TriangleColorOutput",
+            "Format": "R8G8B8A8_UNORM"
+        }
+    ]
+}

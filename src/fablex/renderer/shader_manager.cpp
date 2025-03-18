@@ -167,7 +167,6 @@ private:
             compileArgs.push_back(L"-spirv");
             compileArgs.push_back(L"-fspv-target-env=vulkan1.3");
             compileArgs.push_back(L"-fvk-use-dx-layout");
-            compileArgs.push_back(L"-fvk-allow-rwstructuredbuffer-arrays");
                 
             compileArgs.push_back(L"-fvk-t-shift");
             compileArgs.push_back(L"1000");
@@ -415,18 +414,24 @@ private:
     }
 };
 
-void ShaderManager::init()
+ShaderManager::ShaderManager()
 {
-    #ifdef DXCOMPILER_ENABLED
+#ifdef DXCOMPILER_ENABLED
     m_shaderCompiler.reset(new DXCompiler());
 #endif // DXCOMPILER_ENABLED
     
     FE_CHECK(m_shaderCompiler);
-
+    
     ShaderCache::init();
     m_taskGroup = TaskComposer::allocate_task_group();
-
+    
     FE_LOG(LogShaderCompiler, INFO, "Shader Compiler initialization completed.");
+}
+
+ShaderManager::~ShaderManager()
+{
+    for (auto& [path, shader] : m_shaderByRelativePath)
+        rhi::destroy_shader(shader);
 }
 
 rhi::Shader* ShaderManager::load_shader(

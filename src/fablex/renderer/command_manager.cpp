@@ -1,45 +1,69 @@
 #include "command_manager.h"
+#include "globals.h"
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
+#include <sstream>
 
 namespace fe::renderer
 {
+
+std::string to_string(std::thread::id id) {
+    std::ostringstream oss;
+    oss << id;
+    return oss.str();
+}
+
+CommandManager::~CommandManager()
+{
+    m_freeAllocatorsPerFrame.clear();
+}
 
 void CommandManager::begin_frame()
 {
     m_allocatorIndexPerThread.clear();
     m_freeAllocatorIndex = 0;
 
-    if (m_freeAllocatorsPerFrame.size() < rhi::get_frame_index() + 1)
+    if (m_freeAllocatorsPerFrame.size() < g_frameIndex + 1)
         m_freeAllocatorsPerFrame.emplace_back();
 
-    CommandAllocatorArray& cmdAllocators = m_freeAllocatorsPerFrame.at(rhi::get_frame_index());
+    CommandAllocatorArray& cmdAllocators = m_freeAllocatorsPerFrame.at(g_frameIndex);
+    cmdAllocators.reserve(std::thread::hardware_concurrency());
+
     for (CommandAllocator& cmdAllocator : cmdAllocators)
         cmdAllocator.reset();
 }
 
-void CommandManager::cleanup()
+void CommandManager::end_frame()
 {
-    m_freeAllocatorsPerFrame.clear();
+    
 }
 
-rhi::CommandBuffer* CommandManager::get_command_buffer(rhi::QueueType queueType)
+rhi::CommandBuffer* CommandManager::get_cmd(rhi::QueueType queueType)
 {
     ThreadID curThreadID = std::this_thread::get_id();
-    CommandAllocatorArray& cmdAllocators = m_freeAllocatorsPerFrame.at(rhi::get_frame_index());
+    CommandAllocatorArray& cmdAllocators = m_freeAllocatorsPerFrame.at(g_frameIndex);
     
+    std::scoped_lock<std::mutex> locker(m_mutex);
+
     auto allocIdxIt = m_allocatorIndexPerThread.find(curThreadID);
+    uint64 allocIdx = 0;
+
     if (allocIdxIt == m_allocatorIndexPerThread.end())
     {
         if (m_freeAllocatorIndex + 1 > cmdAllocators.size())
             cmdAllocators.emplace_back();
 
         m_allocatorIndexPerThread[curThreadID] = m_freeAllocatorIndex;
+        allocIdx = m_freeAllocatorIndex++;
+    }
+    else 
+    {
+        allocIdx = allocIdxIt->second;
     }
 
     FE_CHECK(cmdAllocators.size() <= std::thread::hardware_concurrency());
-
-    return cmdAllocators.at(m_freeAllocatorIndex++).get_command_buffer(queueType);
+    
+    return cmdAllocators.at(allocIdx).get_cmd(queueType);
 }
 
 CommandManager::CommandAllocator::CommandAllocator()
@@ -51,6 +75,9 @@ CommandManager::CommandAllocator::CommandAllocator()
         rhi::CommandPoolInfo info;
         info.queueType = (rhi::QueueType)i;
         rhi::create_command_pool(&cmdPoolContext.cmdPool, &info);
+
+        std::string name = "CmdPool_" + to_string(std::this_thread::get_id()) + "_" + std::to_string(g_frameIndex);
+        rhi::set_name(cmdPoolContext.cmdPool, name.c_str());
     }
 }
 
@@ -73,15 +100,18 @@ void CommandManager::CommandAllocator::reset()
     }
 }
 
-rhi::CommandBuffer* CommandManager::CommandAllocator::get_command_buffer(rhi::QueueType queueType)
+rhi::CommandBuffer* CommandManager::CommandAllocator::get_cmd(rhi::QueueType queueType)
 {
     CommandPoolContext& cmdPoolContext = m_cmdPoolContextPerQueue.at(rhi::get_queue_index(queueType));
-    
+
     if (cmdPoolContext.freeCmdBuffers.empty())
     {
         rhi::CommandBufferInfo info;
         info.cmdPool = cmdPoolContext.cmdPool;
         rhi::create_command_buffer(&cmdPoolContext.usedCmdBuffers.emplace_back(), &info);
+
+        std::string name = "CmdBuffer_" + to_string(std::this_thread::get_id()) + "_" + std::to_string(g_frameIndex) + "_" + std::to_string(cmdPoolContext.usedCmdBuffers.size() - 1);
+        rhi::set_name(cmdPoolContext.usedCmdBuffers.back(), name.c_str());
     }
     else
     {

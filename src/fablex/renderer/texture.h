@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/types.h"
+#include "core/name.h"
 #include "rhi/resources.h"
 
 namespace fe::renderer
@@ -10,7 +11,7 @@ class Texture
 {
 public:
     Texture() = default;
-    Texture(rhi::TextureHandle handle);
+    Texture(rhi::TextureHandle handle, Name textureName);
     ~Texture();
 
     rhi::TextureHandle get_handle() const { return m_handle; }
@@ -26,6 +27,7 @@ public:
     uint32 get_uav_descriptor(uint32 mipLevel = 0) const;
 
 private:
+    Name m_name;
     rhi::TextureHandle m_handle = nullptr;
     mutable rhi::TextureViewHandle m_dsTextureView = nullptr;
     mutable rhi::TextureViewHandle m_srTextureView = nullptr;
@@ -33,6 +35,7 @@ private:
     mutable std::vector<rhi::TextureViewHandle> m_uaTextureViews;
 
     void reserve_texture_view_arrays();
+    std::string get_view_name(uint32 mipLevel) const;
 };
 
 }

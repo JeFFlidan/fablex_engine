@@ -4,7 +4,11 @@
 namespace fe::renderer
 {
 
-Buffer::Buffer(rhi::BufferHandle handle) : m_handle(handle) { }
+Buffer::Buffer(rhi::BufferHandle handle, Name bufferName) 
+    : m_name(bufferName), m_handle(handle)
+{
+    rhi::set_name(m_handle, m_name.to_string());
+}
 
 Buffer::~Buffer()
 {
