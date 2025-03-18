@@ -3,7 +3,7 @@
 #include "resources.h"
 #include "core/json_serialization.h"
 
-FE_SERIALIZE_ENUM(fe::rhi::Format, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::Format, 
 {
     {fe::rhi::Format::UNDEFINED, "UNDEFINED"},
     {fe::rhi::Format::R4G4_UNORM, "R4G4_UNORM"},
@@ -81,7 +81,7 @@ FE_SERIALIZE_ENUM(fe::rhi::Format,
     {fe::rhi::Format::BC7_SRGB, "BC7_SRGB"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::AddressMode, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::AddressMode, 
 {
     {fe::rhi::AddressMode::REPEAT, "REPEAT"},
     {fe::rhi::AddressMode::MIRRORED_REPEAT, "MIRRORED_REPEAT"},
@@ -90,20 +90,20 @@ FE_SERIALIZE_ENUM(fe::rhi::AddressMode,
     {fe::rhi::AddressMode::MIRROR_CLAMP_TO_EDGE, "MIRROR_CLAMP_TO_EDGE"}    
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::LoadOp, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::LoadOp, 
 {
     {fe::rhi::LoadOp::DONT_CARE, "DONT_CARE"},
     {fe::rhi::LoadOp::LOAD, "LOAD"},
     {fe::rhi::LoadOp::CLEAR, "CLEAR"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::StoreOp, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::StoreOp, 
 {
     {fe::rhi::StoreOp::STORE, "STORE"},
     {fe::rhi::StoreOp::DONT_CARE, "DONT_CARE"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::ShaderType, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::ShaderType, 
 {
     {fe::rhi::ShaderType::VERTEX, "VERTEX"},
     {fe::rhi::ShaderType::FRAGMENT, "FRAGMENT"},
@@ -122,7 +122,7 @@ FE_SERIALIZE_ENUM(fe::rhi::ShaderType,
     {fe::rhi::ShaderType::LIB, "LIB"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::PipelineType, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::PipelineType, 
 {
     {fe::rhi::PipelineType::COMPUTE, "COMPUTE"},
     {fe::rhi::PipelineType::GRAPHICS, "GRAPHICS"},
@@ -130,13 +130,13 @@ FE_SERIALIZE_ENUM(fe::rhi::PipelineType,
     {fe::rhi::PipelineType::UNDEFINED, "UNDEFINED"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::API, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::API, 
 {
     {fe::rhi::API::VK, "VULKAN"},
     {fe::rhi::API::D3D12, "D3D12"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::ValidationMode, 
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::ValidationMode, 
 {
     {fe::rhi::ValidationMode::DISABLED, "DISABLED"},
     {fe::rhi::ValidationMode::ENABLED, "ENABLED"},
@@ -144,7 +144,7 @@ FE_SERIALIZE_ENUM(fe::rhi::ValidationMode,
     {fe::rhi::ValidationMode::VERBOSE, "VERBOSE"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::ResourceLayout,
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::ResourceLayout,
 {
     {fe::rhi::ResourceLayout::UNDEFINED, "UNDEFINED"},
     {fe::rhi::ResourceLayout::GENERAL, "GENERAL"},
@@ -164,7 +164,7 @@ FE_SERIALIZE_ENUM(fe::rhi::ResourceLayout,
     {fe::rhi::ResourceLayout::PRESENT_ATTACHMENT, "PRESENT_ATTACHMENT"}
 })
 
-FE_SERIALIZE_ENUM(fe::rhi::ResourceUsage,
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::ResourceUsage,
 {
     {fe::rhi::ResourceUsage::UNDEFINED, "UNDEFINED"},
     {fe::rhi::ResourceUsage::TRANSFER_SRC, "TRANSFER_SRC"},

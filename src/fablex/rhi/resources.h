@@ -20,6 +20,17 @@ struct VmaAllocation_T;
 namespace fe::rhi
 {
 
+#define FE_DEFINE_RHI_RESOURCE()    \
+private:\
+    std::variant<   \
+        std::monostate, \
+        Vulkan    \
+    > m_apiData;\
+public:\
+    Vulkan& vk() { return *std::get_if<Vulkan>(&m_apiData); } \
+    const Vulkan& vk() const { return *std::get_if<Vulkan>(&m_apiData); }   \
+    void init_vk() { m_apiData.emplace<Vulkan>(); }
+
 enum class API
 {
     VK,
@@ -436,17 +447,16 @@ struct BufferInfo
 
 struct alignas(64) Buffer
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VmaAllocation_T* allocation;
-            VkDeviceAddress address = 0;
-        } vk;
-#endif // FE_VULKAN
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VmaAllocation_T* allocation;
+        VkDeviceAddress address = 0;
+#endif
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     uint64 size : 32;
     uint64 descriptorIndex : 32;
@@ -480,16 +490,15 @@ struct TextureInfo
 
 struct alignas(64) Texture
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkImage image = VK_NULL_HANDLE;
-            VmaAllocation_T* allocation;
-        } vk;
+        VkImage image = VK_NULL_HANDLE;
+        VmaAllocation_T* allocation;
 #endif // FE_VULKAN
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     uint32 width : 16;
     uint32 height : 16;
@@ -524,15 +533,14 @@ struct TextureViewInfo
 
 struct TextureView
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkImageView imageView = VK_NULL_HANDLE;
-        } vk;
+        VkImageView imageView = VK_NULL_HANDLE;
 #endif // FE_VULKAN
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     const Texture* texture;
 
@@ -558,15 +566,14 @@ struct BufferViewInfo
 
 struct BufferView
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkBufferView bufferView = VK_NULL_HANDLE;
-        } vk;
+        VkBufferView bufferView = VK_NULL_HANDLE;
 #endif // FE_VULKAN
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     const Buffer* buffer = nullptr;
 
@@ -589,15 +596,14 @@ struct SamplerInfo
 
 struct Sampler
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkSampler sampler = VK_NULL_HANDLE;
-        } vk;
+        VkSampler sampler = VK_NULL_HANDLE;        
 #endif // FE_VULKAN
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     uint32 descriptorIndex;
 };
@@ -614,22 +620,18 @@ struct SwapChainInfo
 
 struct SwapChain
 {
-    SwapChain() { }
-    ~SwapChain() { }
-
-    union
+    struct Vulkan
     {
-#if defined(FE_VULKAN)
-        struct
-        {
-            VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-            VkSurfaceKHR surface = VK_NULL_HANDLE;
-            std::vector<VkImage> images;
-            std::vector<VkImageView> imageViews;
-            uint32 imageIndex;
-        } vk;
+#if defined(FE_VULKAN) 
+        VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        std::vector<VkImage> images;
+        std::vector<VkImageView> imageViews;
+        uint32 imageIndex;
 #endif // FE_VULKAN
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     Window* window = nullptr;
     ColorSpace colorSpace;
@@ -647,16 +649,14 @@ struct ShaderInfo
 
 struct Shader
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkShaderModule shader = VK_NULL_HANDLE;
-            // TODO: Add reflection data
-        } vk;
+        VkShaderModule shader = VK_NULL_HANDLE;
 #endif // FE_VULKAN
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     ShaderType type = ShaderType::UNDEFINED;
 };
@@ -898,16 +898,15 @@ enum class PipelineType : uint32
 
 struct Pipeline
 {
-    union
+    struct Vulkan
     {
 #if defined (FE_VULKAN)
-        struct
-        {
-            VkPipeline pipeline = VK_NULL_HANDLE;
-            uint64 layoutHash = 0;
-        } vk;
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        uint64 layoutHash = 0;
 #endif
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     PipelineType type{PipelineType::UNDEFINED};
 };
@@ -992,9 +991,6 @@ struct TLAS
 
 struct AccelerationStructureInfo
 {
-    AccelerationStructureInfo() { }
-    ~AccelerationStructureInfo() { }
-
     enum class Flags
     {
         UNDEFINED = 0,
@@ -1020,23 +1016,19 @@ struct AccelerationStructureInfo
 
 struct AccelerationStructure
 {
-    AccelerationStructure() { }
-    ~AccelerationStructure() { }
-
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VmaAllocation_T* allocation = nullptr;
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkAccelerationStructureKHR accelerationStructure = VK_NULL_HANDLE;
-
-            VkDeviceAddress scratchAddress = 0;
-            VkDeviceAddress accelerationStructureAddress = 0;
-        } vk;
+        VmaAllocation_T* allocation = nullptr;
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkAccelerationStructureKHR accelerationStructure = VK_NULL_HANDLE;
+        
+        VkDeviceAddress scratchAddress = 0;
+        VkDeviceAddress accelerationStructureAddress = 0;
 #endif // FE_VULKAN
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     AccelerationStructureInfo info;
     uint64 size = 0;
@@ -1050,15 +1042,14 @@ struct CommandPoolInfo
 
 struct CommandPool
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkCommandPool cmdPool = VK_NULL_HANDLE;
-        } vk;
+        VkCommandPool cmdPool = VK_NULL_HANDLE;
 #endif
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     QueueType queueType;
 };
@@ -1070,15 +1061,14 @@ struct CommandBufferInfo
 
 struct CommandBuffer
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
-        } vk;
+        VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 #endif
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 
     const CommandPool* cmdPool = nullptr;
 };
@@ -1185,28 +1175,26 @@ private:
 
 struct Semaphore
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkSemaphore semaphore = VK_NULL_HANDLE;
-        } vk;
+        VkSemaphore semaphore = VK_NULL_HANDLE;
 #endif
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 };
 
 struct Fence
 {
-    union
+    struct Vulkan
     {
 #if defined(FE_VULKAN)
-        struct
-        {
-            VkFence fence = VK_NULL_HANDLE;
-        } vk;
+        VkFence fence = VK_NULL_HANDLE;
 #endif
     };
+
+    FE_DEFINE_RHI_RESOURCE()
 };
 
 enum class LoadOp
@@ -1224,7 +1212,7 @@ enum class StoreOp
 
 struct ClearValues
 {
-    std::array<float, 4> color = { 0.0f, 0.0f, 0.0f, 0.0f };
+    std::array<float, 4> color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     struct
     {
@@ -1284,13 +1272,8 @@ struct RenderingBeginInfo
         ~SwapChainPass() = default;
     };
 
-    union
-    {
-        OffscreenPass offscreenPass;
-        SwapChainPass swapChainPass;
-    };
-
-    ~RenderingBeginInfo() { }
+    OffscreenPass offscreenPass;
+    SwapChainPass swapChainPass;
 };
 
 struct SubmitInfo
