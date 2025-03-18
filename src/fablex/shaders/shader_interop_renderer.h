@@ -528,4 +528,10 @@ struct DepthReduceData
 
 static const uint DEPTH_REDUCE_GROUP_SIZE = 32;
 
+struct TriangleSwapChainPushConstants
+{
+	uint triangleTextureIndex;
+	float3 alignment;
+};
+
 #endif // SHADER_INTEROP_RENDERER

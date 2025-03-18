@@ -18,7 +18,7 @@ using int4 = fe::math::Int4;
 using float4x4 = fe::math::Float4x4;
 
 #define UNIFORM_BUFFER(Name, Type, Slot)
-#define PUSH_CONSTANT(Name, Type)
+#define PUSH_CONSTANTS(Name, Type)
 
 #else
 
@@ -27,7 +27,7 @@ using float4x4 = fe::math::Float4x4;
 #define UNIFORM_BUFFER(Name, Type, Slot) ConstantBuffer<Type> Name : register(PASTE(b, Slot))
 
 #if defined(__spirv__)
-#define PUSH_CONSTANT(Name, Type) [[vk::push_constant]] Type Name;
+#define PUSH_CONSTANTS(Name, Type) [[vk::push_constant]] Type Name;
 #endif
 
 #endif // __cplusplus
