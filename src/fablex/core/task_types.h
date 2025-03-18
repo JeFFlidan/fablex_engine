@@ -75,7 +75,7 @@ class TaskGroup
         }
     
     private:
-        std::atomic<uint32_t> m_pendingTaskCount{ 0 };
+        std::atomic<uint32> m_pendingTaskCount{ 0 };
         std::condition_variable m_waitCondition;
         std::mutex m_mutex;
         std::unordered_set<TaskGroup*> m_dependencies;		// Task group waits for these task groups

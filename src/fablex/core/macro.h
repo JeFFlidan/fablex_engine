@@ -90,3 +90,5 @@
 
 #define FOR_EACH_(N, what, ...) CONCATENATE(FOR_EACH_, N)(what, __VA_ARGS__)
 #define FE_FOR_EACH(what, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, __VA_ARGS__)
+
+#define FE_ARRAY_SIZE(Arr) (sizeof(Arr) / sizeof(Arr[0]))

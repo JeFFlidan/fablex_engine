@@ -24,7 +24,7 @@ inline void from_json(const nlohmann::json& j, Name& name)
 template<typename Enum>
 struct SerializationInfo { };
 
-#define FE_SERIALIZE_ENUM(EnumType, ...)                                                \
+#define FE_SERIALIZE_ENUM(Namespace, EnumType, ...)                                     \
     template<>                                                                          \
     struct SerializationInfo<EnumType>                                                  \
     {                                                                                   \
@@ -50,6 +50,7 @@ struct SerializationInfo { };
             return ((it != std::end(m)) ? it : std::begin(m))->first;                   \
         }                                                                               \
     };                                                                                  \
+    namespace Namespace {                                                               \
     template<typename BasicJsonType>                                                    \
     inline void to_json(BasicJsonType& j, EnumType e)                                   \
     {                                                                                   \
@@ -61,6 +62,7 @@ struct SerializationInfo { };
     {                                                                                   \
         static_assert(std::is_enum_v<EnumType>, #EnumType " must be an enum!");         \
         e = ::SerializationInfo<EnumType>::get_enum(j);                                 \
+    }                                                                                   \
     }                                                                                   \
     inline std::string to_string(const EnumType& e)                                     \
     {                                                                                   \

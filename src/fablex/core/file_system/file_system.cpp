@@ -55,7 +55,7 @@ void FileSystem::init(const std::string& rootPath)
     m_rootPath = rootPath;
 }
 
-FileStream FileSystem::open(const std::string& strPath, const char* mode)
+FileStream* FileSystem::open(const std::string& strPath, const char* mode)
 {
     std::filesystem::path path = std::filesystem::path(strPath);
 
@@ -65,13 +65,13 @@ FileStream FileSystem::open(const std::string& strPath, const char* mode)
     if (!std::filesystem::exists(path) && strcmp(mode, "wb") != 0)
     {
         FE_LOG(LogFileSystem, ERROR, "Path {} is invlaid", path.string().c_str());
-        return FileStream();
+        return nullptr;
     }
 
     if (!path.has_extension())
     {
         FE_LOG(LogFileSystem, ERROR, "File from path {} has no extension", path.string().c_str());
-        return FileStream();
+        return nullptr;
     }
 
     FILE* file = nullptr;
@@ -80,29 +80,33 @@ FileStream FileSystem::open(const std::string& strPath, const char* mode)
     if (!file)
     {
         FE_LOG(LogFileSystem, ERROR, "File is invalid after opening");
-        return FileStream();
+        return nullptr;
     }
 
-    return FileStream(file);
+    return new FileStream(file);
 }
 
-bool FileSystem::close(FileStream stream)
+bool FileSystem::close(FileStream* stream)
 {
-    if (!stream.is_valid())
+    if (!stream || !stream->is_valid())
     {
         FE_LOG(LogFileSystem, ERROR, "close(): FileStream is invalid.");
+        
+        if (stream)
+            delete stream;
+
         return false;
     }
-
-    stream.close();
+    stream->close();
+    delete stream;
 
     return true;
 }
 
 void FileSystem::read(const std::string& path, uint8** outData, uint64* outSize)
 {
-    FileStream stream = create_read_stream(path, *outSize);
-    if (!stream.is_valid())
+    FileStream* stream = create_read_stream(path, *outSize);
+    if (!stream)
         return;
 
     *outData = new uint8[*outSize];
@@ -114,8 +118,8 @@ void FileSystem::read(const std::string& path, std::vector<uint8>& outData)
 {
     uint64 size;
 
-    FileStream stream = create_read_stream(path, size);
-    if (!stream.is_valid())
+    FileStream* stream = create_read_stream(path, size);
+    if (!stream)
         return;
 
     outData.resize(size);
@@ -127,8 +131,8 @@ void FileSystem::read(const std::string& path, std::string& outData)
 {
     uint64 size;
 
-    FileStream stream = create_read_stream(path, size);
-    if (!stream.is_valid())
+    FileStream* stream = create_read_stream(path, size);
+    if (!stream)
         return;
 
     outData.resize(size);
@@ -141,8 +145,9 @@ void FileSystem::write(const std::string& path, const uint8* data, uint64 size)
     FE_CHECK(data);
     FE_CHECK(size);
 
-    FileStream stream = open(path, "wb");
-    stream.write(data, sizeof(uint8), size);
+    FileStream* stream = open(path, "wb");
+    stream->write(data, sizeof(uint8), size);
+    close(stream);
 }
 
 void FileSystem::write(const std::string& path, const std::vector<uint8>& data)
@@ -225,25 +230,25 @@ bool FileSystem::exists(const std::string& rootPath, const std::string& relative
     return std::filesystem::exists(get_absolute_path(rootPath, relativePath));
 }
 
-void FileSystem::read_internal(FileStream stream, const std::string& path, uint8* data, uint64 size)
+void FileSystem::read_internal(FileStream* stream, const std::string& path, uint8* data, uint64 size)
 {
-    size_t readElements = stream.read(data, sizeof(uint8), size);
-    FE_CHECK_MSG(readElements == size, ("Data from " + std::string(path.c_str()) + " is invalid").c_str());
+    size_t readElements = stream->read(data, sizeof(uint8), size);
+    FE_CHECK_MSG(readElements == size, "Data is invalid");
     FE_CHECK_MSG(data, ("Data " + std::string(path.c_str()) + " is invalid").c_str());
 
     bool afterClose = close(stream);
     FE_CHECK_MSG(afterClose, "Error while closing stream");
 }
 
-FileStream FileSystem::create_read_stream(const std::string& path, uint64& outSize)
+FileStream* FileSystem::create_read_stream(const std::string& path, uint64& outSize)
 {
-    FileStream stream = open(path, "rb");
+    FileStream* stream = open(path, "rb");
 
-    outSize = stream.size();
+    outSize = stream->size();
     if (!outSize)
     {
         FE_LOG(LogFileSystem, ERROR, "File {} is empty", path.c_str());
-        return FileStream();
+        return nullptr;
     }
 
     return stream;

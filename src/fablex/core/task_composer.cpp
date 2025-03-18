@@ -1,4 +1,5 @@
 #include "task_composer.h"
+#include "logger.h"
 
 namespace fe
 {

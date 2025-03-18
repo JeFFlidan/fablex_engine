@@ -52,8 +52,7 @@ public:
             m_freePointers.pop_back();
         }
 
-        if constexpr (sizeof...(Params))
-            new(objPtr) T(std::forward<Params>(params)...);
+        new(objPtr) T(std::forward<Params>(params)...);
             
         ++m_allocatedObjectCount;
         return objPtr;

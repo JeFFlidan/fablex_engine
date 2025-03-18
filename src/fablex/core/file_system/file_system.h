@@ -32,8 +32,8 @@ public:
 
     static const std::string& get_root_path() { return m_rootPath; }
 
-    static FileStream open(const std::string& strPath, const char* mode);
-    static bool close(FileStream stream);
+    static FileStream* open(const std::string& strPath, const char* mode);
+    static bool close(FileStream* stream);
 
     static void read(const std::string& path, uint8** outData, uint64* outSize);
     static void read(const std::string& path, std::vector<uint8>& outData);
@@ -65,8 +65,8 @@ public:
 private:
     inline static std::string m_rootPath = "";
 
-    static void read_internal(FileStream stream, const std::string& path, uint8* data, uint64 size);
-    static FileStream create_read_stream(const std::string& path, uint64& outSize);
+    static void read_internal(FileStream* stream, const std::string& path, uint8* data, uint64 size);
+    static FileStream* create_read_stream(const std::string& path, uint64& outSize);
 };
 
 }

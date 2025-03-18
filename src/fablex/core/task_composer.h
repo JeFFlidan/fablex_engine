@@ -36,11 +36,11 @@ class TaskComposer
     
     private:
         inline static std::unique_ptr<TaskQueueGroup> s_taskQueueGroup = nullptr;
-        inline static ThreadSafePoolAllocator<TaskGroup, 128> s_taskGroupPool;
-        inline static std::vector<std::thread> s_threads;
-        inline static std::condition_variable s_wakeCondition;
-        inline static std::mutex s_mutex;
-        inline static uint32 s_threadCount;
+        inline static ThreadSafePoolAllocator<TaskGroup, 128> s_taskGroupPool{};
+        inline static std::vector<std::thread> s_threads{};
+        inline static std::condition_variable s_wakeCondition{};
+        inline static std::mutex s_mutex{};
+        inline static uint32 s_threadCount{};
         inline static std::atomic_bool s_isAlive = true;
 
         static void execute_tasks(uint32 beginningQueueIndex);
