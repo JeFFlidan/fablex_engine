@@ -20,16 +20,18 @@ void SwapChainPass::create_pipeline()
 void SwapChainPass::execute(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
+
+    const RenderSurface& renderSurface = m_renderContext->get_render_surface();
     
     rhi::Viewport viewport;
-    viewport.width = m_renderContext->get_render_surface().width;
-    viewport.height = m_renderContext->get_render_surface().height;
+    viewport.width = renderSurface.get_window_width();
+    viewport.height = renderSurface.get_window_height();
     std::vector<rhi::Viewport> viewports = { viewport };
     rhi::set_viewports(cmd, viewports);
 
     rhi::Scissor scissor;
-    scissor.right = (int32_t)m_renderContext->get_render_surface().width;
-    scissor.bottom = (int32_t)m_renderContext->get_render_surface().height;
+    scissor.right = (int32_t)renderSurface.get_window_width();
+    scissor.bottom = (int32_t)renderSurface.get_window_height();
     std::vector<rhi::Scissor> scissors = { scissor };
     rhi::set_scissors(cmd, scissors);
 

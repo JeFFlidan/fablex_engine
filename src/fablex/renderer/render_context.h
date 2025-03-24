@@ -49,6 +49,8 @@ public:
     ShaderManager* get_shader_manager() const { return m_info.shaderManager; }
     RenderGraph* get_render_graph() const { return m_info.renderGraph; }
 
+    void set_main_swap_chain(rhi::SwapChain* mainSwapChain) { m_info.renderSurface.mainSwapChain = mainSwapChain; }
+
 private:
     RenderContextInfo m_info;
 };

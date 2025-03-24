@@ -2581,6 +2581,8 @@ void create_swap_chain_internal(SwapChain* swapChain)
     }
 
     const WindowInfo& windowInfo = swapChain->window->get_info();
+    FE_LOG(LogDefault, INFO, "WINDOW SIZE: {} {}", windowInfo.width, windowInfo.height);
+    FE_LOG(LogDefault, INFO, "SURFACE SIZE: {} {}", surfaceCapabilities.currentExtent.width, surfaceCapabilities.currentExtent.height);
 
     VkSwapchainCreateInfoKHR swapChainCreateInfo{};
     swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -2588,7 +2590,7 @@ void create_swap_chain_internal(SwapChain* swapChain)
     swapChainCreateInfo.minImageCount = swapChain->bufferCount;
     swapChainCreateInfo.imageFormat = get_format(swapChain->format);
     swapChainCreateInfo.imageColorSpace = get_color_space(swapChain->colorSpace);
-    swapChainCreateInfo.imageExtent = { windowInfo.width, windowInfo.height };
+    swapChainCreateInfo.imageExtent = surfaceCapabilities.currentExtent;
     swapChainCreateInfo.imageArrayLayers = 1;
     swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;

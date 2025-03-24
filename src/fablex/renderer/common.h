@@ -2,6 +2,7 @@
 
 #include "core/name.h"
 #include "core/logger.h"
+#include "core/window.h"
 #include "rhi/resources.h"
 
 namespace fe::renderer
@@ -21,6 +22,17 @@ struct RenderSurface
     uint32 height;
     rhi::Format renderTargetFormat;
     rhi::Format depthStencilFormat;
+    rhi::SwapChain* mainSwapChain;
+
+    uint32 get_window_width() const
+    {
+        return mainSwapChain->window->get_info().width;
+    }
+
+    uint32 get_window_height() const
+    {
+        return mainSwapChain->window->get_info().height;
+    }
 };
 
 struct TextureMetadata

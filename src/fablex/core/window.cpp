@@ -6,6 +6,8 @@ namespace fe
 
 LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    auto window = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
     switch (uMsg)
     {
         case WM_CREATE:
@@ -22,16 +24,18 @@ LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             PostQuitMessage(0);
             return 0;
         }
+        case WM_SIZE:
+        {
+            window->set_width(LOWORD(lParam));
+            window->set_height(HIWORD(lParam));
+        }
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 void Window::init(const WindowCreateInfo& createInfo)
-{
-    m_windowInfo.width = createInfo.width;
-    m_windowInfo.height = createInfo.height;
-
+{    
 #ifdef WIN32
     m_win32WindowData.className = "Fablex Window";
     m_win32WindowData.hInstance = GetModuleHandle(nullptr);
@@ -47,13 +51,6 @@ void Window::init(const WindowCreateInfo& createInfo)
 
     DWORD style = WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX;
 
-    RECT rect;
-	rect.left = 100;
-	rect.top = 100;
-	rect.right = rect.left + m_windowInfo.width;
-	rect.bottom = rect.top + m_windowInfo.height;
-
-	AdjustWindowRect(&rect, style, false);
 	LPVOID lpData = static_cast<LPVOID>(this);
 
 	HWND hWnd = CreateWindowEx(
@@ -61,10 +58,10 @@ void Window::init(const WindowCreateInfo& createInfo)
 		m_win32WindowData.className,
 		createInfo.windowTitle.c_str(),
 		style,
-		rect.left,
-		rect.top,
-		rect.right - rect.left,
-		rect.bottom - rect.top,
+		0,
+		0,
+		800,
+		800,
 		nullptr,
 		nullptr,
 		m_win32WindowData.hInstance,
@@ -73,7 +70,7 @@ void Window::init(const WindowCreateInfo& createInfo)
 
     m_windowInfo.win32Window.hWnd = hWnd;
 
-	ShowWindow(hWnd, SW_SHOW);
+	ShowWindow(hWnd, SW_MAXIMIZE);
 #endif // WIN32
 }
 

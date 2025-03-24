@@ -120,6 +120,7 @@ void Renderer::create_main_swap_chain()
     info.bufferCount = 3;
     info.window = m_window;
     rhi::create_swap_chain(&m_mainSwapChain, &info);
+    m_renderContext->set_main_swap_chain(m_mainSwapChain);
 
     FE_LOG(LogRenderer, INFO, "Main swap chain initialization completed.");
 }
