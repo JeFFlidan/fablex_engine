@@ -8,6 +8,7 @@ namespace fe
 {
 
 class Object;
+class Property;
 
 #define FE_DECLARE_OBJECT(TypeName)                                                                             \
     public:                                                                                                     \
@@ -41,7 +42,7 @@ class Object;
             TypeManager::register_type(             \
                 TypeName::get_static_type_info());  \
         }                                           \
-    } g_TypeName##Registrator;
+    } g_##TypeName##Registrator;
 
 class Object
 {
@@ -73,6 +74,11 @@ public:
     {
         FE_COMPILE_CHECK((std::is_base_of_v<Object, T>));
         return is_a(T::get_static_type_info());
+    }
+
+    const std::vector<Property*>& get_properties() const
+    {
+        return get_type_info()->get_properties();
     }
 };
 

@@ -39,7 +39,7 @@ bool TypeInfo::is_exactly(const TypeInfo* typeInfo) const
 Property* TypeInfo::get_property(const char* propertyName) const
 {
     for (Property* property : m_properties)
-        if (strcmp(propertyName, property->get_name()) == 0)
+        if (strcmp(propertyName, property->get_name().c_str()) == 0)
             return property;
 
     return nullptr;
@@ -52,7 +52,7 @@ Property* TypeInfo::get_property(Name propertyName) const
 
 void TypeInfo::add_property(Property* property)
 {
-    if (get_property(property->get_name()) == nullptr)
+    if (get_property(property->get_name().c_str()) == nullptr)
         m_properties.push_back(property);
 }
 

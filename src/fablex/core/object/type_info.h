@@ -52,7 +52,7 @@ public:
 
     Property* get_property(const char* propertyName) const;
     Property* get_property(Name propertyName) const;
-    const std::vector<Property*> get_properties() const { return m_properties; }
+    const std::vector<Property*>& get_properties() const { return m_properties; }
 
 protected:
     const char* m_name;

@@ -1,48 +1,52 @@
 #pragma once
 
 #include "macro.h"
+#include "fmt/format.h"
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
 #include <cmath>
+
+using namespace DirectX;
+using namespace PackedVector;
 
 namespace fe::math
 {
 
 struct Vector2
 {
-    DirectX::XMVECTOR data;
+    XMVECTOR data;
 
     Vector2() = default;
-    Vector2(const DirectX::XMVECTOR& vec) : data(vec) { }
+    Vector2(const XMVECTOR& vec) : data(vec) { }
 };
 
 struct Vector3
 {
-    DirectX::XMVECTOR data;
+    XMVECTOR data;
 
     Vector3() = default;
-    Vector3(const DirectX::XMVECTOR& vec) : data(vec) { }
+    Vector3(const XMVECTOR& vec) : data(vec) { }
 };
 
 struct Vector4
 {
-    DirectX::XMVECTOR data;
+    XMVECTOR data;
 
     Vector4() = default;
-    Vector4(const DirectX::XMVECTOR& vec) : data(vec) { }
+    Vector4(const XMVECTOR& vec) : data(vec) { }
 };
 
 struct Matrix
 {
-    DirectX::XMMATRIX data;
+    XMMATRIX data;
 
     Matrix() = default;
-    Matrix(const DirectX::XMMATRIX& mat) : data(mat) {}
+    Matrix(const XMMATRIX& mat) : data(mat) {}
 };
 
-struct Float2 : DirectX::XMFLOAT2
+struct Float2 : XMFLOAT2
 {
-    using DirectX::XMFLOAT2::XMFLOAT2;
+    using XMFLOAT2::XMFLOAT2;
 
     Float2(const Vector2& vec) noexcept
     {
@@ -51,12 +55,12 @@ struct Float2 : DirectX::XMFLOAT2
 
     FORCE_INLINE Vector2 to_vector() const noexcept
     {
-        return DirectX::XMLoadFloat2(this);
+        return XMLoadFloat2(this);
     }
 
     FORCE_INLINE void from_vector(const Vector2& vec) noexcept
     {
-        DirectX::XMStoreFloat2(this, vec.data);
+        XMStoreFloat2(this, vec.data);
     }
 
     float length() const
@@ -65,9 +69,9 @@ struct Float2 : DirectX::XMFLOAT2
     }
 };
 
-struct Float3 : DirectX::XMFLOAT3
+struct Float3 : XMFLOAT3
 {
-    using DirectX::XMFLOAT3::XMFLOAT3;
+    using XMFLOAT3::XMFLOAT3;
 
     Float3(const Vector3& vec) noexcept
     {
@@ -76,12 +80,12 @@ struct Float3 : DirectX::XMFLOAT3
 
     FORCE_INLINE Vector3 to_vector() const noexcept
     {
-        return DirectX::XMLoadFloat3(this);
+        return XMLoadFloat3(this);
     }
 
     FORCE_INLINE void from_vector(const Vector3& vec) noexcept
     {
-        DirectX::XMStoreFloat3(this, vec.data);
+        XMStoreFloat3(this, vec.data);
     }
 
     float length() const
@@ -90,9 +94,9 @@ struct Float3 : DirectX::XMFLOAT3
     }
 };
 
-struct Float4 : DirectX::XMFLOAT4
+struct Float4 : XMFLOAT4
 {
-    using DirectX::XMFLOAT4::XMFLOAT4;
+    using XMFLOAT4::XMFLOAT4;
 
     Float4(const Vector4& vec) noexcept
     {
@@ -101,12 +105,12 @@ struct Float4 : DirectX::XMFLOAT4
 
     FORCE_INLINE Vector4 to_vector() const noexcept
     {
-        return DirectX::XMLoadFloat4(this);
+        return XMLoadFloat4(this);
     }
 
     FORCE_INLINE void from_vector(const Vector4& vec) noexcept
     {
-        DirectX::XMStoreFloat4(this, vec.data);
+        XMStoreFloat4(this, vec.data);
     }
 
     float length() const
@@ -115,9 +119,9 @@ struct Float4 : DirectX::XMFLOAT4
     }
 };
 
-struct Int2 : DirectX::XMINT2
+struct Int2 : XMINT2
 {
-    using DirectX::XMINT2::XMINT2;
+    using XMINT2::XMINT2;
 
     Int2(const Vector2& vec) noexcept
     {
@@ -126,18 +130,18 @@ struct Int2 : DirectX::XMINT2
 
     FORCE_INLINE Vector2 to_vector() const noexcept
     {
-        return DirectX::XMLoadSInt2(this);
+        return XMLoadSInt2(this);
     }
 
     FORCE_INLINE void from_vector(const Vector2& vec) noexcept
     {
-        DirectX::XMStoreSInt2(this, vec.data);
+        XMStoreSInt2(this, vec.data);
     }
 };
 
-struct Int3 : DirectX::XMINT3
+struct Int3 : XMINT3
 {
-    using DirectX::XMINT3::XMINT3;
+    using XMINT3::XMINT3;
 
     Int3(const Vector3& vec) noexcept
     {
@@ -146,18 +150,18 @@ struct Int3 : DirectX::XMINT3
 
     FORCE_INLINE Vector3 to_vector() const noexcept
     {
-        return DirectX::XMLoadSInt3(this);
+        return XMLoadSInt3(this);
     }
 
     FORCE_INLINE void from_vector(const Vector3& vec) noexcept
     {
-        DirectX::XMStoreSInt3(this, vec.data);
+        XMStoreSInt3(this, vec.data);
     }
 };
 
-struct Int4 : DirectX::XMINT4
+struct Int4 : XMINT4
 {
-    using DirectX::XMINT4::XMINT4;
+    using XMINT4::XMINT4;
 
     Int4(const Vector4& vec) noexcept
     {
@@ -166,18 +170,18 @@ struct Int4 : DirectX::XMINT4
 
     FORCE_INLINE Vector4 to_vector() const noexcept
     {
-        return DirectX::XMLoadSInt4(this);
+        return XMLoadSInt4(this);
     }
 
     FORCE_INLINE void from_vector(const Vector4& vec) noexcept
     {
-        DirectX::XMStoreSInt4(this, vec.data);
+        XMStoreSInt4(this, vec.data);
     }
 };
 
-struct UInt2 : DirectX::XMUINT2
+struct UInt2 : XMUINT2
 {
-    using DirectX::XMUINT2::XMUINT2;
+    using XMUINT2::XMUINT2;
 
     UInt2(const Vector2& vec) noexcept
     {
@@ -186,18 +190,18 @@ struct UInt2 : DirectX::XMUINT2
 
     FORCE_INLINE Vector2 to_vector() const noexcept
     {
-        return DirectX::XMLoadUInt2(this);
+        return XMLoadUInt2(this);
     }
 
     FORCE_INLINE void from_vector(const Vector2& vec) noexcept
     {
-        DirectX::XMStoreUInt2(this, vec.data);
+        XMStoreUInt2(this, vec.data);
     }
 };
 
-struct UInt3 : DirectX::XMUINT3
+struct UInt3 : XMUINT3
 {
-    using DirectX::XMUINT3::XMUINT3;
+    using XMUINT3::XMUINT3;
 
     UInt3(const Vector3& vec) noexcept
     {
@@ -206,18 +210,18 @@ struct UInt3 : DirectX::XMUINT3
 
     FORCE_INLINE Vector3 to_vector() const noexcept
     {
-        return DirectX::XMLoadUInt3(this);
+        return XMLoadUInt3(this);
     }
 
     FORCE_INLINE void from_vector(const Vector3& vec) noexcept
     {
-        DirectX::XMStoreUInt3(this, vec.data);
+        XMStoreUInt3(this, vec.data);
     }
 };
 
-struct UInt4 : DirectX::XMUINT4
+struct UInt4 : XMUINT4
 {
-    using DirectX::XMUINT4::XMUINT4;
+    using XMUINT4::XMUINT4;
 
     UInt4(const Vector4& vec) noexcept
     {
@@ -226,18 +230,18 @@ struct UInt4 : DirectX::XMUINT4
 
     FORCE_INLINE Vector4 to_vector() const noexcept
     {
-        return DirectX::XMLoadUInt4(this);
+        return XMLoadUInt4(this);
     }
 
     FORCE_INLINE void from_vector(const Vector4& vec) noexcept
     {
-        DirectX::XMStoreUInt4(this, vec.data);
+        XMStoreUInt4(this, vec.data);
     }
 };
 
-struct Float3x3 : DirectX::XMFLOAT3X3
+struct Float3x3 : XMFLOAT3X3
 {
-    using DirectX::XMFLOAT3X3::XMFLOAT3X3;
+    using XMFLOAT3X3::XMFLOAT3X3;
 
     Float3x3(const Matrix& mat) noexcept
     {
@@ -246,18 +250,18 @@ struct Float3x3 : DirectX::XMFLOAT3X3
 
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
-        return Matrix(DirectX::XMLoadFloat3x3(this));
+        return Matrix(XMLoadFloat3x3(this));
     }
 
     FORCE_INLINE void from_matrix(const Matrix& mat) noexcept
     {
-        DirectX::XMStoreFloat3x3(this, mat.data);
+        XMStoreFloat3x3(this, mat.data);
     }
 };
 
-struct Float3x4 : DirectX::XMFLOAT3X4
+struct Float3x4 : XMFLOAT3X4
 {
-    using DirectX::XMFLOAT3X4::XMFLOAT3X4;
+    using XMFLOAT3X4::XMFLOAT3X4;
 
     Float3x4(const Matrix& mat) noexcept
     {
@@ -266,18 +270,18 @@ struct Float3x4 : DirectX::XMFLOAT3X4
 
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
-        return Matrix(DirectX::XMLoadFloat3x4(this));
+        return Matrix(XMLoadFloat3x4(this));
     }
 
     FORCE_INLINE void from_matrix(const Matrix& mat) noexcept
     {
-        DirectX::XMStoreFloat3x4(this, mat.data);
+        XMStoreFloat3x4(this, mat.data);
     }
 };
 
-struct Float4x4 : DirectX::XMFLOAT4X4
+struct Float4x4 : XMFLOAT4X4
 {
-    using DirectX::XMFLOAT4X4::XMFLOAT4X4;
+    using XMFLOAT4X4::XMFLOAT4X4;
 
     Float4x4(const Matrix& mat) noexcept
     {
@@ -286,18 +290,18 @@ struct Float4x4 : DirectX::XMFLOAT4X4
 
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
-        return Matrix(DirectX::XMLoadFloat4x4(this));
+        return Matrix(XMLoadFloat4x4(this));
     }
 
     FORCE_INLINE void from_matrix(const Matrix& mat) noexcept
     {
-        DirectX::XMStoreFloat4x4(this, mat.data);
+        XMStoreFloat4x4(this, mat.data);
     }
 };
 
-struct Float4x3 : DirectX::XMFLOAT4X3
+struct Float4x3 : XMFLOAT4X3
 {
-    using DirectX::XMFLOAT4X3::XMFLOAT4X3;
+    using XMFLOAT4X3::XMFLOAT4X3;
 
     Float4x3(const Matrix& mat) noexcept
     {
@@ -306,12 +310,12 @@ struct Float4x3 : DirectX::XMFLOAT4X3
 
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
-        return Matrix(DirectX::XMLoadFloat4x3(this));
+        return Matrix(XMLoadFloat4x3(this));
     }
 
     FORCE_INLINE void from_matrix(const Matrix& mat) noexcept
     {
-        DirectX::XMStoreFloat4x3(this, mat.data);
+        XMStoreFloat4x3(this, mat.data);
     }
 };
 
@@ -341,17 +345,17 @@ inline float distance(const Float4& vec1, const Float4& vec2)
 
 inline float distance(const Vector2& vec1, const Vector2& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector2Length(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector2Length(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance(const Vector3& vec1, const Vector3& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector3Length(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance(const Vector4& vec1, const Vector4& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector4Length(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector4Length(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance_squared(const Float2& vec1, const Float2& vec2) 
@@ -377,32 +381,32 @@ inline float distance_squared(const Float4& vec1, const Float4& vec2)
 
 inline float distance_squared(const Vector2& vec1, const Vector2& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector2LengthSq(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector2LengthSq(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance_squared(const Vector3& vec1, const Vector3& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector3LengthSq(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance_squared(const Vector4& vec1, const Vector4& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector4LengthSq(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector4LengthSq(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance_estimated(const Vector2& vec1, const Vector2& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector2LengthEst(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector2LengthEst(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance_estimated(const Vector3& vec1, const Vector3& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector3LengthEst(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector3LengthEst(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float distance_estimated(const Vector4& vec1, const Vector4& vec2)
 {
-    return DirectX::XMVectorGetX(DirectX::XMVector4LengthEst(DirectX::XMVectorSubtract(vec1.data, vec2.data)));
+    return XMVectorGetX(XMVector4LengthEst(XMVectorSubtract(vec1.data, vec2.data)));
 }
 
 inline float dot(const Float2& vec1, const Float2& vec2)
@@ -421,3 +425,148 @@ inline float dot(const Float4& vec1, const Float4& vec2)
 }
 
 }
+
+template<>
+struct fmt::formatter<fe::math::Float2>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::Float2& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {})", vec.x, vec.y);
+    }
+};
+
+template<>
+struct fmt::formatter<fe::math::Float3>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::Float3& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {}; {})", vec.x, vec.y, vec.z);
+    }
+};
+
+template<>
+struct fmt::formatter<fe::math::Float4>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::Float4& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {}; {}; {})", vec.x, vec.y, vec.z, vec.w);
+    }
+};
+
+
+template<>
+struct fmt::formatter<fe::math::Int2>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::Int2& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {})", vec.x, vec.y);
+    }
+};
+
+template<>
+struct fmt::formatter<fe::math::Int3>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::Int3& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {}; {})", vec.x, vec.y, vec.z);
+    }
+};
+
+template<>
+struct fmt::formatter<fe::math::Int4>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::Int4& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {}; {}; {})", vec.x, vec.y, vec.z, vec.w);
+    }
+};
+
+template<>
+struct fmt::formatter<fe::math::UInt2>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::UInt2& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {})", vec.x, vec.y);
+    }
+};
+
+template<>
+struct fmt::formatter<fe::math::UInt3>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::UInt3& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {}; {})", vec.x, vec.y, vec.z);
+    }
+};
+
+template<>
+struct fmt::formatter<fe::math::UInt4>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::math::UInt4& vec, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "({}; {}; {}; {})", vec.x, vec.y, vec.z, vec.w);
+    }
+};
