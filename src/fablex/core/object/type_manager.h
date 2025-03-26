@@ -15,6 +15,8 @@ class Object;
 class TypeManager
 {
 public:
+    static void cleanup();
+
     static const TypeInfo* get_type_info(const char* typeName);
     static const TypeInfo* get_type_info(Name typeName);
     

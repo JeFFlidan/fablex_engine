@@ -10,6 +10,7 @@ namespace fe
 class Property;
 class Object;
 class TypeInfo;
+class TypeManager;
 
 void add_property(TypeInfo* typeInfo, Property* property);
 
@@ -17,6 +18,8 @@ class TypeInfo
 {
 public:
     using AllocatorHandler = std::function<Object*()>;
+
+    friend TypeManager;
     friend void add_property(TypeInfo* typeInfo, Property* property);
 
     TypeInfo(
@@ -63,9 +66,10 @@ protected:
     const TypeInfo* m_baseTypeInfo = nullptr;
     uint64 m_nameHash;
 
-    std::vector<Property*> m_properties;
+    mutable std::vector<Property*> m_properties;
 
     void add_property(Property* property);
+    void cleanup_properties() const;
 };
 
 }

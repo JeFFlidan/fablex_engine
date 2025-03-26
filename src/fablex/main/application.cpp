@@ -2,7 +2,7 @@
 #include "core/core.h"
 #include "core/file_system/file_system.h"
 
-DEFINE_LOG_CATEGORY(LogApplication)
+FE_DEFINE_LOG_CATEGORY(LogApplication)
 
 namespace fe
 {
@@ -31,6 +31,7 @@ Application::Application()
 Application::~Application()
 {
     m_renderer.reset();
+    TypeManager::cleanup();
     Core::cleanup();
 }
 

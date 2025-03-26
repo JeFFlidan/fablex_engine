@@ -56,6 +56,13 @@ void TypeInfo::add_property(Property* property)
         m_properties.push_back(property);
 }
 
+void TypeInfo::cleanup_properties() const
+{
+    for (Property* property : m_properties)
+        memory_delete(property);
+    m_properties.clear();
+}
+
 void add_property(TypeInfo* typeInfo, Property* property)
 {
     FE_CHECK(typeInfo);

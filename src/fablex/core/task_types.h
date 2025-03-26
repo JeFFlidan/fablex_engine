@@ -11,7 +11,7 @@
 namespace fe
 {
 
-DEFINE_LOG_CATEGORY(LogTasks);
+FE_DEFINE_LOG_CATEGORY(LogTasks);
 
 struct TaskExecutionInfo
 {

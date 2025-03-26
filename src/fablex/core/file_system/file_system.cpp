@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-DEFINE_LOG_CATEGORY(LogFileSystem)
+FE_DEFINE_LOG_CATEGORY(LogFileSystem)
 
 namespace fe
 {

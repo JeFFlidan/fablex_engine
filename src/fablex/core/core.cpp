@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-DEFINE_LOG_CATEGORY(LogCore)
+FE_DEFINE_LOG_CATEGORY(LogCore)
 
 namespace fe
 {

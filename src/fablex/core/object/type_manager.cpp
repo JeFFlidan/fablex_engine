@@ -7,6 +7,12 @@
 namespace fe
 {
 
+void TypeManager::cleanup()
+{
+    for (const TypeInfo* typeInfo : s_typeInfos)
+        typeInfo->cleanup_properties();
+}
+
 const TypeInfo* TypeManager::get_type_info(const char* typeName)
 {
     FE_LOG(LogDefault, INFO, "Registered types count: {} {}", s_typeInfos.size(), typeName);
