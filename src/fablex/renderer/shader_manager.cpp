@@ -26,7 +26,7 @@ using ComPtr = Microsoft::WRL::ComPtr<T>;
 #define DX_ENSURE(Value) SUCCEEDED(Value)
 #define DX_CHECK(Value) FE_CHECK(SUCCEEDED(Value))
 
-DEFINE_LOG_CATEGORY(LogShaderCompiler)
+FE_DEFINE_LOG_CATEGORY(LogShaderCompiler)
 
 namespace fe::renderer
 {

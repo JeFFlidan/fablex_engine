@@ -1,7 +1,7 @@
 #include "texture.h"
 #include "rhi/rhi.h"
 #include "core/macro.h"
-#include "core/logger.h"
+
 namespace fe::renderer
 {
 

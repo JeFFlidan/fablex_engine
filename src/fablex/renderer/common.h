@@ -14,7 +14,7 @@ using PipelineName = Name;
 using FieldName = Name;
 using PushConstantsName = Name;
 
-DEFINE_LOG_CATEGORY(LogRenderer);
+FE_DEFINE_LOG_CATEGORY(LogRenderer);
 
 struct RenderSurface
 {

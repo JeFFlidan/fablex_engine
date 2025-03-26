@@ -29,7 +29,7 @@
 
 #include <unordered_map>
 
-DEFINE_LOG_CATEGORY(LogVulkanRHI)
+FE_DEFINE_LOG_CATEGORY(LogVulkanRHI)
 
 #define VK_CHECK(x)                                                                 \
     do                                                                              \
@@ -1631,6 +1631,7 @@ public:
         m_uniformTexelBufferBindlessPool.init(VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, std::min(s_maxBindlessDescriptors, properties.maxDescriptorSetUpdateAfterBindSampledImages / 4));
         m_storageTexelBufferBindlessPool.init(VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, std::min(s_maxBindlessDescriptors, properties.maxDescriptorSetUpdateAfterBindStorageBuffers / 4));
         m_samplerBindlessPool.init(VK_DESCRIPTOR_TYPE_SAMPLER, 256);
+        m_accelerationStructureBindlessPool.init(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 32);
 
         m_zeroDescriptorPool.init();
     }
@@ -1643,6 +1644,7 @@ public:
         m_uniformTexelBufferBindlessPool.cleanup();
         m_storageTexelBufferBindlessPool.cleanup();
         m_samplerBindlessPool.cleanup();
+        m_accelerationStructureBindlessPool.cleanup();
         m_zeroDescriptorPool.cleanup();
     }
 
@@ -1897,12 +1899,11 @@ public:
             Utils::hash_combine(hash, binding.stageFlags);
         }
 
-        {
-            std::scoped_lock<std::mutex> locker(m_zeroDescriptorPool.mutex);
-            const auto& it = m_zeroDescriptorPool.descriptorSetsByItsHash.find(hash);
-            if (it != m_zeroDescriptorPool.descriptorSetsByItsHash.end())
-                return ZeroDescirptorSetInfo{it->second.layout, hash};
-        }
+        std::scoped_lock<std::mutex> locker(m_zeroDescriptorPool.mutex);
+
+        const auto& it = m_zeroDescriptorPool.descriptorSetsByItsHash.find(hash);
+        if (it != m_zeroDescriptorPool.descriptorSetsByItsHash.end())
+            return ZeroDescirptorSetInfo{it->second.layout, hash};
 
         ZeroDescriptorPool::ZeroDescriptorSets newZeroSets;
         newZeroSets.bindingCount = bindings.size();
@@ -1913,10 +1914,7 @@ public:
         laycreateInfo.pBindings = bindings.data();
         VK_CHECK(vkCreateDescriptorSetLayout(g_device.device, &laycreateInfo, nullptr, &newZeroSets.layout));
 
-        {
-            std::scoped_lock<std::mutex> locker(m_zeroDescriptorPool.mutex);
-            m_zeroDescriptorPool.descriptorSetsByItsHash[hash] = newZeroSets;
-        }
+        m_zeroDescriptorPool.descriptorSetsByItsHash[hash] = newZeroSets;
 
         return ZeroDescirptorSetInfo{newZeroSets.layout, hash};
     }
@@ -1931,7 +1929,6 @@ public:
             FE_LOG(LogVulkanRHI, ERROR, "Failed to find zero descriptor set using hash {}", hash);
             return VK_NULL_HANDLE;
         }
-
 
         ZeroDescriptorPool::ZeroDescriptorSets& zeroDescriptorSets = it->second;
         if (zeroDescriptorSets.descriptorSets.size() < frameIndex + 1)
@@ -2581,8 +2578,6 @@ void create_swap_chain_internal(SwapChain* swapChain)
     }
 
     const WindowInfo& windowInfo = swapChain->window->get_info();
-    FE_LOG(LogDefault, INFO, "WINDOW SIZE: {} {}", windowInfo.width, windowInfo.height);
-    FE_LOG(LogDefault, INFO, "SURFACE SIZE: {} {}", surfaceCapabilities.currentExtent.width, surfaceCapabilities.currentExtent.height);
 
     VkSwapchainCreateInfoKHR swapChainCreateInfo{};
     swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -3171,19 +3166,19 @@ void create_texture(Texture** texture, const TextureInfo* info)
     VmaAllocationCreateInfo allocCreateInfo{};
     allocCreateInfo.usage = get_memory_usage(info->memoryUsage);
     
-        switch (info->memoryUsage)
-        {
-        case rhi::MemoryUsage::CPU:
-        case rhi::MemoryUsage::CPU_TO_GPU:
-            allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-            break;
-        case rhi::MemoryUsage::GPU_TO_CPU:
-            allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-            break;
-        default:
-            allocCreateInfo.flags = 0;
-            break;
-        }
+    switch (info->memoryUsage)
+    {
+    case rhi::MemoryUsage::CPU:
+    case rhi::MemoryUsage::CPU_TO_GPU:
+        allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        break;
+    case rhi::MemoryUsage::GPU_TO_CPU:
+        allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+        break;
+    default:
+        allocCreateInfo.flags = 0;
+        break;
+    }
 
     if (texturePtr->vk().image == VK_NULL_HANDLE)
     {
@@ -3202,7 +3197,7 @@ void destroy_texture(Texture* texture)
 {
     FE_CHECK(texture);
 
-    if (texture->vk().image == VK_NULL_HANDLE)
+    if (texture->vk().image != VK_NULL_HANDLE)
         vmaDestroyImage(g_allocator.gpuAllocator, texture->vk().image, texture->vk().allocation);
 
     g_allocator.textureAllocator.free(texture);
@@ -4913,7 +4908,7 @@ void submit(const std::vector<SubmitInfo>& submitInfos, rhi::Fence* signalFence)
             stageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
             break;
         default:
-            FE_LOG(LogDefault, FATAL, "Undefined queue type");
+            FE_LOG(LogVulkanRHI, FATAL, "Undefined queue type");
             break;
         }
     

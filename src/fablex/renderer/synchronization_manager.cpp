@@ -15,6 +15,9 @@ SynchronizationManager::~SynchronizationManager()
     for (SemaphoreArray& semaphores : m_semaphoresPerFrame)
         for (rhi::Semaphore* semaphore : semaphores)
             rhi::destroy_semaphore(semaphore);
+    
+    for (rhi::Semaphore* semaphore : m_acquireSemaphores)
+        rhi::destroy_semaphore(semaphore);
 
     for (FenceArray& fences : m_freeFencesPerFrame)
         for (rhi::Fence* fence : fences)

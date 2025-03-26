@@ -2,7 +2,6 @@
 #include "object.h"
 #include "type_info.h"
 #include "core/macro.h"
-#include "core/logger.h"
 
 namespace fe
 {
@@ -15,11 +14,9 @@ void TypeManager::cleanup()
 
 const TypeInfo* TypeManager::get_type_info(const char* typeName)
 {
-    FE_LOG(LogDefault, INFO, "Registered types count: {} {}", s_typeInfos.size(), typeName);
     auto it = s_indexByTypeName.find(typeName);
     if (it == s_indexByTypeName.end())
         return nullptr;
-    FE_LOG(LogDefault, INFO, "FOUND NAME: {}", s_typeInfos.at(it->second)->get_name());
     return s_typeInfos.at(it->second);
 }
 
