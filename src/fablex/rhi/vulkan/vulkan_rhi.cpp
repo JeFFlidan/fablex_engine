@@ -2577,8 +2577,6 @@ void create_swap_chain_internal(SwapChain* swapChain)
         swapChain->bufferCount = surfaceCapabilities.maxImageCount;
     }
 
-    const WindowInfo& windowInfo = swapChain->window->get_info();
-
     VkSwapchainCreateInfoKHR swapChainCreateInfo{};
     swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapChainCreateInfo.surface = swapChain->vk().surface;
@@ -2630,7 +2628,8 @@ void create_swap_chain_internal(SwapChain* swapChain)
     {
         VkDebugUtilsObjectNameInfoEXT info{};
         info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        info.pObjectName = std::string("SwapChainImage" + std::to_string(i)).c_str();
+        std::string name = "SwapChainImage" + std::to_string(i);
+        info.pObjectName = name.c_str();
         info.objectType = VK_OBJECT_TYPE_IMAGE;
         info.objectHandle = (uint64)swapChain->vk().images[i];
         VK_CHECK(vkSetDebugUtilsObjectNameEXT(g_device.device, &info));
@@ -2662,7 +2661,8 @@ void create_swap_chain_internal(SwapChain* swapChain)
 
         VkDebugUtilsObjectNameInfoEXT info{};
         info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        info.pObjectName = std::string("SwapChainImageView" + std::to_string(i)).c_str();
+        std::string name = "SwapChainImageView" + std::to_string(i);
+        info.pObjectName = name.c_str();
         info.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
         info.objectHandle = (uint64)swapChain->vk().imageViews[i];
         VK_CHECK(vkSetDebugUtilsObjectNameEXT(g_device.device, &info));

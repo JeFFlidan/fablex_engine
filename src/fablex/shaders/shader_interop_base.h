@@ -5,17 +5,17 @@
 #include "core/types.h"
 #include "core/math.h"
 
-using float2 = fe::math::Float2;
-using float3 = fe::math::Float3;
-using float4 = fe::math::Float4;
+using float2 = fe::Float2;
+using float3 = fe::Float3;
+using float4 = fe::Float4;
 using uint = uint32;
-using uint2 = fe::math::UInt2;
-using uint3 = fe::math::UInt3;
-using uint4 = fe::math::UInt4;
-using int2 = fe::math::Int2;
-using int3 = fe::math::Int3;
-using int4 = fe::math::Int4;
-using float4x4 = fe::math::Float4x4;
+using uint2 = fe::UInt2;
+using uint3 = fe::UInt3;
+using uint4 = fe::UInt4;
+using int2 = fe::Int2;
+using int3 = fe::Int3;
+using int4 = fe::Int4;
+using float4x4 = fe::Float4x4;
 
 #define UNIFORM_BUFFER(Name, Type, Slot)
 #define PUSH_CONSTANTS(Name, Type)

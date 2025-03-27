@@ -416,7 +416,7 @@ struct RendererCamera
 	{   
         using namespace DirectX;
 
-		fe::math::Matrix projViewT = XMMatrixTranspose(XMLoadFloat4x4(&viewProjection));
+		fe::Matrix projViewT = XMMatrixTranspose(XMLoadFloat4x4(&viewProjection));
 		XMStoreFloat4(&frustum.planes[0], XMPlaneNormalize(XMVectorAdd(projViewT.data.r[3], projViewT.data.r[0])));
 		XMStoreFloat4(&frustum.planes[1], XMPlaneNormalize(XMVectorSubtract(projViewT.data.r[3], projViewT.data.r[0])));
 		XMStoreFloat4(&frustum.planes[2], XMPlaneNormalize(XMVectorAdd(projViewT.data.r[3], projViewT.data.r[1])));

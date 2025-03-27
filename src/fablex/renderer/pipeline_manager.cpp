@@ -276,8 +276,8 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
     }
 
     outInfo.maxTraceDepthRecursion = 1;
-    outInfo.maxPayloadSizeInBytes = sizeof(math::Float4);
-    outInfo.maxAttributeSizeInBytes = sizeof(math::Float2);
+    outInfo.maxPayloadSizeInBytes = sizeof(Float4);
+    outInfo.maxAttributeSizeInBytes = sizeof(Float2);
 }
 
 void PipelineManager::create_pipeline(PipelineName pipelineName, PipelineInfoVariant infoVariant)

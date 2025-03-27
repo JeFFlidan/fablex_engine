@@ -15,15 +15,15 @@ public:
         float,
         int32,
         uint32,
-        math::Float2,
-        math::Float3,
-        math::Float4,
-        math::Int2,
-        math::Int3,
-        math::Int4,
-        math::UInt2,
-        math::UInt3,
-        math::UInt4
+        Float2,
+        Float3,
+        Float4,
+        Int2,
+        Int3,
+        Int4,
+        UInt2,
+        UInt3,
+        UInt4
     >;
 
     struct FieldValueInfo

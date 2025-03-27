@@ -42,15 +42,15 @@ uint32 PushConstants::get_value_size(PushConstantType type)
     case PushConstantType::FLOAT: return (uint32)sizeof(float);
     case PushConstantType::INT32: return (uint32)sizeof(int32);
     case PushConstantType::UINT32: return (uint32)sizeof(uint32);
-    case PushConstantType::FLOAT2: return (uint32)sizeof(math::Float2);
-    case PushConstantType::FLOAT3: return (uint32)sizeof(math::Float3);
-    case PushConstantType::FLOAT4: return (uint32)sizeof(math::Float4);
-    case PushConstantType::INT2: return (uint32)sizeof(math::Int2);
-    case PushConstantType::INT3: return (uint32)sizeof(math::Int3);
-    case PushConstantType::INT4: return (uint32)sizeof(math::Int4);
-    case PushConstantType::UINT2: return (uint32)sizeof(math::UInt2);
-    case PushConstantType::UINT3: return (uint32)sizeof(math::UInt3);
-    case PushConstantType::UINT4: return (uint32)sizeof(math::UInt4);
+    case PushConstantType::FLOAT2: return (uint32)sizeof(Float2);
+    case PushConstantType::FLOAT3: return (uint32)sizeof(Float3);
+    case PushConstantType::FLOAT4: return (uint32)sizeof(Float4);
+    case PushConstantType::INT2: return (uint32)sizeof(Int2);
+    case PushConstantType::INT3: return (uint32)sizeof(Int3);
+    case PushConstantType::INT4: return (uint32)sizeof(Int4);
+    case PushConstantType::UINT2: return (uint32)sizeof(UInt2);
+    case PushConstantType::UINT3: return (uint32)sizeof(UInt3);
+    case PushConstantType::UINT4: return (uint32)sizeof(UInt4);
     default: return 0;
     }
 }
@@ -74,23 +74,23 @@ bool PushConstants::is_variant_type_valid(
         return valueInfo.type == PushConstantType::UINT32;
     if (std::get_if<int32>(&value))
         return valueInfo.type == PushConstantType::INT32;
-    if (std::get_if<math::Float2>(&value))
+    if (std::get_if<Float2>(&value))
         return valueInfo.type == PushConstantType::FLOAT2;
-    if (std::get_if<math::Float3>(&value))
+    if (std::get_if<Float3>(&value))
         return valueInfo.type == PushConstantType::FLOAT3;
-    if (std::get_if<math::Float4>(&value))
+    if (std::get_if<Float4>(&value))
         return valueInfo.type == PushConstantType::FLOAT4;
-    if (std::get_if<math::Int2>(&value))
+    if (std::get_if<Int2>(&value))
         return valueInfo.type == PushConstantType::INT2;
-    if (std::get_if<math::Int3>(&value))
+    if (std::get_if<Int3>(&value))
         return valueInfo.type == PushConstantType::INT3;
-    if (std::get_if<math::Int4>(&value))
+    if (std::get_if<Int4>(&value))
         return valueInfo.type == PushConstantType::INT4;
-    if (std::get_if<math::UInt2>(&value))
+    if (std::get_if<UInt2>(&value))
         return valueInfo.type == PushConstantType::UINT2;
-    if (std::get_if<math::UInt3>(&value))
+    if (std::get_if<UInt3>(&value))
         return valueInfo.type == PushConstantType::INT3;
-    if (std::get_if<math::UInt4>(&value))
+    if (std::get_if<UInt4>(&value))
         return valueInfo.type == PushConstantType::INT4;
 
     return false;
