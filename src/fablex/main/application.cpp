@@ -26,6 +26,8 @@ Application::Application()
     rendererInfo.config = &m_renderConfig;
     rendererInfo.window = m_mainWindow.get();
     m_renderer = std::make_unique<renderer::Renderer>(rendererInfo);
+
+    FE_LOG(LogApplication, INFO, "Application initialization completed.");
 }
 
 Application::~Application()
