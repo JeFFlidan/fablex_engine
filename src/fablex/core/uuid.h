@@ -25,13 +25,15 @@ private:
 
 namespace std
 {
-    template<>
-    struct hash<fe::UUID>
+
+template<>
+struct hash<fe::UUID>
+{
+    std::size_t operator()(const fe::UUID& uuid) const
     {
-        std::size_t operator()(const fe::UUID& uuid) const
-        {
-            return hash<uint64_t>()((uint64_t)uuid);
-        }
-    };
+        return hash<uint64>()((uint64)uuid);
+    }
+};
+
 }
 

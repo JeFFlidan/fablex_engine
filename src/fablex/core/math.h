@@ -9,15 +9,11 @@
 namespace fe
 {
 
+constexpr float FLOAT_MIN = std::numeric_limits<float>::min();
+constexpr float FLOAT_MAX = std::numeric_limits<float>::max();
 constexpr float PI = DirectX::XM_PI;
 constexpr float EPSILON = std::numeric_limits<float>::epsilon();
 inline DirectX::XMVECTOR EPSILON_VEC = DirectX::XMVectorSet(EPSILON, EPSILON, EPSILON, EPSILON);
-constexpr DirectX::XMFLOAT4X4 IDENTITY_MATRIX = DirectX::XMFLOAT4X4 {
-    1.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 1.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f
-};
 
 enum class AngleUnit
 {
@@ -75,7 +71,85 @@ struct Vector
 
     Vector() = default;
     Vector(const DirectX::XMVECTOR& vec) : data(vec) { }
+
+    operator DirectX::XMVECTOR() const { return data; }
+
+    const Vector& operator+() noexcept;
+    const Vector& operator-() noexcept;
+
+    Vector& operator+=(const Vector& other) noexcept;
+    Vector& operator-=(const Vector& other) noexcept;
+    Vector& operator*=(const Vector& other) noexcept;
+    Vector& operator/=(const Vector& other) noexcept;
+    Vector& operator*=(float value) noexcept;
+    Vector& operator/=(float value) noexcept;
+
+    Vector operator+(const Vector& other) const noexcept;
+    Vector operator-(const Vector& other) const noexcept;
+    Vector operator*(const Vector& other) const noexcept;
+    Vector operator/(const Vector& other) const noexcept;
+    Vector operator*(float value) const noexcept;
+    Vector operator/(float value) const noexcept;
+
+    float x() const noexcept;
+    float y() const noexcept;
+    float z() const noexcept;
+    float w() const noexcept;
+
+    /*!
+     Two vectors must represent angles
+    */
+    Vector add_angles(const Vector& other) const;
+    
+    /* 
+     Two vectors must represent angles
+    */
+    Vector sub_angles(const Vector& other) const;
+
+    /*! 
+     Computes the horizontal sum of the components of the Vector
+    */
+    float sum() const;
+
+    Vector abs() const;
+    Vector ceiling() const;
+    Vector floor() const;
+    Vector round() const;
+    Vector truncate() const;
+    Vector saturate() const;
+    Vector clamp(float min, float max) const;
+    Vector pow(float value) const;
+    Vector pow(const Vector& vec) const;
+
+    Vector reciprocal() const;
+    Vector reciprocal_estimated() const;
+    Vector reciprocal_sqrt() const;
+    Vector reciprocal_sqrt_estimated() const;
+
+    Vector sqrt() const;
+    Vector sqrt_estimated() const;
+
+    static Vector max(const Vector& vec1, const Vector& vec2);
+    static Vector min(const Vector& vec1, const Vector& vec2);
+
+    /*!
+     Computes the difference of a third Vector and the product of the first two Vectors
+     @param vec1 multiplier
+     @param vec2 multiplicand
+     @param vec3 subtrahend
+    */
+    static Vector negative_multiply_subtract(const Vector& vec1, const Vector& vec2, const Vector& vec3);
+
+    /*!
+     Computes the product of the first two Vectors added to the third Vector.
+     @param vec1 multiplier
+     @param vec2 multiplicand
+     @param vec3 addend
+    */
+    static Vector multiply_add(const Vector& vec1, const Vector& vec2, const Vector& vec3);
 };
+
+Vector operator*(float value, const Vector& vec);
 
 struct Vector2
 {
@@ -104,6 +178,9 @@ struct Vector2
     static Vector transform(const Vector& vec, const Matrix& mat);
     static Vector transform_coord(const Vector& vec, const Matrix& mat);
     static Vector transform_normal(const Vector& vec, const Matrix& mat);
+
+    static Vector create(float val);
+    static Vector create(float val1, float val2);
 };
 
 struct Vector3
@@ -137,6 +214,9 @@ struct Vector3
     static Vector transform(const Vector& vec, const Matrix& mat);
     static Vector transform_coord(const Vector& vec, const Matrix& mat);
     static Vector transform_normal(const Vector& vec, const Matrix& mat);
+
+    static Vector create(float val);
+    static Vector create(float val1, float val2, float val3);
 };
 
 struct Vector4
@@ -164,6 +244,9 @@ struct Vector4
     static Vector normalize_estimated(const Vector& vec);
 
     static Vector transform(const Vector& vec, const Matrix& mat);
+
+    static Vector create(float val);
+    static Vector create(float val1, float val2, float val3, float val4);
 };
 
 struct Matrix
@@ -172,6 +255,10 @@ struct Matrix
 
     Matrix() : data(DirectX::XMMatrixIdentity()) { }
     Matrix(const DirectX::XMMATRIX& mat) : data(mat) {}
+    Matrix(const Vector& row1, const Vector& row2, const Vector& row3, const Vector& row4)
+        : data(row1, row2, row3, row4) { }
+
+    operator DirectX::XMMATRIX() const { return data; }
 
     const Matrix& operator+() const noexcept { return *this; }
     const Matrix& operator-() const noexcept { -data; return *this; }
@@ -227,6 +314,8 @@ struct Float2 : DirectX::XMFLOAT2
         from_vector(vec);
     }
 
+    operator Vector() const { return to_vector(); }
+
     FORCE_INLINE Vector to_vector() const noexcept
     {
         return XMLoadFloat2(this);
@@ -234,7 +323,7 @@ struct Float2 : DirectX::XMFLOAT2
 
     FORCE_INLINE void from_vector(const Vector& vec) noexcept
     {
-        XMStoreFloat2(this, vec.data);
+        XMStoreFloat2(this, vec);
     }
 
     float length() const
@@ -252,6 +341,8 @@ struct Float3 : DirectX::XMFLOAT3
         from_vector(vec);
     }
 
+    operator Vector() const { return to_vector(); }
+
     FORCE_INLINE Vector to_vector() const noexcept
     {
         return XMLoadFloat3(this);
@@ -259,7 +350,7 @@ struct Float3 : DirectX::XMFLOAT3
 
     FORCE_INLINE void from_vector(const Vector& vec) noexcept
     {
-        XMStoreFloat3(this, vec.data);
+        XMStoreFloat3(this, vec);
     }
 
     float length() const
@@ -272,9 +363,11 @@ struct Quat
 {
     DirectX::XMVECTOR data;
 
-    Quat() : data(Quat::identity().data) { }
+    Quat() : data(Quat::identity()) { }
     Quat(const DirectX::XMVECTOR& vec) noexcept : data(vec) { }
-    Quat(const Vector& vec) noexcept : data(vec.data) {}
+    Quat(const Vector& vec) noexcept : data(vec) {}
+
+    operator DirectX::XMVECTOR() const { return data; }
 
     bool operator==(const Quat& other) const noexcept;
     bool operator!=(const Quat& other) const noexcept;
@@ -326,19 +419,26 @@ struct Float4 : DirectX::XMFLOAT4
         from_quat(quat);
     }
 
+    operator Vector() const { return to_vector(); }
+
     FORCE_INLINE Vector to_vector() const noexcept
+    {
+        return XMLoadFloat4(this);
+    }
+
+    FORCE_INLINE Quat to_quat() const noexcept
     {
         return XMLoadFloat4(this);
     }
 
     FORCE_INLINE void from_vector(const Vector& vec) noexcept
     {
-        XMStoreFloat4(this, vec.data);
+        XMStoreFloat4(this, vec);
     }
 
     FORCE_INLINE void from_quat(const Quat& quat) noexcept
     {
-        XMStoreFloat4(this, quat.data);
+        XMStoreFloat4(this, quat);
     }
 
     float length() const
@@ -355,6 +455,8 @@ struct Int2 : DirectX::XMINT2
     {
         from_vector(vec);
     }
+
+    operator Vector() const { return to_vector(); }
 
     FORCE_INLINE Vector to_vector() const noexcept
     {
@@ -376,6 +478,8 @@ struct Int3 : DirectX::XMINT3
         from_vector(vec);
     }
 
+    operator Vector() const { return to_vector(); }
+
     FORCE_INLINE Vector to_vector() const noexcept
     {
         return XMLoadSInt3(this);
@@ -395,6 +499,8 @@ struct Int4 : DirectX::XMINT4
     {
         from_vector(vec);
     }
+
+    operator Vector() const { return to_vector(); }
 
     FORCE_INLINE Vector to_vector() const noexcept
     {
@@ -416,6 +522,8 @@ struct UInt2 : DirectX::XMUINT2
         from_vector(vec);
     }
 
+    operator Vector() const { return to_vector(); }
+
     FORCE_INLINE Vector to_vector() const noexcept
     {
         return XMLoadUInt2(this);
@@ -435,6 +543,8 @@ struct UInt3 : DirectX::XMUINT3
     {
         from_vector(vec);
     }
+
+    operator Vector() const { return to_vector(); }
 
     FORCE_INLINE Vector to_vector() const noexcept
     {
@@ -456,6 +566,8 @@ struct UInt4 : DirectX::XMUINT4
         from_vector(vec);
     }
 
+    operator Vector() const { return to_vector(); }
+
     FORCE_INLINE Vector to_vector() const noexcept
     {
         return XMLoadUInt4(this);
@@ -475,6 +587,8 @@ struct Float3x3 : DirectX::XMFLOAT3X3
     {
         from_matrix(mat);
     }
+
+    operator Matrix() const { return to_matrix(); }
 
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
@@ -496,6 +610,8 @@ struct Float3x4 : DirectX::XMFLOAT3X4
         from_matrix(mat);
     }
 
+    operator Matrix() const { return to_matrix(); }
+
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
         return Matrix(XMLoadFloat3x4(this));
@@ -515,6 +631,8 @@ struct Float4x4 : DirectX::XMFLOAT4X4
     {
         from_matrix(mat);
     }
+
+    operator Matrix() const { return to_matrix(); }
 
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
@@ -536,6 +654,8 @@ struct Float4x3 : DirectX::XMFLOAT4X3
         from_matrix(mat);
     }
 
+    operator Matrix() const { return to_matrix(); }
+
     FORCE_INLINE Matrix to_matrix() const noexcept
     {
         return Matrix(XMLoadFloat4x3(this));
@@ -546,6 +666,27 @@ struct Float4x3 : DirectX::XMFLOAT4X3
         XMStoreFloat4x3(this, mat.data);
     }
 };
+
+constexpr Float4x4 IDENTITY_MATRIX = Float4x4 {
+    1.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f
+};
+
+Float2 min(const Float2& vec1, const Float2& vec2);
+Float3 min(const Float3& vec1, const Float3& vec2);
+Float4 min(const Float4& vec1, const Float4& vec2);
+Float2 max(const Float2& vec1, const Float2& vec2);
+Float3 max(const Float3& vec1, const Float3& vec2);
+Float4 max(const Float4& vec1, const Float4& vec2);
+
+float get_point_segment_distance(const Vector& point, const Vector& segmentA, const Vector& segmentB);
+Vector closest_point_on_line_segment(const Vector& point, const Vector& segmentA, const Vector& segmentB);
+float get_plane_point_distance(const Vector& point, const Vector& planeOrigin, const Vector& planeNormal);
+
+Vector plane_from_point_normal(const Vector& point, const Vector& normal);
+Vector plane_intersect_line(const Vector& point, const Vector& linePoint1, const Vector& linePoint2);
 
 }
 
