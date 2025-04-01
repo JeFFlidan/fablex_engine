@@ -22,6 +22,8 @@ Application::Application()
 
     load_engine_config();
 
+    m_engine = std::make_unique<engine::Engine>();
+
     renderer::RendererInfo rendererInfo;
     rendererInfo.config = &m_renderConfig;
     rendererInfo.window = m_mainWindow.get();

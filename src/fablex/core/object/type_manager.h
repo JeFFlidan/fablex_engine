@@ -20,6 +20,7 @@ public:
     static const TypeInfo* get_type_info(const char* typeName);
     static const TypeInfo* get_type_info(Name typeName);
     
+    static Object* create_object(const TypeInfo* typeInfo);
     static Object* create_object_by_name(const char* typeName);
 
     static void register_type(const TypeInfo* typeInfo);

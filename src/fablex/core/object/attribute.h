@@ -17,4 +17,9 @@ struct Binary : public Attribute
     FE_DEFINE_ATTRIBUTE(Binary);
 };
 
+struct EditAnywhere : public Attribute
+{
+    FE_DEFINE_ATTRIBUTE(EditAnywhere);
+};
+
 }

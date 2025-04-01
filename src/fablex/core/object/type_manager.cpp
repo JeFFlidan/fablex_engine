@@ -28,6 +28,12 @@ const TypeInfo* TypeManager::get_type_info(Name typeName)
     return s_typeInfos.at(it->second);
 }
 
+Object* TypeManager::create_object(const TypeInfo* typeInfo)
+{
+    FE_CHECK(typeInfo);
+    return typeInfo->get_allocator_handler()();
+}
+
 Object* TypeManager::create_object_by_name(const char* typeName)
 {
     const TypeInfo* typeInfo = get_type_info(typeName);

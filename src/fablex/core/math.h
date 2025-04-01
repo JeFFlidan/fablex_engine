@@ -285,6 +285,7 @@ struct Matrix
     Matrix multiply(const Matrix& other) const;
     Matrix multiply_transpose(const Matrix& other) const;
 
+    static Matrix identity() { return DirectX::XMMatrixIdentity(); }
     static Matrix look_at_lh(const Vector& eyePos, const Vector& focusPos, const Vector& upDir);
     static Matrix look_at_rh(const Vector& eyePos, const Vector& focusPos, const Vector& upDir);
     static Matrix look_to_lh(const Vector& eyePos, const Vector& eyeDir, const Vector& upDir);
@@ -301,8 +302,10 @@ struct Matrix
     static Matrix rotation_y(float angle, AngleUnit angleUnit = AngleUnit::DEGREES);
     static Matrix rotation_z(float angle, AngleUnit angleUnit = AngleUnit::DEGREES);
     static Matrix scaling(float scaleX, float scaleY, float scaleZ);
+    static Matrix scaling(Float3 scale);
     static Matrix create(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33);
     static Matrix translation(float offsetX, float offsetY, float offsetZ);
+    static Matrix translation(Float3 offset);
 };
 
 struct Float2 : DirectX::XMFLOAT2
