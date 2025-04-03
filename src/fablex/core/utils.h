@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "platform/platform.h"
+#include "lz4.h"
 #include <string>
 #include <functional>
 #include <algorithm>
@@ -81,6 +82,41 @@ public:
         std::transform(str.begin(), str.end(), result.begin(),
             [](unsigned char c) { return std::tolower(c); });
         return result;
+    }
+
+    // Returns compressed data size
+    static uint64 compress(
+        const std::vector<uint8>& inData,
+        std::vector<uint8>& outCompressedData
+    )
+    {
+        uint64 compressStaging = LZ4_compressBound(inData.size());
+        outCompressedData.resize(compressStaging);
+        uint64 compressedDataSize = LZ4_compress_default(
+            (const char*)inData.data(), 
+            (char*)outCompressedData.data(), 
+            inData.size(), 
+            compressStaging
+        );
+        outCompressedData.resize(compressedDataSize);
+        return compressedDataSize;
+    }
+
+    // outData array must be resized
+    static void decompress(
+        const std::vector<uint8>& inCompressedData,
+        std::vector<uint8>& outData,
+        uint64 compressedDataOffset = 0
+    )
+    {
+        const uint8* compressedDataPtr = inCompressedData.data() + compressedDataOffset;
+        uint64 compressedSize = inCompressedData.size() - compressedDataOffset;
+        LZ4_decompress_safe(
+            (const char*)compressedDataPtr, 
+            (char*)outData.data(), 
+            compressedSize, 
+            outData.size()
+        );
     }
 };
 

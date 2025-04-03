@@ -38,6 +38,8 @@ public:
     static void read(const std::string& path, uint8** outData, uint64* outSize);
     static void read(const std::string& path, std::vector<uint8>& outData);
     static void read(const std::string& path, std::string& outData);
+    static void read(const std::string& path, uint64 size, uint8* outData);
+    static void read(const std::string& path, uint64 size, std::vector<uint8>& outData);
 
     static void write(const std::string& path, const uint8* data, uint64 size);
     static void write(const std::string& path, const std::vector<uint8>& data);

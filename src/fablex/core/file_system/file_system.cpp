@@ -140,6 +140,36 @@ void FileSystem::read(const std::string& path, std::string& outData)
     read_internal(stream, path, (uint8*)outData.data(), outData.size());
 }
 
+void FileSystem::read(const std::string& path, uint64 size, uint8* outData)
+{
+    FE_CHECK(outData);
+    FileStream* stream = open(path, "rb");
+
+    size_t readElements = stream->read(outData, sizeof(uint8), size);
+    FE_CHECK(readElements != 0);
+
+    bool afterClose = close(stream);
+    FE_CHECK_MSG(afterClose, "Error while closing stream");
+}
+
+void FileSystem::read(const std::string& path, uint64 size, std::vector<uint8>& outData)
+{
+    uint64 offset = 0;
+
+    if (size >= outData.size())
+    {
+        offset = outData.size();
+        outData.resize(outData.size() + size);
+    }
+    
+    FileStream* stream = open(path, "rb");
+    size_t readElements = stream->read(outData.data() + offset, sizeof(uint8), size);
+    FE_CHECK(readElements != 0);
+
+    bool afterClose = close(stream);
+    FE_CHECK_MSG(afterClose, "Error while closing stream");
+}
+
 void FileSystem::write(const std::string& path, const uint8* data, uint64 size)
 {
     FE_CHECK(data);
@@ -234,7 +264,7 @@ void FileSystem::read_internal(FileStream* stream, const std::string& path, uint
 {
     size_t readElements = stream->read(data, sizeof(uint8), size);
     FE_CHECK_MSG(readElements == size, "Data is invalid");
-    FE_CHECK_MSG(data, ("Data " + std::string(path.c_str()) + " is invalid").c_str());
+    FE_CHECK_MSG(data, "Data is invalid");
 
     bool afterClose = close(stream);
     FE_CHECK_MSG(afterClose, "Error while closing stream");

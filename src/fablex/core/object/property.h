@@ -141,6 +141,8 @@ public:
     virtual uint64 get_offset() const override { return 0; }
     virtual uint64 get_size() const override { return 0; }
     virtual uint64 get_element_count(Object* object) const { return 0; }
+    virtual void* get_data(Object* object) { return nullptr; }
+    virtual const void* get_data(Object* object) const { return nullptr; } 
 
     template<typename T>
     T& get_value(Object* object, uint64 index)
@@ -254,6 +256,8 @@ constexpr auto setup_attributes(Attrs&&... attrs)
         PropertyRegistrator_##PropertyName(const char* name) : ArrayProperty(name) { }              \
         virtual uint64 get_offset() const override { return offsetof(TypeName, PropertyName); }     \
         virtual uint64 get_size() const override { return sizeof(ValueType); }                      \
+        virtual void* get_data(Object* object) override { return get_array(object).get_data(); }    \
+        virtual const void* get_data(Object* object) const override { return get_array(object).get_data(); }    \
         virtual uint64 get_element_count(Object* object) const override                             \
         {                                                                                           \
             return get_array<ValueType>(object).size();                                             \

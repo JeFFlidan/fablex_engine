@@ -1,11 +1,20 @@
 #include "application.h"
 #include "core/core.h"
 #include "core/file_system/file_system.h"
+#include "core/file_system/archive_test.h"
 
 FE_DEFINE_LOG_CATEGORY(LogApplication)
 
 namespace fe
 {
+
+void run_tests()
+{
+    FE_LOG(LogDefault, INFO, "Starting tests");
+    ArchiveTest::run();
+    FE_LOG(LogDefault, INFO, "Archive test completed successfully");
+    FE_LOG(LogDefault, INFO, "Completed all tests");
+}
 
 Application::Application()
 {
@@ -30,6 +39,8 @@ Application::Application()
     m_renderer = std::make_unique<renderer::Renderer>(rendererInfo);
 
     FE_LOG(LogApplication, INFO, "Application initialization completed.");
+
+    run_tests();
 }
 
 Application::~Application()
