@@ -28,3 +28,10 @@ target_link_libraries(dxc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/dxc/dxcompiler.l
 
 add_library(json INTERFACE)
 target_include_directories(json INTERFACE json)
+
+add_library(lz4 STATIC)
+target_include_directories(lz4 PUBLIC lz4)
+target_sources(lz4 PRIVATE
+    lz4/lz4.c
+    lz4/lz4.h
+)
