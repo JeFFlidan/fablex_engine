@@ -31,6 +31,9 @@ public:
 
     // ========== End Object interface ==========
 
+    void make_dirty() { m_isDirty = true; }
+
+    bool is_dirty() const { return m_isDirty; }
     UUID get_uuid() const { return m_uuid; }
     const std::string& get_name() const { return m_name; }
     const std::string& get_path() const { return m_assetPath; }
@@ -43,6 +46,7 @@ protected:
     std::string m_name;
     std::string m_assetPath;
     std::string m_originalFilePath;
+    bool m_isDirty = false;
 };
 
 template<typename T>

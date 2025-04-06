@@ -28,6 +28,16 @@ struct ModelImportResult
     std::vector<Material*> materials;
 };
 
+struct TextureImportContext
+{
+    std::string path;
+};
+
+struct TextureImportResult
+{
+    Texture* texture = nullptr;
+};
+
 FE_DEFINE_LOG_CATEGORY(LogAssetManager);
 
 }

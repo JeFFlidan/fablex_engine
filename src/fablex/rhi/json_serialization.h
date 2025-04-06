@@ -183,3 +183,14 @@ FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::ResourceUsage,
     {fe::rhi::ResourceUsage::VERTEX_BUFFER, "VERTEX_BUFFER"},
     {fe::rhi::ResourceUsage::INDIRECT_BUFFER, "INDIRECT_BUFFER"}
 })
+
+FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::ComponentSwizzle, 
+{
+    {fe::rhi::ComponentSwizzle::UNDEFINED, "UNDEFINED"},
+    {fe::rhi::ComponentSwizzle::R, "R"},
+    {fe::rhi::ComponentSwizzle::G, "G"},
+    {fe::rhi::ComponentSwizzle::B, "B"},
+    {fe::rhi::ComponentSwizzle::A, "A"},
+    {fe::rhi::ComponentSwizzle::ONE, "ONE"},
+    {fe::rhi::ComponentSwizzle::ZERO, "ZERO"}
+})
