@@ -1,0 +1,118 @@
+#pragma once
+
+#include "asset_manager/asset.h"
+#include "core/primitives/sphere.h"
+
+namespace fe::asset
+{
+
+struct ModelProxy;
+
+struct ModelCreateInfo
+{
+    std::string name;
+};
+
+struct Mesh
+{
+    uint32 indexCount = 0;
+    uint32 indexOffset = 0;
+    uint32 materialIndex = 0;
+};
+
+class Model : public Asset
+{
+    FE_DECLARE_OBJECT(Model);
+    FE_DECLARE_PROPERTY_REGISTER(Model);
+
+    friend AssetManager;
+    friend ModelProxy;
+
+public:
+    // ========== Begin Object interface ==========
+
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
+
+    // ========== End Object interface ==========
+
+    const std::vector<uint32>& indices() const { return m_indices; }
+    const std::vector<Float3>& vertex_positions() const { return m_vertexPositions; }
+    const std::vector<Float4>& vertex_tangents() const { return m_vertexTangents; }
+    const std::vector<Float2>& vertex_uv_set0() const { return m_vertexUVSet0; }
+    const std::vector<Float2>& vertex_uv_set1() const { return m_vertexUVSet1; }
+    const std::vector<UInt4>& vertex_bone_indices() const { return m_vertexBoneIndices; }
+    const std::vector<Float4>& vertex_bone_weights() const { return m_vertexBoneWeights; }
+    const std::vector<Float2>& vertex_atlas() const { return m_vertexAtlas; }
+    const std::vector<uint32>& vertex_colors() const { return m_vertexColors; }
+    const std::vector<uint8>& vertex_wind_weights() const { return m_vertexWindWeights; }
+
+    // ========== Begin Asset interface ==========
+
+    virtual Type get_type() const override { return Type::MODEL; }
+
+    // ========== End Asset interface ==========
+
+protected:
+    std::vector<uint32> m_indices;
+    std::vector<Float3> m_vertexPositions;
+    std::vector<Float3> m_vertexNormals;
+    std::vector<Float4> m_vertexTangents;
+    std::vector<Float2> m_vertexUVSet0;
+    std::vector<Float2> m_vertexUVSet1;
+    std::vector<UInt4> m_vertexBoneIndices;
+    std::vector<Float4> m_vertexBoneWeights;
+    std::vector<Float2> m_vertexAtlas;
+    std::vector<uint32> m_vertexColors;
+    std::vector<uint8> m_vertexWindWeights;
+    std::vector<Mesh> m_meshes;
+    std::vector<std::string> m_materialNames;
+    
+    Sphere m_sphereBounds;
+};
+
+FE_DEFINE_ASSET_POOL_SIZE(Model, 512);
+
+#ifdef FE_MODEL_PROXY
+
+struct ModelProxy
+{
+    ModelProxy(Model* model) :
+        indices(model->m_indices),
+        vertexPositions(model->m_vertexPositions),
+        vertexNormals(model->m_vertexNormals),
+        vertexTangents(model->m_vertexTangents),
+        vertexUVSet0(model->m_vertexUVSet0),
+        vertexUVSet1(model->m_vertexUVSet1),
+        vertexBoneIndices(model->m_vertexBoneIndices),
+        vertexBoneWeights(model->m_vertexBoneWeights),
+        vertexAtlas(model->m_vertexAtlas),
+        vertexColors(model->m_vertexColors),
+        vertexWindWeights(model->m_vertexWindWeights),
+        meshes(model->m_meshes),
+        materialNames(model->m_materialNames),
+        sphereBounds(model->m_sphereBounds)
+    {
+
+    }
+
+    std::vector<uint32>& indices;
+    std::vector<Float3>& vertexPositions;
+    std::vector<Float3>& vertexNormals;
+    std::vector<Float4>& vertexTangents;
+    std::vector<Float2>& vertexUVSet0;
+    std::vector<Float2>& vertexUVSet1;
+    std::vector<UInt4>& vertexBoneIndices;
+    std::vector<Float4>& vertexBoneWeights;
+    std::vector<Float2>& vertexAtlas;
+    std::vector<uint32>& vertexColors;
+    std::vector<uint8>& vertexWindWeights;
+    std::vector<Mesh>& meshes;
+    std::vector<std::string>& materialNames;
+    
+    Sphere& sphereBounds;
+};
+
+#endif // FE_MODEL_PROXY
+
+}

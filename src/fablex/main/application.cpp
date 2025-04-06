@@ -2,6 +2,7 @@
 #include "core/core.h"
 #include "core/file_system/file_system.h"
 #include "core/file_system/archive_test.h"
+#include "asset_manager/asset_manager_test.h"
 
 FE_DEFINE_LOG_CATEGORY(LogApplication)
 
@@ -12,6 +13,7 @@ void run_tests()
 {
     FE_LOG(LogDefault, INFO, "Starting tests");
     ArchiveTest::run();
+    asset::AssetManagerTest::run();
     FE_LOG(LogDefault, INFO, "Archive test completed successfully");
     FE_LOG(LogDefault, INFO, "Completed all tests");
 }

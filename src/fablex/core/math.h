@@ -1,6 +1,7 @@
 #pragma once
 
 #include "macro.h"
+#include "types.h"
 #include "fmt/format.h"
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
@@ -64,6 +65,10 @@ half to_half(float value);
 float to_float(half value);
 Float3 to_euler(const Float4& quat, AngleUnit angleUnit = AngleUnit::DEGREES);
 Float3 to_euler(const Quat& quat, AngleUnit angleUnit = AngleUnit::DEGREES);
+
+uint32 saturate(float val);
+uint32 compress_color(const Float3& color);
+uint32 compress_color(const Float4& color);
 
 struct Vector
 {

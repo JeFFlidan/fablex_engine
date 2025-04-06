@@ -9,6 +9,7 @@ namespace fe
 
 class Object;
 class Property;
+class Archive;
 
 #define FE_DECLARE_OBJECT(TypeName)                                                                             \
     public:                                                                                                     \
@@ -80,6 +81,9 @@ public:
     {
         return get_type_info()->get_properties();
     }
+
+    virtual void serialize(Archive& archive) const;
+    virtual void deserialize(Archive& archive);
 };
 
 template<typename T>

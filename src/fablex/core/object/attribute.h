@@ -22,4 +22,9 @@ struct EditAnywhere : public Attribute
     FE_DEFINE_ATTRIBUTE(EditAnywhere);
 };
 
+struct Transient : public Attribute
+{
+    FE_DEFINE_ATTRIBUTE(Transient)
+};
+
 }

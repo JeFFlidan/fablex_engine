@@ -188,6 +188,30 @@ Float3 to_euler(const Quat& quat, AngleUnit angleUnit)
     return to_euler(Float4(quat), angleUnit);
 }
 
+uint32 saturate(float val)
+{
+    return std::min(std::max(val, 0.0f), 1.0f);
+}
+
+uint32 compress_color(const Float3& color)
+{
+    uint32 result = 0;
+    result |= (uint32)((uint8)(saturate(color.x) * 255.0f) << 0);
+    result |= (uint32)((uint8)(saturate(color.y) * 255.0f) << 8);
+    result |= (uint32)((uint8)(saturate(color.z) * 255.0f) << 16);
+    return result;
+}
+
+uint32 compress_color(const Float4& color)
+{
+    uint32 result = 0;
+    result |= (uint32)((uint8)(saturate(color.x) * 255.0f) << 0);
+    result |= (uint32)((uint8)(saturate(color.y) * 255.0f) << 8);
+    result |= (uint32)((uint8)(saturate(color.z) * 255.0f) << 16);
+    result |= (uint32)((uint8)(saturate(color.w) * 255.0f) << 24);
+    return result;
+}
+
 const Vector& Vector::operator+() noexcept
 {
     return *this;

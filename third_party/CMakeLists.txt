@@ -42,6 +42,13 @@ target_sources(lz4 PRIVATE
     lz4/lz4.h
 )
 
+add_library(zstd STATIC)
+target_include_directories(zstd PUBLIC basis_universal)
+target_sources(zstd PRIVATE 
+    basis_universal/zstd/zstd.h 
+    basis_universal/zstd/zstd.c
+)
+
 add_library(basisu STATIC)
 target_include_directories(basisu PUBLIC basis_universal)
 file(GLOB BASISU_FILES

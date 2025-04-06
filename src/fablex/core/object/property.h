@@ -6,6 +6,7 @@
 #include "core/math.h"
 #include "core/macro.h"
 #include "core/logger.h"
+#include "core/uuid.h"
 #include <string>
 #include <utility>
 
@@ -16,6 +17,7 @@ enum class PropertyType
 {
     BOOL,
     INTEGER,
+    UUID,
     FLOAT,
     FLOAT2,
     FLOAT3,
@@ -39,6 +41,7 @@ struct PropertyTypeEnumMapper {};
 
 FE_DEFINE_PROPERTY_TYPE_ENUM_MAPPER(bool, BOOL);
 FE_DEFINE_PROPERTY_TYPE_ENUM_MAPPER(int32, INTEGER);
+FE_DEFINE_PROPERTY_TYPE_ENUM_MAPPER(UUID, UUID);
 FE_DEFINE_PROPERTY_TYPE_ENUM_MAPPER(float, FLOAT);
 FE_DEFINE_PROPERTY_TYPE_ENUM_MAPPER(Float2, FLOAT2);
 FE_DEFINE_PROPERTY_TYPE_ENUM_MAPPER(Float3, FLOAT3);

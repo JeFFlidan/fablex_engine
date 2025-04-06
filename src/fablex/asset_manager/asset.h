@@ -1,0 +1,58 @@
+#pragma once
+
+#include "core/object.h"
+#include "core/uuid.h"
+
+namespace fe::asset
+{
+
+class AssetManager;
+
+enum class Type : uint32
+{
+    UNDEFINED,
+    MODEL,
+    TEXTURE,
+    MATERIAL
+};
+
+class Asset : public Object
+{
+    FE_DECLARE_OBJECT(Asset);
+    FE_DECLARE_PROPERTY_REGISTER(Asset);
+
+    friend AssetManager;
+
+public:
+    // ========== Begin Object interface ==========
+
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
+
+    // ========== End Object interface ==========
+
+    UUID get_uuid() const { return m_uuid; }
+    const std::string& get_name() const { return m_name; }
+    const std::string& get_path() const { return m_assetPath; }
+    const std::string& get_original_file_path() const { return m_originalFilePath; }
+    
+    virtual Type get_type() const { return Type::UNDEFINED; };
+
+protected:
+    UUID m_uuid;
+    std::string m_name;
+    std::string m_assetPath;
+    std::string m_originalFilePath;
+};
+
+template<typename T>
+struct AssetPoolSize { };
+
+#define FE_DEFINE_ASSET_POOL_SIZE(AssetType, PoolSize)  \
+    template<>                                          \
+    struct AssetPoolSize<AssetType>                     \
+    {                                                   \
+        static constexpr uint64 poolSize = PoolSize;    \
+    };
+
+}
