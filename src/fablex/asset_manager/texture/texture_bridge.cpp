@@ -20,11 +20,11 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
     }
 
     std::vector<uint8_t> textureRawData;
-    FileSystem::read(inImportContext.path, textureRawData);
-    std::string extension = FileSystem::get_file_extension(inImportContext.path);
+    FileSystem::read(inImportContext.originalFilePath, textureRawData);
+    std::string extension = FileSystem::get_file_extension(inImportContext.originalFilePath);
 
     TextureCreateInfo createInfo;
-    createInfo.name = FileSystem::get_file_name(inImportContext.path);
+    createInfo.name = FileSystem::get_file_name(inImportContext.originalFilePath);
     outImportResult.texture = AssetManager::create_texture(createInfo);
     TextureProxy textureProxy(outImportResult.texture);
 

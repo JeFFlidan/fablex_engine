@@ -1,6 +1,6 @@
 #pragma once
 
-#include "asset_manager/common.h"
+#include "model.h"
 
 namespace fe::asset
 {

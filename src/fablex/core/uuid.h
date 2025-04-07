@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <functional>
+#include <fmt/format.h>
 
 namespace fe
 {
@@ -36,4 +37,20 @@ struct hash<fe::UUID>
 };
 
 }
+
+template<>
+struct fmt::formatter<fe::UUID>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const fe::UUID& uuid, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "{}", (uint64)uuid);
+    }
+};
 

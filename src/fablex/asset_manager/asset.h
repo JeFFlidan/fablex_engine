@@ -10,10 +10,11 @@ class AssetManager;
 
 enum class Type : uint32
 {
-    UNDEFINED,
     MODEL,
     TEXTURE,
-    MATERIAL
+    MATERIAL,
+
+    COUNT
 };
 
 class Asset : public Object
@@ -39,10 +40,10 @@ public:
     const std::string& get_path() const { return m_assetPath; }
     const std::string& get_original_file_path() const { return m_originalFilePath; }
     
-    virtual Type get_type() const { return Type::UNDEFINED; };
+    virtual Type get_type() const { return Type::COUNT; };
 
 protected:
-    UUID m_uuid;
+    UUID m_uuid = UUID();
     std::string m_name;
     std::string m_assetPath;
     std::string m_originalFilePath;
@@ -58,5 +59,7 @@ struct AssetPoolSize { };
     {                                                   \
         static constexpr uint64 poolSize = PoolSize;    \
     };
+
+uint32 get_asset_type_count();
 
 }

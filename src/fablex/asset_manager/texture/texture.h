@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset_manager/asset.h"
+#include "asset_manager/common.h"
 #include "core/json_serialization.h"
 #include "rhi/enums.h"
 
@@ -8,10 +9,21 @@ namespace fe::asset
 {
 
 struct TextureProxy;
+class Texture;
 
-struct TextureCreateInfo
+struct TextureCreateInfo : public CreateInfo
 {
-    std::string name;
+    
+};
+
+struct TextureImportContext : public ImportContext
+{
+    
+};
+
+struct TextureImportResult
+{
+    Texture* texture = nullptr;
 };
 
 enum class MipmapMode
@@ -127,6 +139,8 @@ protected:
 
 FE_DEFINE_ASSET_POOL_SIZE(Texture, 256);
 
+#ifdef FE_TEXTURE_PROXY
+
 struct TextureProxy
 {
     TextureProxy(Texture* texture) :
@@ -151,6 +165,8 @@ struct TextureProxy
     rhi::ComponentMapping& mapping;
     bool& is16Bit;
 };
+
+#endif // FE_TEXTURE_PROXY
 
 }
 

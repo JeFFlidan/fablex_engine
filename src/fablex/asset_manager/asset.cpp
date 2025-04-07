@@ -16,7 +16,9 @@ void Asset::serialize(Archive& archive) const
 {
     Object::serialize(archive);
 
-    archive << m_uuid;
+    archive.set_uuid(m_uuid);
+    archive.set_object_type<Type>(get_type());
+
     archive << m_name;
     archive << m_assetPath;
     archive << m_originalFilePath;
@@ -26,10 +28,16 @@ void Asset::deserialize(Archive& archive)
 {
     Object::deserialize(archive);
 
-    archive >> m_uuid;
+    m_uuid = archive.get_uuid();
+
     archive >> m_name;
     archive >> m_assetPath;
     archive >> m_originalFilePath;
+}
+
+uint32 get_asset_type_count()
+{
+    return std::to_underlying(Type::COUNT);
 }
 
 }

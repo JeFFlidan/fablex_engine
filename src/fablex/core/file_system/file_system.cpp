@@ -1,8 +1,7 @@
 #include "file_system.h"
 #include "core/macro.h"
 #include "core/logger.h"
-
-#include <filesystem>
+#include <random>
 
 FE_DEFINE_LOG_CATEGORY(LogFileSystem)
 
@@ -53,6 +52,21 @@ uint64 FileStream::size() const
 void FileSystem::init(const std::string& rootPath)
 {
     m_rootPath = rootPath;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(1, 10000);
+
+    int num = dist(gen);
+    m_projectPath = get_absolute_path(std::string("untitled") + std::to_string(num));
+}
+
+void FileSystem::create_project_directory(std::string projectPath)
+{
+    if (!projectPath.empty())
+        m_projectPath = get_absolute_path(projectPath);
+
+    std::filesystem::create_directories(m_projectPath);
 }
 
 FileStream* FileSystem::open(const std::string& strPath, const char* mode)
@@ -198,7 +212,7 @@ std::string FileSystem::get_file_name(const std::string& path)
 {
     std::string strPath = std::filesystem::path(path.c_str()).filename().string();
     if (strPath.find(".") != std::string::npos)
-        strPath.erase(strPath.find("."), strPath.size());
+        strPath.erase(strPath.find_last_of("."), strPath.size());
     return strPath;
 }
 
@@ -258,6 +272,59 @@ bool FileSystem::exists(const std::string& absolutePath)
 bool FileSystem::exists(const std::string& rootPath, const std::string& relativePath)
 {
     return std::filesystem::exists(get_absolute_path(rootPath, relativePath));
+}
+
+void FileSystem::for_each_file(
+    const std::string& path, 
+    const std::unordered_set<std::string>& extensions,
+    const ForEachCallback& callback,
+    DirectoryIteratorType iteratorType
+)
+{
+    if (is_relative(path))
+    {
+        FE_LOG(LogFileSystem, ERROR, "FileSystem::for_each_file(): Path {} is relative.", path);
+        return;
+    }
+
+    if (!exists(path))
+    {
+        FE_LOG(LogFileSystem, ERROR, "FileSystem::for_each_file(): Path {} does not exist.", path);
+        return;
+    }
+
+    switch (iteratorType)
+    {
+    case DirectoryIteratorType::DEFAULT:
+    {
+        for (auto& dirEntry : std::filesystem::directory_iterator(path))
+        {
+            std::string path = dirEntry.path().string();
+
+            if (dirEntry.is_directory() || !extensions.contains(get_file_extension(path)))
+                continue;
+    
+            callback(dirEntry);
+        }
+
+        break;
+    }
+    case DirectoryIteratorType::RECURSIVE:
+    {
+        for (auto& dirEntry : std::filesystem::recursive_directory_iterator(path))
+        {
+            std::string path = dirEntry.path().string();
+
+            if (dirEntry.is_directory() || !extensions.contains(get_file_extension(path)))
+                continue;
+    
+            callback(dirEntry);
+        }
+
+        break;
+    }
+    }
+
 }
 
 void FileSystem::read_internal(FileStream* stream, const std::string& path, uint8* data, uint64 size)

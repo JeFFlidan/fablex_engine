@@ -3,9 +3,20 @@
 #include "core/types.h"
 #include <vector>
 #include <string>
+#include <functional>
+#include <unordered_set>
+#include <filesystem>
 
 namespace fe
 {
+
+using DirectoryEntry = std::filesystem::directory_entry;
+
+enum class DirectoryIteratorType : uint32
+{
+    DEFAULT,
+    RECURSIVE
+};
 
 class FileStream
 {
@@ -28,9 +39,15 @@ private:
 class FileSystem
 {
 public:
+    using ForEachCallback = std::function<void(const DirectoryEntry&)>; 
+
     static void init(const std::string& rootPath);
 
     static const std::string& get_root_path() { return m_rootPath; }
+
+    // Creates directory using random name if projectPath is empty. The passed project path must be a relative path to the engine root.
+    static void create_project_directory(std::string projectPath = "");
+    static std::string get_project_path() { return m_projectPath; }
 
     static FileStream* open(const std::string& strPath, const char* mode);
     static bool close(FileStream* stream);
@@ -64,8 +81,16 @@ public:
 
     static uint64 get_last_write_time(const std::string& absolutePath);
 
+    static void for_each_file(
+        const std::string& path, 
+        const std::unordered_set<std::string>& extensions,
+        const ForEachCallback& callback,
+        DirectoryIteratorType iteratorType = DirectoryIteratorType::DEFAULT
+    );
+
 private:
     inline static std::string m_rootPath = "";
+    inline static std::string m_projectPath = "";
 
     static void read_internal(FileStream* stream, const std::string& path, uint8* data, uint64 size);
     static FileStream* create_read_stream(const std::string& path, uint64& outSize);

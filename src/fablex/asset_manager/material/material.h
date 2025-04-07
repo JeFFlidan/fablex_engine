@@ -1,13 +1,14 @@
 #pragma once
 
+#include "asset_manager/common.h"
 #include "asset_manager/asset.h"
 
 namespace fe::asset
 {
 
-struct MaterialCreateInfo
+struct MaterialCreateInfo : public CreateInfo
 {
-    std::string name;
+    
 };
 
 class Material : public Asset

@@ -42,9 +42,10 @@ public:
     // Sets header UUID
     void set_uuid(UUID uuid) { m_header.uuid = uuid; }
 
-    template<typename Enum, typename std::enable_if<std::is_enum_v<Enum>, int> = 0>
+    template<typename Enum>
     void set_object_type(Enum objectType) 
     { 
+        FE_COMPILE_CHECK((std::is_enum_v<Enum>));
         m_header.objectType = std::to_underlying(objectType); 
     }
 
@@ -52,8 +53,8 @@ public:
     uint64 get_version() const { return m_header.version; }
     UUID get_uuid() const { return m_header.uuid; }
 
-    template<typename Enum, typename std::enable_if<std::is_enum_v<Enum>, int> = 0>
-    Enum get_object_type() const 
+    template<typename Enum>
+    typename std::enable_if<std::is_enum_v<Enum>, Enum>::type get_object_type() const 
     {
         return static_cast<Enum>(m_header.objectType); 
     }

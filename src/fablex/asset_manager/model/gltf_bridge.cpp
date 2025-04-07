@@ -86,10 +86,10 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
     loader.SetImageWriter(tinygltf::WriteImageData, nullptr);
     
     std::vector<uint8> fileData;
-    FileSystem::read(inImportContext.path, fileData);
+    FileSystem::read(inImportContext.originalFilePath, fileData);
 
-    std::string extension = FileSystem::get_file_extension(inImportContext.path);
-    std::string baseDir = tinygltf::GetBaseDir(inImportContext.path);
+    std::string extension = FileSystem::get_file_extension(inImportContext.originalFilePath);
+    std::string baseDir = tinygltf::GetBaseDir(inImportContext.originalFilePath);
 
     bool isValid = false;
     tinygltf::Model gltfModel;

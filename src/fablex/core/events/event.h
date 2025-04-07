@@ -7,7 +7,7 @@ namespace fe
 
 #define EVENT_TYPE_HASH(x) compile_time_fnv1(#x)
 
-#define EVENT_TYPE_DECL(x)									\
+#define FE_DECLARE_EVENT(x)							        \
     enum class EventType : uint64_t							\
     {														\
         TYPE_ID = EVENT_TYPE_HASH(x)						\

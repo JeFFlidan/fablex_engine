@@ -1,16 +1,35 @@
 #pragma once
 
 #include "asset_manager/asset.h"
+#include "asset_manager/common.h"
 #include "core/primitives/sphere.h"
 
 namespace fe::asset
 {
 
 struct ModelProxy;
+class Model;
+class Texture;
+class Material;
 
-struct ModelCreateInfo
+struct ModelCreateInfo : public CreateInfo
 {
-    std::string name;
+    
+};
+
+struct ModelImportContext : public ImportContext
+{
+    bool mergeMeshes = true;
+    bool loadTextures = true;
+    bool generateMaterials = false;
+    bool generateTangents = false;
+};
+
+struct ModelImportResult
+{
+    std::vector<Model*> models;
+    std::vector<Texture*> textures;
+    std::vector<Material*> materials;
 };
 
 struct Mesh
