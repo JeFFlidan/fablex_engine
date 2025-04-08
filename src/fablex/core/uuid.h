@@ -10,6 +10,8 @@ namespace fe
 class UUID
 {
 public:
+    constexpr static uint64 INVALID = 0;
+
     UUID();
     UUID(uint64 uuid);
 
