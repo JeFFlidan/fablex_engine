@@ -1218,6 +1218,8 @@ public:
 
     std::vector<VkQueueFamilyProperties2> queueFamiliesProperties;
 
+    GPUProperties gpuProperties;
+
     struct Queue
     {
         uint32 family = VK_QUEUE_FAMILY_IGNORED;
@@ -1381,6 +1383,8 @@ public:
         computeQueue.init(device);
         transferQueue.init(device);
 
+        fill_gpu_properties();
+
         FE_LOG(LogVulkanRHI, INFO, "Vulkan Device initialization completed.");
     }
 
@@ -1538,6 +1542,119 @@ private:
     {
         **chain = obj;
         *chain = &obj->pNext;
+    }
+
+    void fill_gpu_properties()
+    {
+        gpuProperties.timestampFrequency = uint64(1.0 / (double)properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
+
+        gpuProperties.vendorID = properties2.properties.vendorID;
+        gpuProperties.deviceID = properties2.properties.deviceID;
+        gpuProperties.gpuName = properties2.properties.deviceName;
+        gpuProperties.driverDescription = properties1_2.driverName;
+        if (properties1_2.driverInfo[0] != '\0')
+        {
+            gpuProperties.driverDescription += std::string(": ") + properties1_2.driverInfo;
+        }
+    
+        switch (properties2.properties.deviceType)
+        {
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                gpuProperties.gpuType = rhi::GPUType::INTEGRATED;
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                gpuProperties.gpuType = rhi::GPUType::DISCRETE;
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                gpuProperties.gpuType = rhi::GPUType::VIRTUAL;
+                break;
+            default:
+                gpuProperties.gpuType = rhi::GPUType::OTHER;
+                break;
+        }
+    
+        if (features2.features.tessellationShader == VK_TRUE)
+        {
+            FE_LOG(LogVulkanRHI, INFO, "GPU has tessellation shader capability");
+            gpuProperties.capabilities |= rhi::GPUCapability::TESSELLATION;
+        }
+        if (
+            rayTracingPipelineFeatures.rayTracingPipeline == VK_TRUE &&
+            rayQueryFeatures.rayQuery == VK_TRUE &&
+            accelerationStructureFeatures.accelerationStructure == VK_TRUE &&
+            features1_2.bufferDeviceAddress == VK_TRUE)
+        {
+            FE_LOG(LogVulkanRHI, INFO, "GPU has ray tracing capability");
+            gpuProperties.capabilities |= rhi::GPUCapability::RAY_TRACING;
+            gpuProperties.shaderIdentifierSize = rayTracingPipelineProperties.shaderGroupHandleSize;
+            gpuProperties.accelerationStructureInstanceSize = sizeof(VkAccelerationStructureInstanceKHR);
+        }
+        if (meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE)
+        {
+            FE_LOG(LogVulkanRHI, INFO, "GPU has task shader and mesh shader capabilities");
+            gpuProperties.capabilities |= rhi::GPUCapability::MESH_SHADER;
+        }
+        if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
+        {
+            FE_LOG(LogVulkanRHI, INFO, "GPU has variable rate shading capability");
+            gpuProperties.capabilities |= rhi::GPUCapability::VARIABLE_RATE_SHADING;
+        }
+        if (fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
+        {
+            FE_LOG(LogVulkanRHI, INFO, "GPU has varialbe rate shading tier 2 capability");
+            gpuProperties.capabilities |= rhi::GPUCapability::VARIABLE_RATE_SHADING_TIER2;
+        }
+        if (fragmentShadingRateProperties.fragmentShadingRateWithFragmentShaderInterlock == VK_TRUE)
+        {
+            FE_LOG(LogVulkanRHI, INFO, "GPU has fragment shader intelock capability");
+            gpuProperties.capabilities |= rhi::GPUCapability::FRAGMENT_SHADER_INTERLOCK;
+        }
+        if (features2.features.sparseBinding == VK_TRUE && features2.features.sparseResidencyAliased == VK_TRUE)
+        {
+            if (properties2.properties.sparseProperties.residencyNonResidentStrict == VK_TRUE)
+            {
+                FE_LOG(LogVulkanRHI, INFO, "GPU has sparse null mapping capability");
+                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_NULL_MAPPING;
+            }
+            if (features2.features.sparseResidencyBuffer == VK_TRUE)
+            {
+                FE_LOG(LogVulkanRHI, INFO, "GPU has sparse buffer capability");
+                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_BUFFER;
+            }
+            if (features2.features.sparseResidencyImage2D == VK_TRUE)
+            {
+                FE_LOG(LogVulkanRHI, INFO, "GPU has sparse texture2D capability");
+                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_TEXTURE2D;
+            }
+            if (features2.features.sparseResidencyImage3D == VK_TRUE)
+            {
+                FE_LOG(LogVulkanRHI, INFO, "GPU has sparse texture3D capability");
+                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_TEXTURE3D;
+            }
+            FE_LOG(LogVulkanRHI, INFO, "GPU has sparse tile pool capability");
+            gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_TILE_POOL;
+        }
+        const VkPhysicalDeviceMemoryProperties& memoryProperties = memoryProperties2.memoryProperties;
+        for (uint32_t i = 0; i != memoryProperties.memoryHeapCount; ++i)
+        {
+            if (memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+            {
+                for (uint32_t j = 0; j != memoryProperties.memoryTypeCount; ++j)
+                {
+                    if (memoryProperties.memoryTypes[j].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT &&
+                        memoryProperties.memoryTypes[j].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+                    {
+                        FE_LOG(LogVulkanRHI, INFO, "GPU has cache coherent UMA capability");
+                        gpuProperties.capabilities |= rhi::GPUCapability::CACHE_COHERENT_UMA;
+                        break;
+                    }
+                }
+            }
+            if (has_flag(gpuProperties.capabilities, rhi::GPUCapability::CACHE_COHERENT_UMA))
+            {
+                break;
+            }
+        }
     }
 } static g_device;
 
@@ -5173,6 +5290,11 @@ uint64 get_min_offset_alignment(const BufferInfo* bufferInfo)
     return alignment;
 }
 
+const GPUProperties& get_gpu_properties()
+{
+    return g_device.gpuProperties;
+}
+
 #pragma endregion
 
 void fill_function_table()
@@ -5263,6 +5385,8 @@ void fill_function_table()
     fe::rhi::set_name = set_name;
 
     fe::rhi::get_min_offset_alignment = get_min_offset_alignment;
+
+    fe::rhi::get_gpu_properties = get_gpu_properties;
 
     FE_LOG(LogVulkanRHI, INFO, "Vulkan func table initialization completed.");
 }

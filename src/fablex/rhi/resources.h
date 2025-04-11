@@ -807,7 +807,6 @@ struct GPUMemoryUsage
 
 struct GPUProperties
 {
-    uint32 bufferCount = 0;
     ValidationMode validationMode = ValidationMode::DISABLED;
     GPUCapability capabilities = GPUCapability::UNDEFINED;
     GPUType gpuType = GPUType::DISCRETE;

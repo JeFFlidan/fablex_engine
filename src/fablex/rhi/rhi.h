@@ -107,4 +107,56 @@ inline void (*set_name)(ResourceVariant resource, const std::string& name);
 
 inline uint64 (*get_min_offset_alignment)(const BufferInfo* bufferInfo);
 
+inline const GPUProperties& (*get_gpu_properties)();
+
+inline GPUCapability get_gpu_capabilities()
+{
+    return get_gpu_properties().capabilities;
+}
+
+inline uint64 get_shader_identifier_size()
+{
+    return get_gpu_properties().shaderIdentifierSize;
+}
+
+inline uint64 get_acceleration_structure_instance_size()
+{
+    return get_gpu_properties().accelerationStructureInstanceSize;
+}
+
+inline uint64 get_timestamp_frequency()
+{
+    return get_gpu_properties().timestampFrequency;
+}
+
+inline uint64 get_vendor_id()
+{
+    return get_gpu_properties().vendorID;
+}
+
+inline uint64 get_device_id()
+{
+    return get_gpu_properties().deviceID;
+}
+
+inline const std::string& get_gpu_name()
+{
+    return get_gpu_properties().gpuName;
+}
+
+inline const std::string& get_driver_description()
+{
+    return get_gpu_properties().driverDescription;
+}
+
+inline bool has_capability(GPUCapability capability)
+{
+    return has_flag(get_gpu_capabilities(), capability);
+}
+
+inline bool is_validation_enabled()
+{
+    return get_gpu_properties().validationMode != ValidationMode::DISABLED;
+}
+
 }
