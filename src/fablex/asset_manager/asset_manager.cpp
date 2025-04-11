@@ -111,6 +111,11 @@ Material* AssetManager::get_material(UUID uuid)
     return get_asset<Material>(uuid);
 }
 
+bool AssetManager::is_asset_loaded(UUID assetUUID)
+{
+    return s_assetStorage.get_asset(assetUUID);
+}
+
 void AssetManager::save_assets()
 {
     s_assetStorage.save_assets();

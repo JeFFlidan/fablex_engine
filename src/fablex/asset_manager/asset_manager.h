@@ -53,6 +53,8 @@ public:
         return asset;
     }
 
+    static bool is_asset_loaded(UUID assetUUID);
+
     static void save_assets();
     static void save_asset(UUID uuid);
 

@@ -57,6 +57,7 @@ public:
 
     const std::vector<uint32>& indices() const { return m_indices; }
     const std::vector<Float3>& vertex_positions() const { return m_vertexPositions; }
+    const std::vector<Float3>& vertex_normals() const { return m_vertexNormals; }
     const std::vector<Float4>& vertex_tangents() const { return m_vertexTangents; }
     const std::vector<Float2>& vertex_uv_set0() const { return m_vertexUVSet0; }
     const std::vector<Float2>& vertex_uv_set1() const { return m_vertexUVSet1; }
@@ -65,6 +66,7 @@ public:
     const std::vector<Float2>& vertex_atlas() const { return m_vertexAtlas; }
     const std::vector<uint32>& vertex_colors() const { return m_vertexColors; }
     const std::vector<uint8>& vertex_wind_weights() const { return m_vertexWindWeights; }
+    const Sphere& sphere_bounds() const { return m_sphereBounds; }
 
     // ========== Begin Asset interface ==========
 
