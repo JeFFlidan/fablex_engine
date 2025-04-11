@@ -2995,7 +2995,8 @@ void create_swap_chain(SwapChain** swapChain, const SwapChainInfo* info)
 
 void destroy_swap_chain(SwapChain* swapChain)
 {
-    FE_CHECK(swapChain);
+    if (!swapChain)
+        return;
 
     for (auto& view : swapChain->vk().imageViews)
         vkDestroyImageView(g_device.device, view, nullptr);
@@ -3083,7 +3084,8 @@ void update_buffer(Buffer* buffer, uint64 size, const void* data)
 
 void destroy_buffer(Buffer* buffer)
 {
-    FE_CHECK(buffer);
+    if (!buffer)
+        return;
 
     if (buffer->vk().buffer != VK_NULL_HANDLE)
         vmaDestroyBuffer(g_allocator.gpuAllocator, buffer->vk().buffer, buffer->vk().allocation);
@@ -3195,7 +3197,8 @@ void create_texture(Texture** texture, const TextureInfo* info)
 
 void destroy_texture(Texture* texture)
 {
-    FE_CHECK(texture);
+    if (!texture)
+        return;
 
     if (texture->vk().image != VK_NULL_HANDLE)
         vmaDestroyImage(g_allocator.gpuAllocator, texture->vk().image, texture->vk().allocation);
@@ -3312,6 +3315,9 @@ void create_texture_view(TextureView** textureView, const TextureViewInfo* info,
 
 void destroy_texture_view(TextureView* textureView)
 {
+    if (!textureView)
+        return;
+    
     if (textureView->vk().imageView != VK_NULL_HANDLE)
         vkDestroyImageView(g_device.device, textureView->vk().imageView, nullptr);
 
@@ -3369,7 +3375,8 @@ void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info, con
 
 void destroy_buffer_view(BufferView* bufferView)
 {
-    FE_CHECK(bufferView);
+    if (!bufferView)
+        return;
 
     if (bufferView->vk().bufferView != VK_NULL_HANDLE)
         vkDestroyBufferView(g_device.device, bufferView->vk().bufferView, nullptr);
@@ -3452,7 +3459,8 @@ void create_sampler(Sampler** sampler, const SamplerInfo* info)
 
 void destroy_sampler(Sampler* sampler)
 {
-    FE_CHECK(sampler);
+    if (!sampler)
+        return;
 
     if (sampler->vk().sampler != VK_NULL_HANDLE)
         vkDestroySampler(g_device.device, sampler->vk().sampler, nullptr);
@@ -3492,7 +3500,8 @@ void create_shader(Shader** shader, const ShaderInfo* info)
 
 void destroy_shader(Shader* shader)
 {
-    FE_CHECK(shader);
+    if (!shader)
+        return;
 
     if (shader->vk().shader != VK_NULL_HANDLE)
         vkDestroyShaderModule(g_device.device, shader->vk().shader, nullptr);
@@ -3890,7 +3899,8 @@ void create_ray_tracing_pipeline(Pipeline** pipeline, const RayTracingPipelineIn
 
 void destroy_pipeline(Pipeline* pipeline)
 {
-    FE_CHECK(pipeline);
+    if (!pipeline)
+        return;
 
     if (pipeline->vk().pipeline != VK_NULL_HANDLE)
         vkDestroyPipeline(g_device.device, pipeline->vk().pipeline, nullptr);
@@ -3991,7 +4001,8 @@ void create_acceleration_structure(AccelerationStructure** accelerationStructure
 
 void destroy_acceleration_structure(AccelerationStructure* accelerationStructure)
 {
-    FE_CHECK(accelerationStructure);
+    if (!accelerationStructure) 
+        return;
 
     if (accelerationStructure->info.type == AccelerationStructureInfo::TOP_LEVEL)
         g_descriptorHeap.free_descriptor(accelerationStructure);
@@ -4061,7 +4072,8 @@ void create_command_pool(CommandPool** cmdPool, const CommandPoolInfo* info)
 
 void destroy_command_pool(CommandPool* cmdPool)
 {
-    FE_CHECK(cmdPool);
+    if (!cmdPool)
+        return;
 
     if (cmdPool->vk().cmdPool != VK_NULL_HANDLE)
         vkDestroyCommandPool(g_device.device, cmdPool->vk().cmdPool, nullptr);
@@ -4092,7 +4104,8 @@ void create_command_buffer(CommandBuffer** cmd, const CommandBufferInfo* info)
 
 void destroy_command_buffer(CommandBuffer* cmd)
 {
-    FE_CHECK(cmd);
+    if (!cmd)
+        return;
 
     if (cmd->vk().cmdBuffer != VK_NULL_HANDLE)
         vkFreeCommandBuffers(g_device.device, cmd->cmdPool->vk().cmdPool, 1, &cmd->vk().cmdBuffer);
@@ -4145,7 +4158,8 @@ void create_semaphore(Semaphore** semaphore)
 
 void destroy_semaphore(Semaphore* semaphore)
 {
-    FE_CHECK(semaphore);
+    if (!semaphore)
+        return;
 
     if (semaphore->vk().semaphore != VK_NULL_HANDLE)
         vkDestroySemaphore(g_device.device, semaphore->vk().semaphore, nullptr);
@@ -4168,7 +4182,8 @@ void create_fence(Fence** fence)
 
 void destroy_fence(Fence* fence)
 {
-    FE_CHECK(fence);
+    if (!fence)
+        return;
 
     if (fence->vk().fence != VK_NULL_HANDLE)
         vkDestroyFence(g_device.device, fence->vk().fence, nullptr);
@@ -5145,6 +5160,19 @@ void set_name(ResourceVariant resource, const std::string& name)
     VK_CHECK(vkSetDebugUtilsObjectNameEXT(g_device.device, &info));
 }
 
+uint64 get_min_offset_alignment(const BufferInfo* bufferInfo)
+{
+    uint64 alignment = 0;
+
+    if (has_flag(bufferInfo->bufferUsage, rhi::ResourceUsage::STORAGE_BUFFER))
+        alignment = std::max(alignment, g_device.properties2.properties.limits.minStorageBufferOffsetAlignment);
+
+    if (has_flag(bufferInfo->bufferUsage, rhi::ResourceUsage::STORAGE_TEXEL_BUFFER))
+        alignment = std::max(alignment, g_device.properties2.properties.limits.minTexelBufferOffsetAlignment);
+
+    return alignment;
+}
+
 #pragma endregion
 
 void fill_function_table()
@@ -5233,6 +5261,8 @@ void fill_function_table()
     fe::rhi::get_api = get_api;
     fe::rhi::get_frame_index = get_frame_index;
     fe::rhi::set_name = set_name;
+
+    fe::rhi::get_min_offset_alignment = get_min_offset_alignment;
 
     FE_LOG(LogVulkanRHI, INFO, "Vulkan func table initialization completed.");
 }

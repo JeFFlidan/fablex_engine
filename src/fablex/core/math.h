@@ -70,6 +70,29 @@ uint32 saturate(float val);
 uint32 compress_color(const Float3& color);
 uint32 compress_color(const Float4& color);
 
+template<typename T>
+T lerp(T x, T y, T a)
+{
+    return x * (1 - a) + y * a;
+}
+
+template<typename T>
+T inverse_lerp(T x, T y, T pos)
+{
+    return x == y ? T(0) : ((pos - x) / (y - x));
+}
+
+Float2 lerp(const Float2& x, const Float2& y, float a);
+Float2 lerp(const Float2& x, const Float2& y, const Float2& a);
+Float3 lerp(const Float3& x, const Float3& y, float a);
+Float3 lerp(const Float3& x, const Float3& y, const Float3& a);
+Float4 lerp(const Float4& x, const Float4& y, float a);
+Float4 lerp(const Float4& x, const Float4& y, const Float4& a);
+
+Float2 inverse_lerp(const Float2& x, const Float2& y, const Float2& a);
+Float3 inverse_lerp(const Float3& x, const Float3& y, const Float3& a);
+Float4 inverse_lerp(const Float4& x, const Float4& y, const Float4& a);
+
 struct Vector
 {
     DirectX::XMVECTOR data;

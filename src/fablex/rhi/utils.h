@@ -613,4 +613,18 @@ inline uint32 get_queue_index(rhi::QueueType queueType)
     return std::underlying_type_t<rhi::QueueType>(queueType);
 }
 
+// From wicked engine
+template<typename T>
+T align_to(T value, T alignment)
+{
+    return ((value + alignment - T(1)) / alignment) * alignment;
+}
+
+// From wicked engine
+template<typename T>
+bool is_aligned(T value, T alignment)
+{
+    return value == align_to(value, alignment);
+}
+
 }

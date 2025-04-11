@@ -212,6 +212,60 @@ uint32 compress_color(const Float4& color)
     return result;
 }
 
+Float2 lerp(const Float2& x, const Float2& y, float a)
+{
+    return Float2(lerp(x.x, y.x, a), lerp(x.y, y.y, a));
+}
+
+Float2 lerp(const Float2& x, const Float2& y, const Float2& a)
+{
+    return Float2(lerp(x.x, y.x, a.x), lerp(x.y, y.y, a.y));
+}
+
+Float3 lerp(const Float3& x, const Float3& y, float a)
+{
+    return Float3(lerp(x.x, y.x, a), lerp(x.y, y.y, a), lerp(x.z, y.z, a));
+}
+
+Float3 lerp(const Float3& x, const Float3& y, const Float3& a)
+{
+    return Float3(lerp(x.x, y.x, a.x), lerp(x.y, y.y, a.y), lerp(x.z, y.z, a.z));
+}
+
+Float4 lerp(const Float4& x, const Float4& y, float a)
+{
+    return Float4(lerp(x.x, y.x, a), lerp(x.y, y.y, a), lerp(x.z, y.z, a), lerp(x.w, y.w, a));
+}
+
+Float4 lerp(const Float4& x, const Float4& y, const Float4& a)
+{
+    return Float4(lerp(x.x, y.x, a.x), lerp(x.y, y.y, a.y), lerp(x.z, y.z, a.z), lerp(x.w, y.w, a.w));
+}
+
+Float2 inverse_lerp(const Float2& x, const Float2& y, const Float2& a)
+{
+    return Float2(inverse_lerp(x.x, y.x, a.x), inverse_lerp(x.y, y.y, a.y));
+}
+
+Float3 inverse_lerp(const Float3& x, const Float3& y, const Float3& a)
+{
+    return Float3(
+        inverse_lerp(x.x, y.x, a.x), 
+        inverse_lerp(x.y, y.y, a.y), 
+        inverse_lerp(x.z, y.z, a.z)
+    );
+}
+
+Float4 inverse_lerp(const Float4& x, const Float4& y, const Float4& a)
+{
+    return Float4(
+        inverse_lerp(x.x, y.x, a.x), 
+        inverse_lerp(x.y, y.y, a.y), 
+        inverse_lerp(x.z, y.z, a.z), 
+        inverse_lerp(x.w, y.w, a.w)
+    );
+}
+
 const Vector& Vector::operator+() noexcept
 {
     return *this;

@@ -105,4 +105,6 @@ inline API (*get_api)();
 inline uint32 (*get_frame_index)();
 inline void (*set_name)(ResourceVariant resource, const std::string& name);
 
+inline uint64 (*get_min_offset_alignment)(const BufferInfo* bufferInfo);
+
 }
