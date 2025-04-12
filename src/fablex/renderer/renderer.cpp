@@ -270,7 +270,7 @@ void Renderer::configure_submit_contexts()
         }
 
         if (node->useRayTracing && m_bvhBuildSemaphore)
-            lastSubmitContext->signalSemaphore = m_bvhBuildSemaphore;
+            lastSubmitContext->waitSemaphores.push_back(m_bvhBuildSemaphore);
 
         if (lastSubmitContext->depencyLevelCommandContexts.empty() ||
             lastSubmitContext->depencyLevelCommandContexts.back().dependencyLevelIndex != nodeDependencyLevelIdx)
@@ -279,6 +279,13 @@ void Renderer::configure_submit_contexts()
         }
 
         lastSubmitContext->depencyLevelCommandContexts.back().nodesToRecord.push_back(node);
+    }
+
+    // TODO: Do I need it when ray tracing is implemented???
+    if (!m_bvhBuildSemaphore && m_uploadSemaphore)
+    {
+        std::vector<SubmitContext>& submitContexts = m_submitContextsPerQueue.at(uint64(rhi::QueueType::GRAPHICS));
+        submitContexts.at(0).waitSemaphores.push_back(m_uploadSemaphore);
     }
 }
 
@@ -354,7 +361,8 @@ void Renderer::record_upload_cmd()
     TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo execInfo)
     {
         rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
-        // TODO: Do some upload work
+        
+        m_sceneManager->upload(cmd);
 
         m_uploadSubmitInfo.clear();
         m_uploadSubmitInfo.cmdBuffers.push_back(cmd);
@@ -365,16 +373,16 @@ void Renderer::record_upload_cmd()
 
 void Renderer::record_bvh_build_cmd()
 {
+    m_bvhBuildSemaphore = m_syncManager->get_semaphore();
+
     TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo execInfo)
     {
         rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
 
         m_bvhBuildSubmitInfo.clear();
         m_bvhBuildSubmitInfo.cmdBuffers.push_back(cmd);
-        m_bvhBuildSubmitInfo.signalSemaphores.push_back(m_syncManager->get_semaphore());
+        m_bvhBuildSubmitInfo.signalSemaphores.push_back(m_bvhBuildSemaphore);
         m_bvhBuildSubmitInfo.waitSemaphores.push_back(m_uploadSemaphore);
-
-        m_bvhBuildSemaphore = m_bvhBuildSubmitInfo.signalSemaphores.back();
     });
 }
 

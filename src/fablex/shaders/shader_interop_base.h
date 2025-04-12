@@ -22,6 +22,8 @@ using float4x4 = fe::Float4x4;
 
 #else
 
+#define alignas(x)
+
 #define PASTE1(a, b) a##b
 #define PASTE(a, b) PASTE1(a, b)
 #define UNIFORM_BUFFER(Name, Type, Slot) ConstantBuffer<Type> Name : register(PASTE(b, Slot))

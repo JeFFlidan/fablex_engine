@@ -4,13 +4,14 @@
 #include "shader_interop_base.h"
 
 #if defined(__spirv__)
-   
+
 static const uint BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER = 1;
 static const uint BINDLESS_DESCRIPTOR_SET_UNIFORM_TEXEL_BUFFER = 2;
 static const uint BINDLESS_DESCRIPTOR_SET_STORAGE_TEXEL_BUFFER = 3;
 static const uint BINDLESS_DESCRIPTOR_SET_SAMPLED_IMAGE = 4;
 static const uint BINDLESS_DESCRIPTOR_SET_STORAGE_IMAGE = 5;
 static const uint BINDLESS_DESCRIPTOR_SET_SAMPLER = 6;
+static const uint BINDLESS_DESCRIPTOR_SET_ACCELERATION_STRUCTURE = 7;
 
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] ByteAddressBuffer bindlessBuffers[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWByteAddressBuffer bindlessRWBuffers[];
@@ -53,8 +54,48 @@ static const uint BINDLESS_DESCRIPTOR_SET_SAMPLER = 6;
 
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_SAMPLER)]] SamplerState bindlessSamplers[];
 
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_ACCELERATION_STRUCTURE)]] RaytracingAccelerationStructure bindlessAccelerationStructures[];
+
 #endif
 
 #include "shader_interop_renderer.h"
+
+#if defined(__spirv__)
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModel> bindlessStructuredModels[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModelInstance> bindlessStructuredModelInstances[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModelInstanceID> bindlessStructuredModelInstanceIDs[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMaterial> bindlessStructuredMaterials[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderEntity> bindlessStructuredEntities[];
+#endif
+
+FrameUB get_frame()
+{
+    return frameData;
+}
+
+inline ShaderEntity get_entity(uint entityIndex)
+{
+    return bindlessStructuredEntities[get_frame().entityBufferIndex][entityIndex];
+}
+
+inline ShaderMaterial get_material(uint materialIndex)
+{
+    return bindlessStructuredMaterials[get_frame().materialBufferIndex][materialIndex];
+}
+
+inline ShaderModel get_model(uint hlslInstanceID)
+{
+    return bindlessStructuredModels[get_frame().modelBufferIndex][hlslInstanceID];
+}
+
+inline ShaderModelInstanceID get_model_instance_id(uint hlslInstanceID)
+{
+    return bindlessStructuredModelInstanceIDs[get_frame().modelInstanceIDBufferIndex][hlslInstanceID];
+}
+
+inline ShaderModelInstance get_model_instance(uint hlslInstanceID)
+{
+    return bindlessStructuredModelInstances[get_frame().modelInstanceBufferIndex][get_model_instance_id(hlslInstanceID).id];
+}
 
 #endif // COMMON_SHADER

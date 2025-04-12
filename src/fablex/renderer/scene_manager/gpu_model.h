@@ -4,6 +4,8 @@
 #include "asset_manager/fwd.h"
 #include "core/primitives/aabb.h"
 
+struct ShaderModel;
+
 namespace fe::renderer
 {
 
@@ -15,6 +17,8 @@ public:
 
     void build(rhi::CommandBuffer* cmd);
     void destroy();
+
+    void fill_shader_model(ShaderModel& outRendererModel);
 
     asset::Model* get_model() const { return m_model; }
     AABB get_aabb() const { return m_aabb; }

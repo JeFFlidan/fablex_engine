@@ -3,8 +3,8 @@
 
 #include "shader_interop_base.h"
 
-static const uint RENDERER_MATERIAL_FLAG_TRANSPARENT = 1 << 0;
-static const uint RENDERER_MATERIAL_FLAG_UNLIT = 1 << 1;
+static const uint SHADER_MATERIAL_FLAG_TRANSPARENT = 1 << 0;
+static const uint SHADER_MATERIAL_FLAG_UNLIT = 1 << 1;
 
 enum TEXTURE_SLOT
 {
@@ -17,7 +17,7 @@ enum TEXTURE_SLOT
 	TEXTURE_SLOT_COUNT
 };
 
-struct RendererTexture2D
+struct ShaderTexture2D
 {
 	int textureIndex;
 	float3 empty;
@@ -47,7 +47,7 @@ struct RendererTexture2D
 #endif
 };
 
-struct RendererMaterial
+struct ShaderMaterial
 {
 	uint2 albedo;	//half4
 	uint roughness16Metallic16;
@@ -55,7 +55,7 @@ struct RendererMaterial
 	uint flags8;		// 24 bits are empty
 	float3 empty;
 
-	RendererTexture2D textures[TEXTURE_SLOT_COUNT];
+	ShaderTexture2D textures[TEXTURE_SLOT_COUNT];
 
 #ifndef __cplusplus
 	void init()
@@ -155,17 +155,51 @@ struct RendererMaterial
 	inline bool is_transparent()
 	{
 		uint flags = flags8 & 0xFF;
-		return flags & RENDERER_MATERIAL_FLAG_TRANSPARENT;
+		return flags & SHADER_MATERIAL_FLAG_TRANSPARENT;
 	}
 
 	inline bool is_unlit()
 	{
 		uint flags = flags8 & 0xFF;
-		return flags & RENDERER_MATERIAL_FLAG_UNLIT;
+		return flags & SHADER_MATERIAL_FLAG_UNLIT;
 	}
 };
 
-struct RendererTransform
+struct alignas(16) ShaderModel
+{
+	int indexBuffer;
+	int vertexBufferPosWind;
+	int vertexBufferNormals;
+	int vertexBufferTangents;
+	int vertexBufferUVs;
+	int vertexBufferAtlas;
+	int vertexBufferColors;
+
+	float2 uvRangeMin;
+	float2 uvRangeMax;
+
+	float3 aabbMin;
+	float3 aabbMax;
+
+	void init()
+	{
+		indexBuffer = -1;
+		vertexBufferPosWind = -1;
+		vertexBufferNormals = -1;
+		vertexBufferTangents = -1;
+		vertexBufferUVs = -1;
+		vertexBufferAtlas = -1;
+		vertexBufferColors = -1;
+
+		uvRangeMin = float2(0.0f, 0.0f);
+		uvRangeMax = float2(1.0f, 1.0f);
+
+		aabbMin = float3(0.0f, 0.0f, 0.0f);
+		aabbMax = float3(0.0f, 0.0f, 0.0f);
+	}
+};
+
+struct ShaderTransform
 {
 	float4 location;
 	float4 rotation;
@@ -196,32 +230,53 @@ struct RendererTransform
 	}
 };
 
-struct RendererSphereBounds
+struct ShaderSphereBounds
 {
 	float3 center;
 	float radius;
+
+	void init()
+	{
+		center = float3(0.0f, 0.0f, 0.0f);
+		radius = 0.0f;
+	}
 };
 
-struct RendererModelInstance
+struct alignas(16) ShaderModelInstance
 {
-	RendererTransform transform;
-	RendererTransform transformInverseTranspose;
+	ShaderTransform transform;	// With quantization mapping
+	ShaderTransform rawTransform; // Without quantization mapping
+	ShaderTransform transformInverseTranspose;	// Without quantization mapping
 	
-	RendererSphereBounds sphereBounds;
+	ShaderSphereBounds sphereBounds;
 
 	uint materialIndex;
+	uint geometryOffest;
+
 	float3 scale;
+
+	void init()
+	{
+		transform.init();
+		transformInverseTranspose.init();
+		rawTransform.init();
+		sphereBounds.init();
+
+		materialIndex = 0;
+		geometryOffest = 0;
+		scale = float3(0.0f, 0.0f, 0.0f);
+	}
 };
 
-enum RendererEntityType
+enum ShaderEntityType
 {
 	DIRECTIONAL_LIGHT = 0,
 	POINT_LIGHT,
 	SPOT_LIGHT
 };
 
-// Must be aligned to 16 bytes. For now RendererEntity supports point, spot and directional lights
-struct RendererEntity
+// Must be aligned to 16 bytes. For now ShaderEntity supports point, spot and directional lights
+struct ShaderEntity
 {
 	uint type8Flags8;					// 16 bits are empty
 	float3 location;
@@ -350,7 +405,7 @@ struct RendererEntity
 
 static const uint FRAME_FLAG_TEMPORAL_AA_ENABLED = 1 << 0;
 
-struct FrameUB
+struct alignas(16) FrameUB
 {
 	uint flags;
 	float time;
@@ -363,20 +418,19 @@ struct FrameUB
 
 	int entityBufferIndex;
 	int materialBufferIndex;
+	int modelBufferIndex;
 	int modelInstanceBufferIndex;
 	int modelInstanceIDBufferIndex;
 
 	uint lightArrayOffset;
 	uint lightArrayCount;
-	uint empty2;
-	uint empty3;
 };
 
-struct RendererFrustum
+struct ShaderFrustum
 {
 	float4 planes[6];
 #ifndef __cplusplus
-	bool check(RendererSphereBounds sphereBounds)
+	bool check(ShaderSphereBounds sphereBounds)
 	{
 		bool visible = true;
 		[unroll]
@@ -389,7 +443,7 @@ struct RendererFrustum
 #endif
 };
 
-struct RendererCamera
+struct ShaderCamera
 {
 	float3 location;
 	uint empty1;
@@ -409,7 +463,7 @@ struct RendererCamera
 	float4x4 inverseProjection;
 	float4x4 inverseViewProjection;
 
-	RendererFrustum frustum;
+	ShaderFrustum frustum;
 
 #ifdef __cplusplus
 	void create_frustum()
@@ -431,7 +485,7 @@ static const uint MAX_CAMERA_COUNT = 16;
 
 struct CameraUB
 {
-	RendererCamera cameras[MAX_CAMERA_COUNT];
+	ShaderCamera cameras[MAX_CAMERA_COUNT];
 };
 
 UNIFORM_BUFFER(frameData, FrameUB, UB_FRAME_SLOT);
@@ -463,7 +517,7 @@ enum SamplerType
 };
 
 // Indirect drawing
-struct RendererModelInstanceID
+struct ShaderModelInstanceID
 {
 	uint id;
 	uint3 empty;

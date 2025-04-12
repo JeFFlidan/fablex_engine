@@ -4,6 +4,7 @@
 #include "rhi/utils.h"
 #include "asset_manager/model/model.h"
 #include "core/primitives/aabb.h"
+#include "shaders/shader_interop_renderer.h"
 
 namespace fe::renderer
 {
@@ -340,6 +341,23 @@ void GPUModel::destroy()
     rhi::destroy_buffer_view(m_vertexAtlas.uav);
 
     rhi::destroy_buffer(m_generalBuffer);
+}
+
+void GPUModel::fill_shader_model(ShaderModel& outRendererModel)
+{
+    outRendererModel.indexBuffer = get_srv_indices();
+    outRendererModel.vertexBufferPosWind = get_srv_positions_winds();
+    outRendererModel.vertexBufferNormals = get_srv_normals();
+    outRendererModel.vertexBufferTangents = get_srv_tangents();
+    outRendererModel.vertexBufferUVs = get_srv_uvs();
+    outRendererModel.vertexBufferAtlas = get_srv_atlas();
+    outRendererModel.vertexBufferColors = get_srv_colors();
+
+    outRendererModel.aabbMin = m_aabb.minPoint;
+    outRendererModel.aabbMax = m_aabb.maxPoint;
+
+    outRendererModel.uvRangeMin = m_uvRangeMin;
+    outRendererModel.uvRangeMax = m_uvRangeMax;
 }
 
 int32 GPUModel::get_srv_indices() const

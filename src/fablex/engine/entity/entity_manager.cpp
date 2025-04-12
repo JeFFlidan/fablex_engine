@@ -1,4 +1,5 @@
 #include "entity_manager.h"
+#include "events.h"
 
 namespace fe::engine
 {
@@ -18,7 +19,10 @@ void EntityManager::update()
     m_entitiesToDestroy.clear();
 
     for (Entity* entity : m_entitiesToCreate)
+    {
+        EventManager::enqueue_event(EntityCreatedEvent(m_entitiesToCreate.back()));
         m_entities.push_back(entity);
+    }
 
     m_entitiesToCreate.clear();
 }
