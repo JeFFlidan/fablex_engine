@@ -1,5 +1,4 @@
 #include "window.h"
-#include "input_event.h"
 #include <winuser.h>
 
 namespace fe
@@ -78,12 +77,10 @@ void Window::init(const WindowCreateInfo& createInfo)
 
 bool Window::process_message()
 {
-    InputEvent inputEvent;
-
 #ifdef WIN32
     MSG msg{};
 
-    m_inputReaderWin32.read_inputs(inputEvent);
+    m_inputReaderWin32.read_inputs();
 
    	while (PeekMessage(&msg, nullptr, 0u, 0u, PM_REMOVE))
 	{
@@ -97,8 +94,6 @@ bool Window::process_message()
 		DispatchMessage(&msg);
 	}
 #endif // WIN32
-
-    EventManager::enqueue_event(inputEvent);
 
     return true;
 }

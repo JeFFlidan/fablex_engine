@@ -1,7 +1,7 @@
 #ifdef WIN32
 
 #include "input_reader_win32.h"
-#include "core/input_event.h"
+#include "core/input.h"
 
 namespace fe
 {
@@ -30,7 +30,7 @@ InputReaderWin32::InputReaderWin32()
     m_allocator.reserve(1024 * 1024, 8);
 }
 
-void InputReaderWin32::read_inputs(InputEvent& inputEvent)
+void InputReaderWin32::read_inputs()
 {
     MouseState mouseState;
 
@@ -43,8 +43,8 @@ void InputReaderWin32::read_inputs(InputEvent& inputEvent)
 
         if (rawBufferSize == 0)
         {
-            inputEvent.set_mouse_state(mouseState);
-            set_cursor_position(inputEvent);
+            Input::set_mouse_state(mouseState);
+            set_cursor_position();
             m_allocator.reset();
             return;
         }
@@ -104,16 +104,16 @@ void InputReaderWin32::parse_raw_input_buffer(const RAWINPUT& rawInput, MouseSta
     }
 }
 
-void InputReaderWin32::set_cursor_position(InputEvent& outInputEvent) const
+void InputReaderWin32::set_cursor_position() const
 {
     POINT point;
     if (!GetCursorPos(&point) || !ScreenToClient((HWND)m_hWnd, &point))
     {
-        outInputEvent.set_cursor_position(0.0f, 0.0f);
+        Input::set_cursor_position(0.0f, 0.0f);
         return;
     }
 
-    outInputEvent.set_cursor_position(point.x, point.y);
+    Input::set_cursor_position(point.x, point.y);
 }
 
 }

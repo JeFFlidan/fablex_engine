@@ -1,7 +1,6 @@
 #pragma once
 
 #include "math.h"
-#include "event.h"
 #include "input_enums.h"
 #include "platform/platform.h"
 
@@ -20,15 +19,13 @@ struct MouseState
     MouseButton pressedButton{MouseButton::UNKNOWN};
 };
 
-class InputEvent : public IEvent
+class Input
 {
 public:
-    FE_DECLARE_EVENT(InputEvent);
+    static void set_mouse_state(MouseState mouseState){ m_mouseState = mouseState; }
+    static void set_cursor_position(float x, float y) { m_mouseState.position = Float2(x, y); }
 
-    void set_mouse_state(MouseState mouseState){ m_mouseState = mouseState; }
-    void set_cursor_position(float x, float y) { m_mouseState.position = Float2(x, y); }
-
-    bool is_mouse_button_pressed(MouseButton mouseButton) const
+    static bool is_mouse_button_pressed(MouseButton mouseButton)
     {
         #ifdef WIN32
         switch (mouseButton)
@@ -47,10 +44,10 @@ public:
         #endif // WIN32
     }
 
-    Float2 get_position() const { return m_mouseState.position; }
-    Float2 get_delta_position() const { return m_mouseState.deltaPosition; }
+    static Float2 get_position() { return m_mouseState.position; }
+    static Float2 get_delta_position() { return m_mouseState.deltaPosition; }
 
-    bool is_key_pressed(Key key) const
+    static bool is_key_pressed(Key key)
     {
 #ifdef WIN32
         uint8_t keyCode = UtilsWin32::parse_key(key);
@@ -61,7 +58,7 @@ public:
     }
 
 private:
-    MouseState m_mouseState;
+    inline static MouseState m_mouseState;
 };
 
 }
