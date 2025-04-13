@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "math.h"
 #include "platform/platform.h"
 #include <string>
 
@@ -55,10 +55,14 @@ private:
         RECT clientRect;
         const char* className;
     } m_win32WindowData;
+
+    InputReaderWin32 m_inputReaderWin32;
 #endif // WIN32
 
     WindowInfo m_windowInfo;
     bool m_isRunning{false};
+
+    Float2 get_cursor_relative_to_window() const;
 };
 
 }
