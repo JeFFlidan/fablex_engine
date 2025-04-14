@@ -101,9 +101,26 @@ Float4x4 Entity::get_local_transform() const
     return Matrix::scaling(m_scale) * Matrix::rotation(m_rotation) * Matrix::translation(m_position);
 }
 
+void Entity::translate(const Float3& deltaPosition)
+{
+    m_position.x += deltaPosition.x;
+    m_position.y += deltaPosition.y;
+    m_position.z += deltaPosition.z;
+}
+
 void Entity::set_rotation(const Float3& eulerAngles, AngleUnit angleUnit)
 {
-    m_rotation = Quat::rotation(eulerAngles.x, eulerAngles.y, eulerAngles.z, angleUnit);
+    // Take from WickedEngine. Maybe, I will change this in the future
+    Quat x = Quat::rotation(eulerAngles.x, 0.0f, 0.0f, angleUnit);
+    Quat y = Quat::rotation(0.0f, eulerAngles.y, 0.0f, angleUnit);
+    Quat z = Quat::rotation(0.0f, 0.0f, eulerAngles.z, angleUnit);
+
+    m_rotation = Quat::multiply(x, m_rotation);
+    m_rotation = Quat::multiply(m_rotation, y);
+    m_rotation = Quat::multiply(z, m_rotation);
+    m_rotation.normalize();
+
+    // m_rotation = Quat::rotation(eulerAngles.x, eulerAngles.y, eulerAngles.z, angleUnit);
 }
 
 void Entity::set_rotation(const Float3& axis, float angle, AngleUnit angleUnit)

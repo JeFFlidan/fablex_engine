@@ -14,6 +14,8 @@ class Component : public Object
     FE_DECLARE_PROPERTY_REGISTER(Entity);
 
 public:
+    virtual void update(float deltaTime) { }
+
     void set_active(bool active) { m_active = active; }
     bool is_active() const { return m_active; }
 

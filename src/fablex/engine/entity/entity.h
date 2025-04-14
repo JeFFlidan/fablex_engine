@@ -1,6 +1,8 @@
 #pragma once
 
 #include "core/object.h"
+#include "tags.h"
+#include <unordered_set>
 
 namespace fe::engine
 {
@@ -62,6 +64,7 @@ public:
     Float4x4 get_local_transform() const;
     Float4x4 get_world_transform() const { return m_worldTransform; }
 
+    void translate(const Float3& deltaPosition);
     void set_position(const Float3& position) { m_position = position; }
     void set_scale(const Float3& scale) { m_scale = scale; }
     void set_rotation(const Quat& rotation) { m_rotation = rotation; }
@@ -70,9 +73,26 @@ public:
     // Quaternion rotation
     void set_rotation(const Float3& axis, float angle, AngleUnit = AngleUnit::DEGREES);
 
+    template<typename TagType>
+    void add_tag()
+    {
+        m_tags.insert(TagType::TYPE_ID);
+        EventManager::enqueue_event(TagAddedEvent<TagType>());
+    }
+
+    template<typename TagType>
+    bool has_tag()
+    {
+        auto it = m_tags.find(TagType::TYPE_ID);
+        if (it != m_tags.end())
+            return true;
+        return false;
+    }
+
 private:
     std::vector<Component*> m_components;
     std::vector<Entity*> m_children;
+    std::unordered_set<uint64> m_tags;
 
     World* m_world = nullptr;
     Entity* m_rootEntity = nullptr;

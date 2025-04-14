@@ -9,6 +9,7 @@ class Core
 {
 public:
     static void init();
+    static void update();
     static void cleanup();
 
 private:

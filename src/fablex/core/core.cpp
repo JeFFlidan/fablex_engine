@@ -1,6 +1,7 @@
-#include "core/core.h"
+#include "core.h"
 #include "task_composer.h"
 #include "file_system/file_system.h"
+#include "timer.h"
 
 #include <filesystem>
 
@@ -15,9 +16,15 @@ void Core::init()
 
     TaskComposer::init();
     FileSystem::init(get_root_path());
+    Timer::init();
 
     FE_LOG(LogCore, INFO, "Core systems initialization completed");
     FE_LOG(LogCore, INFO, "Root path: {}", fe::FileSystem::get_root_path());
+}
+
+void Core::update()
+{
+    Timer::update();
 }
 
 void Core::cleanup()
