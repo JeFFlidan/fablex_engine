@@ -51,7 +51,7 @@ class Object
 
 public:
     Object() = default;
-    ~Object() = default;
+    virtual ~Object() = default;
 
     bool is_exactly(const TypeInfo* classTypeInfo) const
     {

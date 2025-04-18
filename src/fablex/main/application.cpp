@@ -34,15 +34,16 @@ Application::Application()
     load_engine_config();
 
     m_engine = std::make_unique<engine::Engine>();
+    m_engine->set_window(m_mainWindow.get());
 
     renderer::RendererInfo rendererInfo;
     rendererInfo.config = &m_renderConfig;
     rendererInfo.window = m_mainWindow.get();
     m_renderer = std::make_unique<renderer::Renderer>(rendererInfo);
 
-    FE_LOG(LogApplication, INFO, "Application initialization completed.");
+    m_engine->configure_test_scene();
 
-    run_tests();
+    FE_LOG(LogApplication, INFO, "Application initialization completed.");
 }
 
 Application::~Application()
@@ -62,6 +63,9 @@ void Application::execute()
             break;
         }
 
+        Core::update();
+        m_engine->update();
+        EventManager::dispatch_events();
         m_renderer->draw();
     }
 
@@ -71,14 +75,9 @@ void Application::execute()
 void Application::load_engine_config()
 {
     std::string engineConfigJsonStr;
-    FE_LOG(LogDefault, INFO, "PATH: {}", FileSystem::get_absolute_path("configs/engine.json"));
     FileSystem::read(FileSystem::get_absolute_path("configs/engine.json"), engineConfigJsonStr);
-    FE_LOG(LogDefault, INFO, "SIZE: {}", engineConfigJsonStr.size());
-    FE_LOG(LogDefault, INFO, "Engine config: {}", engineConfigJsonStr);
     nlohmann::json engineConfigJson = nlohmann::json::parse(engineConfigJsonStr);
-    FE_LOG(LogDefault, INFO, "AFTER PARSING");
     m_renderConfig.init(engineConfigJson);
-    FE_LOG(LogDefault, INFO, "AFTER INITING CONFIG");
 }
 
 }

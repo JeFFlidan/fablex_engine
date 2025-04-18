@@ -17,6 +17,7 @@ TypeInfo::TypeInfo(
     m_classSize = size;
     m_classAlignment = alignment;
     m_baseTypeInfo = baseTypeInfo;
+    m_nameHash = std::hash<std::string>()(name);
 }
 
 bool TypeInfo::is_a(const TypeInfo* typeInfo) const

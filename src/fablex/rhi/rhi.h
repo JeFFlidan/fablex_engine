@@ -80,7 +80,7 @@ inline void (*set_scissors)(CommandBuffer* cmd, const std::vector<Scissor>& scis
 
 inline void (*push_constants)(CommandBuffer* cmd, Pipeline* pipeline, void* data);
 inline void (*bind_vertex_buffer)(CommandBuffer* cmd, Buffer* buffer);
-inline void (*bind_index_buffer)(CommandBuffer* cmd, Buffer* buffer);
+inline void (*bind_index_buffer)(CommandBuffer* cmd, Buffer* buffer, uint64 offset);
 inline void (*bind_pipeline)(CommandBuffer* cmd, Pipeline* pipeline);
 
 inline void (*build_acceleration_structure)(CommandBuffer* cmd, const AccelerationStructure* dst, const AccelerationStructure* src);
@@ -89,6 +89,7 @@ inline void (*begin_rendering)(CommandBuffer* cmd, RenderingBeginInfo* beginInfo
 inline void (*end_rendering)(CommandBuffer* cmd, SwapChain* swapChain);
 
 inline void (*draw)(CommandBuffer* cmd, uint64 vertexCount);
+inline void (*draw_indexed)(CommandBuffer* cmd, uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 vertexOffset, uint32 firstInstance);
 inline void (*draw_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride);
 inline void (*draw_indexed_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride);
 
@@ -102,7 +103,7 @@ inline void (*wait_queue_idle)(QueueType queueType);
 inline void (*wait_for_fences)(const std::vector<Fence*>& fences);
 
 inline API (*get_api)();
-inline uint32 (*get_frame_index)();
+inline void (*set_frame_index)(uint64 frameIndex);
 inline void (*set_name)(ResourceVariant resource, const std::string& name);
 
 inline uint64 (*get_min_offset_alignment)(const BufferInfo* bufferInfo);

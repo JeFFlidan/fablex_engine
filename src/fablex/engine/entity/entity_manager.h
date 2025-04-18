@@ -23,6 +23,8 @@ public:
     }
 
     void remove_entity(Entity* entity);
+    
+    const std::vector<Entity*>& get_entities() const { return m_entities; }
 
 private:
     ThreadSafePoolAllocator<Entity, ENTITY_POOL_SIZE> m_allocator;

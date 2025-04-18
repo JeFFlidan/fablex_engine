@@ -1774,7 +1774,7 @@ public:
 
         buffer->descriptorIndex = m_storageBufferBindlessPool.allocate();
 
-        VkDescriptorBufferInfo bufferDescriptorInfo{buffer->vk().buffer, VK_WHOLE_SIZE, 0};
+        VkDescriptorBufferInfo bufferDescriptorInfo{buffer->vk().buffer, 0, VK_WHOLE_SIZE};
 
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -2072,9 +2072,9 @@ public:
 
         std::vector<VkWriteDescriptorSet> writes;
         
-        for (auto& pair : m_zeroDescriptorPool.descriptorSetsByItsHash)
+        for (auto& [hash, zeroDescriptorSet] : m_zeroDescriptorPool.descriptorSetsByItsHash)
         {
-            if (slot >= pair.second.bindingCount)
+            if (slot >= zeroDescriptorSet.bindingCount)
                 continue;
 
             auto& writeDescriptorSet = writes.emplace_back();
@@ -2082,7 +2082,7 @@ public:
             writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             writeDescriptorSet.dstBinding = slot;
             writeDescriptorSet.descriptorCount = 1;
-            writeDescriptorSet.dstSet = pair.second.descriptorSets[frameIndex];
+            writeDescriptorSet.dstSet = get_zero_descriptor_set(hash, frameIndex);
             writeDescriptorSet.dstArrayElement = 0;
             writeDescriptorSet.pBufferInfo = &bufferInfo;
         }
@@ -2372,7 +2372,7 @@ public:
 
         void bind_descriptor_sets(VkCommandBuffer cmd, uint32 frameIndex, VkPipelineBindPoint bindPoint) const
         {
-            if (!zeroDescriptorSetHash)
+            if (zeroDescriptorSetHash)
             {
                 VkDescriptorSet descriptorSet = g_descriptorHeap.get_zero_descriptor_set(zeroDescriptorSetHash, frameIndex);
                 vkCmdBindDescriptorSets(cmd, bindPoint, layout, 0, 1, &descriptorSet, 0, nullptr);
@@ -2613,7 +2613,7 @@ private:
     }
 } static g_pipelineLayoutCache;
 
-uint32 g_frameIndex = 0;
+uint64 g_frameIndex = 0;
 
 VkSurfaceKHR create_surface(const WindowInfo& windowInfo)
 {
@@ -4614,7 +4614,7 @@ void bind_vertex_buffer(CommandBuffer* cmd, Buffer* buffer)
     vkCmdBindVertexBuffers(cmd->vk().cmdBuffer, 0, 1, &buffer->vk().buffer, &offset);
 }
 
-void bind_index_buffer(CommandBuffer* cmd, Buffer* buffer)
+void bind_index_buffer(CommandBuffer* cmd, Buffer* buffer, uint64 offset)
 {
     FE_CHECK(cmd);
     FE_CHECK(buffer);
@@ -4622,7 +4622,6 @@ void bind_index_buffer(CommandBuffer* cmd, Buffer* buffer)
     if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::INDEX_BUFFER))
         FE_LOG(LogVulkanRHI, FATAL, "bind_index_buffer(): Buffer wasn't created with INDEX_BUFFER usage.");
 
-    VkDeviceSize offset = 0;
 	vkCmdBindIndexBuffer(cmd->vk().cmdBuffer, buffer->vk().buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
@@ -4855,6 +4854,12 @@ void draw(CommandBuffer* cmd, uint64 vertexCount)
     vkCmdDraw(cmd->vk().cmdBuffer, vertexCount, 1, 0, 0);
 }
 
+void draw_indexed(CommandBuffer* cmd, uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 vertexOffset, uint32 firstInstance)
+{
+    FE_CHECK(cmd);
+    vkCmdDrawIndexed(cmd->vk().cmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
 void draw_indirect(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride)
 {
     FE_CHECK(cmd);
@@ -4994,7 +4999,6 @@ void acquire_next_image(SwapChain* swapChain, Semaphore* signalSemaphore, Fence*
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
         create_swap_chain_internal(swapChain);
 
-    g_frameIndex = *frameIndex;
     swapChain->vk().imageIndex = *frameIndex;
 }
 
@@ -5158,9 +5162,9 @@ API get_api()
     return API::VK;
 }
 
-uint32 get_frame_index()
+void set_frame_index(uint64 frameIndex)
 {
-    return g_frameIndex;
+    g_frameIndex = frameIndex;
 }
 
 void set_name(ResourceVariant resource, const std::string& name)
@@ -5368,6 +5372,7 @@ void fill_function_table()
     fe::rhi::end_rendering = end_rendering;
 
     fe::rhi::draw = draw;
+    fe::rhi::draw_indexed = draw_indexed;
     fe::rhi::draw_indirect = draw_indirect;
     fe::rhi::draw_indexed_indirect = draw_indexed_indirect;
 
@@ -5381,7 +5386,7 @@ void fill_function_table()
     fe::rhi::wait_for_fences = wait_for_fences;
 
     fe::rhi::get_api = get_api;
-    fe::rhi::get_frame_index = get_frame_index;
+    fe::rhi::set_frame_index = set_frame_index;
     fe::rhi::set_name = set_name;
 
     fe::rhi::get_min_offset_alignment = get_min_offset_alignment;

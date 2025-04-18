@@ -293,6 +293,8 @@ void PipelineManager::create_pipeline(PipelineName pipelineName, PipelineInfoVar
 
     std::scoped_lock<std::mutex> locker(m_mutex);
     m_pipelineByName[pipelineName] = pipeline;
+
+    rhi::set_name(pipeline, pipelineName.to_string());
 }
 
 }

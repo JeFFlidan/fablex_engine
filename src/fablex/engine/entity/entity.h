@@ -19,6 +19,9 @@ public:
     Entity();
     ~Entity();
 
+    void set_name(const std::string& name) { m_name = name; }
+    const std::string& get_name() const { return m_name;}
+
     virtual void on_world_set(World* world) { m_world = world; }
 
     Entity* create_child();
@@ -90,6 +93,8 @@ public:
     }
 
 private:
+    std::string m_name = "undefined";
+
     std::vector<Component*> m_components;
     std::vector<Entity*> m_children;
     std::unordered_set<uint64> m_tags;

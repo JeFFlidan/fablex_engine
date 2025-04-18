@@ -20,7 +20,7 @@ void EntityManager::update()
 
     for (Entity* entity : m_entitiesToCreate)
     {
-        EventManager::enqueue_event(EntityCreatedEvent(m_entitiesToCreate.back()));
+        EventManager::enqueue_event(EntityCreatedEvent(entity));
         m_entities.push_back(entity);
     }
 

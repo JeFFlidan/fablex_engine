@@ -5,8 +5,13 @@
 namespace fe::engine
 {
 
+FE_DEFINE_OBJECT(EditorCameraComponent, CameraComponent);
+
 void EditorCameraComponent::update(float deltaTime)
 {
+    FE_CHECK(window);
+    FE_CHECK(m_entity);
+
     read_input(deltaTime);
     update_matrices();
 }
@@ -46,7 +51,7 @@ void EditorCameraComponent::read_input(float deltaTime)
         Matrix cameraRotation = Matrix::rotation(m_entity->get_rotation());
         Vector rotatedMove = Vector3::transform_normal(move, cameraRotation);
         m_entity->translate(rotatedMove);
-        m_entity->set_rotation(Float3(xDelta, yDelta, 0.0f), AngleUnit::RADIANS);
+        m_entity->set_rotation(Float3(yDelta, xDelta, 0.0f), AngleUnit::RADIANS);
     }
 }
 

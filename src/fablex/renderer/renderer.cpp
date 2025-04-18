@@ -35,6 +35,7 @@ Renderer::~Renderer()
     m_resourceManager.reset();
     m_syncManager.reset();
     m_commandManager.reset();
+    m_sceneManager.reset();
     rhi::cleanup();
 }
 
@@ -192,6 +193,8 @@ void Renderer::end_frame()
         g_frameIndex = 0;
     else
         ++g_frameIndex;
+
+    rhi::set_frame_index(g_frameIndex);
 }
 
 void Renderer::schedule_frame()
@@ -217,8 +220,9 @@ void Renderer::prepare_render_graph_execution()
 
 void Renderer::execute_render_graph()
 {
-    // record_upload_cmd();
+    record_upload_cmd();
     // record_bvh_build_cmd();
+    TaskComposer::wait(m_commandRecordingTaskGroup);
     record_worker_cmds();
     submit();
 }
@@ -279,13 +283,6 @@ void Renderer::configure_submit_contexts()
         }
 
         lastSubmitContext->depencyLevelCommandContexts.back().nodesToRecord.push_back(node);
-    }
-
-    // TODO: Do I need it when ray tracing is implemented???
-    if (!m_bvhBuildSemaphore && m_uploadSemaphore)
-    {
-        std::vector<SubmitContext>& submitContexts = m_submitContextsPerQueue.at(uint64(rhi::QueueType::GRAPHICS));
-        submitContexts.at(0).waitSemaphores.push_back(m_uploadSemaphore);
     }
 }
 
@@ -357,12 +354,14 @@ void Renderer::configure_pipeline_barriers()
 void Renderer::record_upload_cmd()
 {
     m_uploadSemaphore = m_syncManager->get_semaphore();
+    rhi::set_name(m_uploadSemaphore, "UploadSemaphore");
 
     TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo execInfo)
     {
         rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
-        
+        rhi::begin_command_buffer(cmd);
         m_sceneManager->upload(cmd);
+        rhi::end_command_buffer(cmd);
 
         m_uploadSubmitInfo.clear();
         m_uploadSubmitInfo.cmdBuffers.push_back(cmd);
@@ -378,6 +377,8 @@ void Renderer::record_bvh_build_cmd()
     TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo execInfo)
     {
         rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
+        rhi::begin_command_buffer(cmd);
+        rhi::end_command_buffer(cmd);
 
         m_bvhBuildSubmitInfo.clear();
         m_bvhBuildSubmitInfo.cmdBuffers.push_back(cmd);
@@ -462,6 +463,13 @@ void Renderer::submit()
 {
     TaskComposer::wait(m_commandRecordingTaskGroup);
 
+    // TODO: Do I need it when ray tracing is implemented???
+    if (!m_bvhBuildSemaphore && m_uploadSemaphore)
+    {
+        std::vector<SubmitContext>& submitContexts = m_submitContextsPerQueue.at(uint64(rhi::QueueType::GRAPHICS));
+        submitContexts.at(0).waitSemaphores.push_back(m_uploadSemaphore);
+    }
+
     uint32 queueIndex = 0;
     rhi::QueueType queueType = (rhi::QueueType)queueIndex;
     TaskGroup submitTaskGroup;
@@ -502,7 +510,6 @@ void Renderer::submit()
 
         TaskComposer::execute(submitTaskGroup, [&](TaskExecutionInfo execInfo)
         {
-            submitInfos[0].waitSemaphores.push_back(m_acquireSemaphore);    // TEMP!!
             rhi::submit(submitInfos, m_syncManager->get_fence());
         });
 

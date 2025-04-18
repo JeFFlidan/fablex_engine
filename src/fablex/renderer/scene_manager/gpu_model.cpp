@@ -1,5 +1,6 @@
 #include "gpu_model.h"
 #include "vertex.h"
+#include "scene_manager.h"
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
 #include "asset_manager/model/model.h"
@@ -19,7 +20,7 @@ GPUModel::~GPUModel()
     destroy();
 }
 
-void GPUModel::build(rhi::CommandBuffer* cmd)
+void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
 {
     destroy();
 
@@ -94,7 +95,9 @@ void GPUModel::build(rhi::CommandBuffer* cmd)
         rhi::ResourceUsage::STORAGE_BUFFER |
         rhi::ResourceUsage::STORAGE_TEXEL_BUFFER | 
         rhi::ResourceUsage::UNIFORM_TEXEL_BUFFER |
-        rhi::ResourceUsage::TRANSFER_DST;
+        rhi::ResourceUsage::TRANSFER_DST |
+        rhi::ResourceUsage::INDEX_BUFFER |
+        rhi::ResourceUsage::VERTEX_BUFFER;
 
     bufferInfo.memoryUsage = rhi::MemoryUsage::GPU;
     
@@ -118,6 +121,8 @@ void GPUModel::build(rhi::CommandBuffer* cmd)
     rhi::Buffer* stagingBuffer;
     rhi::create_buffer(&stagingBuffer, &bufferInfo);
 
+    sceneManager->add_staging_buffer(stagingBuffer);
+
     uint8* bufferData = static_cast<uint8*>(stagingBuffer->mappedData);
     uint64 bufferOffset = 0;
 
@@ -134,7 +139,7 @@ void GPUModel::build(rhi::CommandBuffer* cmd)
         for (uint64 i = 0; i != m_model->vertex_positions().size(); ++i)
         {
             const Float3& position = m_model->vertex_positions()[i];
-            uint8 wind = m_model->vertex_wind_weights()[i];
+            uint8 wind = m_model->vertex_wind_weights().empty() ? 0 : m_model->vertex_wind_weights()[i];
             VertexPositionWind16Bit vertex;
             vertex.from_full(m_aabb, position, wind);
             memcpy(vertices + i, &vertex, sizeof(VertexPositionWind16Bit));
@@ -337,8 +342,8 @@ void GPUModel::destroy()
     rhi::destroy_buffer_view(m_vertexUVs.uav);
     rhi::destroy_buffer_view(m_vertexAtlas.srv);
     rhi::destroy_buffer_view(m_vertexAtlas.uav);
-    rhi::destroy_buffer_view(m_vertexAtlas.srv);
-    rhi::destroy_buffer_view(m_vertexAtlas.uav);
+    rhi::destroy_buffer_view(m_vertexColors.srv);
+    rhi::destroy_buffer_view(m_vertexColors.uav);
 
     rhi::destroy_buffer(m_generalBuffer);
 }
@@ -358,6 +363,11 @@ void GPUModel::fill_shader_model(ShaderModel& outRendererModel)
 
     outRendererModel.uvRangeMin = m_uvRangeMin;
     outRendererModel.uvRangeMax = m_uvRangeMax;
+}
+
+uint64 GPUModel::get_index_count() const
+{
+    return m_model->indices().size();
 }
 
 int32 GPUModel::get_srv_indices() const

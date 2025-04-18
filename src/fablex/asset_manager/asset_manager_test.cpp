@@ -10,9 +10,6 @@ void AssetManagerTest::run()
     std::string projectDirectory = "projects/asset_manager_test";
     FileSystem::create_project_directory(projectDirectory);
 
-    AssetManager::init();
-
-    AssetRegistry::init();
     std::vector<const AssetData*> modelAssetDatas;
     AssetRegistry::get_assets_by_type(Type::MODEL, modelAssetDatas);
 

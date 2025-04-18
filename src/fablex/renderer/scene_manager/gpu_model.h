@@ -9,13 +9,15 @@ struct ShaderModel;
 namespace fe::renderer
 {
 
+class SceneManager;
+
 class GPUModel
 {
 public:
     GPUModel(asset::Model* model);
     ~GPUModel();
 
-    void build(rhi::CommandBuffer* cmd);
+    void build(rhi::CommandBuffer* cmd, SceneManager* sceneManager);
     void destroy();
 
     void fill_shader_model(ShaderModel& outRendererModel);
@@ -24,6 +26,9 @@ public:
     AABB get_aabb() const { return m_aabb; }
     rhi::Format get_position_format() const { return m_positionFormat; }
     rhi::Format get_uv_format() const { return m_uvFormat; }
+    rhi::Buffer* get_buffer() const { return m_generalBuffer; }
+    uint64 get_index_offset() const { return m_indices.offset; }
+    uint64 get_index_count() const;
 
     int32 get_srv_indices() const;
     int32 get_srv_positions_winds() const;

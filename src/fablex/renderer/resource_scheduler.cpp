@@ -54,6 +54,7 @@ void ResourceScheduler::create_depth_stencil(
     newTextureInfo.width = s_renderContext->get_render_surface().width;
     newTextureInfo.height = s_renderContext->get_render_surface().height;
     newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
+    newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
 
     fill_info_from_base(newTextureInfo, textureInfo);
 

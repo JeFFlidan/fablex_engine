@@ -228,6 +228,13 @@ struct ShaderTransform
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
 	}
+
+#ifndef __cplusplus
+	float3x3 get_matrix_adjoint()
+	{
+		return adjoint(get_matrix());
+	}
+#endif // __cplusplus
 };
 
 struct ShaderSphereBounds
@@ -251,7 +258,7 @@ struct alignas(16) ShaderModelInstance
 	ShaderSphereBounds sphereBounds;
 
 	uint materialIndex;
-	uint geometryOffest;
+	uint geometryOffset;
 
 	float3 scale;
 
@@ -263,7 +270,7 @@ struct alignas(16) ShaderModelInstance
 		sphereBounds.init();
 
 		materialIndex = 0;
-		geometryOffest = 0;
+		geometryOffset = 0;
 		scale = float3(0.0f, 0.0f, 0.0f);
 	}
 };
@@ -445,7 +452,7 @@ struct ShaderFrustum
 
 struct ShaderCamera
 {
-	float3 location;
+	float3 position;
 	uint empty1;
 
 	float4 clipPlane;

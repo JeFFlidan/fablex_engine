@@ -3,6 +3,16 @@
 
 #include "shader_interop_base.h"
 
+inline float3x3 adjoint(in float4x4 mat)
+{
+    // Taken from https://www.shadertoy.com/view/3s33zj
+    return float3x3(
+        cross(mat[1].xyz, mat[2].xyz), 
+        cross(mat[2].xyz, mat[0].xyz), 
+        cross(mat[0].xyz, mat[1].xyz)
+    );
+}
+
 #if defined(__spirv__)
 
 static const uint BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER = 1;
@@ -73,6 +83,13 @@ FrameUB get_frame()
     return frameData;
 }
 
+inline ShaderCamera get_camera(uint cameraIndex = 0)
+{
+    if (cameraIndex < MAX_CAMERA_COUNT)
+        return cameraData.cameras[cameraIndex];
+    return cameraData.cameras[0];
+}
+
 inline ShaderEntity get_entity(uint entityIndex)
 {
     return bindlessStructuredEntities[get_frame().entityBufferIndex][entityIndex];
@@ -83,9 +100,9 @@ inline ShaderMaterial get_material(uint materialIndex)
     return bindlessStructuredMaterials[get_frame().materialBufferIndex][materialIndex];
 }
 
-inline ShaderModel get_model(uint hlslInstanceID)
+inline ShaderModel get_model(uint modelIndex)
 {
-    return bindlessStructuredModels[get_frame().modelBufferIndex][hlslInstanceID];
+    return bindlessStructuredModels[get_frame().modelBufferIndex][modelIndex];
 }
 
 inline ShaderModelInstanceID get_model_instance_id(uint hlslInstanceID)
@@ -95,7 +112,8 @@ inline ShaderModelInstanceID get_model_instance_id(uint hlslInstanceID)
 
 inline ShaderModelInstance get_model_instance(uint hlslInstanceID)
 {
-    return bindlessStructuredModelInstances[get_frame().modelInstanceBufferIndex][get_model_instance_id(hlslInstanceID).id];
+    // TEMP!!!
+    return bindlessStructuredModelInstances[get_frame().modelInstanceBufferIndex][hlslInstanceID];
 }
 
 #endif // COMMON_SHADER

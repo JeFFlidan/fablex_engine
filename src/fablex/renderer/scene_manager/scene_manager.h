@@ -4,6 +4,8 @@
 #include "engine/entity/entity.h"
 #include "asset_manager/model/model.h"
 #include "core/pool_allocator.h"
+#include "shaders/shader_interop_renderer.h"
+#include <array>
 
 namespace fe::renderer
 {
@@ -19,9 +21,16 @@ public:
 
     void upload(rhi::CommandBuffer* cmd);
 
+    void add_staging_buffer(rhi::Buffer* buffer);
+    const std::vector<GPUModel*>& get_gpu_models() const { return m_gpuModels; }
+
 private:
-    std::vector<engine::Entity*> m_entities;
-    std::vector<engine::Entity*> m_pendingEntities;
+    using ShaderCameraArray = std::array<ShaderCamera, MAX_CAMERA_COUNT>;
+    using BufferArray = std::vector<rhi::Buffer*>;
+    using EntityArray = std::vector<engine::Entity*>;
+
+    EntityArray m_entities;
+    EntityArray m_pendingEntities;
 
     uint64 m_modelComponentCount = 0;
 
@@ -29,14 +38,26 @@ private:
     std::vector<GPUModel*> m_gpuModels;
     std::unordered_map<UUID, uint32> m_gpuModelIndexByUUID;
 
-    std::vector<rhi::Buffer*> m_modelBuffers;
-    std::vector<rhi::Buffer*> m_modelInstanceBuffers;
+    std::unordered_map<uint64, BufferArray> m_stagingBuffersByFrameIndex;
+
+    BufferArray m_modelBuffers;
+    BufferArray m_modelInstanceBuffers;
+
+    FrameUB m_frameData;
+    ShaderCameraArray m_cameras;
+    engine::Entity* m_mainCameraEntity = nullptr;
+    BufferArray m_frameBuffers;
+    BufferArray m_cameraBuffers;
 
     rhi::Buffer* get_model_buffer();
     rhi::Buffer* get_model_instance_buffer();
     uint64 calc_buffer_size(uint64 currentSize, uint64 cpuEntrieSize);
 
-    rhi::Buffer* create_uma_buffer(uint64 size = DEFAULT_GPU_BUFFER_SIZE) const;
+    void fill_frame_data();
+    void fill_camera_buffers();
+
+    rhi::Buffer* create_uma_storage_buffer(uint64 size = DEFAULT_GPU_BUFFER_SIZE) const;
+    rhi::Buffer* create_uma_uniform_buffer(uint64 size) const;
 };
 
 }
