@@ -63,3 +63,11 @@ file(GLOB BASISU_FILES
 )
 target_sources(basisu PRIVATE ${BASISU_FILES})
 target_link_libraries(basisu zstd)
+
+add_library(meshopt STATIC)
+file(GLOB MESHOPT_FILES
+    meshoptimizer/*.h
+    meshoptimizer/*.cpp
+)
+target_sources(meshopt PRIVATE ${MESHOPT_FILES})
+target_include_directories(meshopt PUBLIC meshoptimizer)
