@@ -552,8 +552,8 @@ void GPUModel::BufferView::cleanup()
 {
     rhi::destroy_buffer_view(srv);
     rhi::destroy_buffer_view(uav);
-    offset = 0;
-    size = 0;
+    offset = INVALID;
+    size = INVALID;
 }
 
 }
