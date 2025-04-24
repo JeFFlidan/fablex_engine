@@ -26,7 +26,7 @@
             }
         },
         {
-            "Name": "ObjectPass",
+            "Name": "ObjectMeshTestPass",
             "Type": "GRAPHICS",
             "RenderTargets": [
                 {
@@ -39,15 +39,15 @@
                 }
             ],
             "Pipeline": {
-                "Name": "ObjectPipeline",
+                "Name": "ObjectMeshTestPipeline",
                 "Shaders": [
                     {
-                        "Type": "VERTEX",
-                        "Path": "object_vs.hlsl"
+                        "Type": "MESH",
+                        "Path": "object_ms_test.hlsl"
                     },
                     {
                         "Type": "FRAGMENT",
-                        "Path": "object_fs.hlsl"
+                        "Path": "object_fs_debug.hlsl"
                     }
                 ]
             }

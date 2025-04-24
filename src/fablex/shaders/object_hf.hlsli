@@ -26,7 +26,7 @@ struct VertexInput
 
     ShaderModel get_model()
     {
-        return ::get_model(instanceID);
+        return ::get_model(get_model_instance().geometryOffset);
     }
 
     float4 get_position_wind()
@@ -71,13 +71,13 @@ struct VertexDesc
 
     void init(VertexInput input)
     {
-        ShaderModelInstance get_modelInstance = input.get_model_instance();
+        ShaderModelInstance modelInstance = input.get_model_instance();
 
         float4 posWind = input.get_position_wind();
         position = float4(posWind.xyz, 1.0f);
-        position = mul(get_modelInstance.transform.get_matrix(), position);
+        position = mul(modelInstance.transform.get_matrix(), position);
 
-        float3x3 adjointMat = get_modelInstance.rawTransform.get_matrix_adjoint();
+        float3x3 adjointMat = modelInstance.rawTransform.get_matrix_adjoint();
 
         normal = input.get_normal();
         normal = mul(adjointMat, normal);
@@ -94,7 +94,10 @@ struct VertexDesc
 struct PixelInput
 {
     precise float4 position : SV_POSITION;
+
+#ifdef OBJECT_SHADER_USE_INSTANCE_ID
     uint instanceID : SV_InstanceID;
+#endif // OBJECT_SHADER_USE_INSTANCE_ID
     
 #ifdef OBJECT_SHADER_USE_NORMAL
     float3 normal : NORMAL;
@@ -107,6 +110,10 @@ struct PixelInput
 #ifdef OBJECT_SHADER_USE_UV_SETS
     float4 uvSets : TEXCOORD0;
 #endif // OBJECT_SHADER_USE_UV_SETS
+
+#ifdef OBJECT_SHADER_USE_COLOR
+    float3 color : COLOR;
+#endif // OBJECT_SHADER_USE_COLOR
 
     void init(VertexDesc vertDesc)
     {

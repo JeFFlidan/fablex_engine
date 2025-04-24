@@ -1794,28 +1794,51 @@ public:
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 
-        switch (bufferView->type)
+        if (bufferView->format != rhi::Format::UNDEFINED)
         {
-        case rhi::ViewType::SRV:
-            writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-            writeDescriptorSet.dstSet = m_uniformTexelBufferBindlessPool.set;
-            bufferView->descriptorIndex = m_uniformTexelBufferBindlessPool.allocate();
-            break;
-        case rhi::ViewType::UAV:
-            writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
-            writeDescriptorSet.dstSet = m_storageTexelBufferBindlessPool.set;
-            bufferView->descriptorIndex = m_storageTexelBufferBindlessPool.allocate();
-            break;
-        default:
-            FE_LOG(LogVulkanRHI, FATAL, "Failed to allocate descriptor for buffer view");
-        }
+            switch (bufferView->type)
+            {
+            case rhi::ViewType::SRV:
+                writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+                writeDescriptorSet.dstSet = m_uniformTexelBufferBindlessPool.set;
+                bufferView->descriptorIndex = m_uniformTexelBufferBindlessPool.allocate();
+                break;
+            case rhi::ViewType::UAV:
+                writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+                writeDescriptorSet.dstSet = m_storageTexelBufferBindlessPool.set;
+                bufferView->descriptorIndex = m_storageTexelBufferBindlessPool.allocate();
+                break;
+            default:
+                FE_LOG(LogVulkanRHI, FATAL, "Failed to allocate descriptor for buffer view");
+            }
 
-        writeDescriptorSet.dstBinding = 0;
-        writeDescriptorSet.dstArrayElement = bufferView->descriptorIndex;
-        writeDescriptorSet.descriptorCount = 1;
-        VkBufferView vkBufferViewHandle = bufferView->vk().bufferView;
-        writeDescriptorSet.pTexelBufferView = &vkBufferViewHandle;
-        vkUpdateDescriptorSets(g_device.device, 1, &writeDescriptorSet, 0, nullptr);
+            writeDescriptorSet.dstBinding = 0;
+            writeDescriptorSet.dstArrayElement = bufferView->descriptorIndex;
+            writeDescriptorSet.descriptorCount = 1;
+            VkBufferView vkBufferViewHandle = bufferView->vk().bufferView;
+            writeDescriptorSet.pTexelBufferView = &vkBufferViewHandle;
+            vkUpdateDescriptorSets(g_device.device, 1, &writeDescriptorSet, 0, nullptr);
+        }
+        else
+        {
+            bufferView->descriptorIndex = m_storageBufferBindlessPool.allocate();
+
+            VkDescriptorBufferInfo bufferDescriptorInfo{
+                bufferView->buffer->vk().buffer, 
+                bufferView->offset, 
+                bufferView->size
+            };
+    
+            VkWriteDescriptorSet writeDescriptorSet{};
+            writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            writeDescriptorSet.dstBinding = 0;
+            writeDescriptorSet.dstSet = m_storageBufferBindlessPool.set;
+            writeDescriptorSet.dstArrayElement = bufferView->descriptorIndex;
+            writeDescriptorSet.descriptorCount = 1;
+            writeDescriptorSet.pBufferInfo = &bufferDescriptorInfo;
+            vkUpdateDescriptorSets(g_device.device, 1, &writeDescriptorSet, 0, nullptr);
+        }
     }
 
     void allocate_descriptor(TextureView* textureView)
@@ -1935,16 +1958,23 @@ public:
 
     void free_descriptor(BufferView* bufferView)
     {
-        switch (bufferView->type)
+        if (bufferView->format != rhi::Format::UNDEFINED)
         {
-        case rhi::ViewType::SRV:
-            m_uniformTexelBufferBindlessPool.free(bufferView->descriptorIndex);
-            break;
-        case rhi::ViewType::UAV:
-            m_storageTexelBufferBindlessPool.free(bufferView->descriptorIndex);
-            break;
-        default:
-            FE_LOG(LogVulkanRHI, FATAL, "Failed to free descriptor for buffer view");
+            switch (bufferView->type)
+            {
+            case rhi::ViewType::SRV:
+                m_uniformTexelBufferBindlessPool.free(bufferView->descriptorIndex);
+                break;
+            case rhi::ViewType::UAV:
+                m_storageTexelBufferBindlessPool.free(bufferView->descriptorIndex);
+                break;
+            default:
+                FE_LOG(LogVulkanRHI, FATAL, "Failed to free descriptor for buffer view");
+            }
+        }
+        else 
+        {
+            m_storageBufferBindlessPool.free(bufferView->descriptorIndex);
         }
 
         bufferView->descriptorIndex = s_undefinedDescriptor;
@@ -3474,17 +3504,17 @@ void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info, con
     if (is_format_srgb(bufferViewPtr->format))
         bufferViewPtr->format = get_non_srgb_format(bufferViewPtr->format);
 
-    if (bufferViewPtr->format == Format::UNDEFINED)
-        FE_LOG(LogVulkanRHI, FATAL, "create_buffer_view(): View format is UNDEFINED.");
-
-    VkBufferViewCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
-    createInfo.buffer = buffer->vk().buffer;
-    createInfo.offset = info->offset;
-    createInfo.range = info->size;
-    createInfo.format = get_format(bufferViewPtr->format);
-    VK_CHECK(vkCreateBufferView(g_device.device, &createInfo, nullptr, &bufferViewPtr->vk().bufferView));
-
+    if (bufferViewPtr->format != rhi::Format::UNDEFINED)
+    {
+        VkBufferViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+        createInfo.buffer = buffer->vk().buffer;
+        createInfo.offset = info->offset;
+        createInfo.range = info->size;
+        createInfo.format = get_format(bufferViewPtr->format);
+        VK_CHECK(vkCreateBufferView(g_device.device, &createInfo, nullptr, &bufferViewPtr->vk().bufferView));
+    }
+    
     g_descriptorHeap.allocate_descriptor(bufferViewPtr);
 
     *bufferView = bufferViewPtr;
@@ -4883,6 +4913,12 @@ void dispatch(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, ui
     vkCmdDispatch(cmd->vk().cmdBuffer, groupCountX, groupCountY, groupCountZ);
 }
 
+void dispatch_mesh(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+    FE_CHECK(cmd);
+    vkCmdDrawMeshTasksEXT(cmd->vk().cmdBuffer, groupCountX, groupCountY, groupCountZ);
+}
+
 void add_pipeline_barriers(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers)
 {
     FE_CHECK(cmd);
@@ -5176,7 +5212,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     if (Buffer** ppBuffer = std::get_if<Buffer*>(&resource))
     {
         Buffer* buffer = *ppBuffer;
-        FE_CHECK(buffer->vk().buffer != VK_NULL_HANDLE);
+        if (buffer->vk().buffer == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_BUFFER;
         info.objectHandle = (uint64)buffer->vk().buffer;
@@ -5184,7 +5220,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (BufferView** ppBufferView = std::get_if<BufferView*>(&resource))
     {
         BufferView* bufferView = *ppBufferView;
-        FE_CHECK(bufferView->vk().bufferView != VK_NULL_HANDLE);
+        if (bufferView->vk().bufferView == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_BUFFER_VIEW;
         info.objectHandle = (uint64)bufferView->vk().bufferView;
@@ -5192,7 +5228,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (Texture** ppTexture = std::get_if<Texture*>(&resource))
     {
         Texture* texture = *ppTexture;
-        FE_CHECK(texture->vk().image != VK_NULL_HANDLE);
+        if (texture->vk().image == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_IMAGE;
         info.objectHandle = (uint64)texture->vk().image;
@@ -5200,7 +5236,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (TextureView** ppTextureView = std::get_if<TextureView*>(&resource))
     {
         TextureView* textureView = *ppTextureView;
-        FE_CHECK(textureView->vk().imageView != VK_NULL_HANDLE);
+        if (textureView->vk().imageView == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
         info.objectHandle = (uint64)textureView->vk().imageView;
@@ -5208,7 +5244,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (Shader** ppShader = std::get_if<Shader*>(&resource))
     {
         Shader* shader = *ppShader;
-        FE_CHECK(shader->vk().shader != VK_NULL_HANDLE);
+        if (shader->vk().shader == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_SHADER_MODULE;
         info.objectHandle = (uint64)shader->vk().shader;
@@ -5216,7 +5252,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (Sampler** ppSampler = std::get_if<Sampler*>(&resource))
     {
         Sampler* sampler = *ppSampler;
-        FE_CHECK(sampler->vk().sampler != VK_NULL_HANDLE);
+        if (sampler->vk().sampler == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_SAMPLER;
         info.objectHandle = (uint64)sampler->vk().sampler;
@@ -5224,7 +5260,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (Pipeline** ppPipeline = std::get_if<Pipeline*>(&resource))
     {
         Pipeline* pipeline = *ppPipeline;
-        FE_CHECK(pipeline->vk().pipeline != VK_NULL_HANDLE);
+        if (pipeline->vk().pipeline == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_PIPELINE;
         info.objectHandle = (uint64)pipeline->vk().pipeline;
@@ -5232,7 +5268,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (CommandPool** ppCmdPool = std::get_if<CommandPool*>(&resource))
     {
         CommandPool* cmdPool = *ppCmdPool;
-        FE_CHECK(cmdPool->vk().cmdPool != VK_NULL_HANDLE);
+        if (cmdPool->vk().cmdPool == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
         info.objectHandle = (uint64)cmdPool->vk().cmdPool;
@@ -5240,7 +5276,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (CommandBuffer** ppCmdBuffer = std::get_if<CommandBuffer*>(&resource))
     {
         CommandBuffer* cmdBuffer = *ppCmdBuffer;
-        FE_CHECK(cmdBuffer->vk().cmdBuffer != VK_NULL_HANDLE);
+        if (cmdBuffer->vk().cmdBuffer == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
         info.objectHandle = (uint64)cmdBuffer->vk().cmdBuffer;
@@ -5248,7 +5284,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (SwapChain** ppSwapChain = std::get_if<SwapChain*>(&resource))
     {
         SwapChain* swapChain = *ppSwapChain;
-        FE_CHECK(swapChain->vk().swapChain != VK_NULL_HANDLE);
+        if (swapChain->vk().swapChain == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
         info.objectHandle = (uint64)swapChain->vk().swapChain;
@@ -5256,7 +5292,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (Fence** ppFence = std::get_if<Fence*>(&resource))
     {
         Fence* fence = *ppFence;
-        FE_CHECK(fence->vk().fence != VK_NULL_HANDLE);
+        if (fence->vk().fence == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_FENCE;
         info.objectHandle = (uint64)fence->vk().fence;
@@ -5264,7 +5300,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (Semaphore** ppSemaphore = std::get_if<Semaphore*>(&resource))
     {
         Semaphore* semaphore = *ppSemaphore;
-        FE_CHECK(semaphore->vk().semaphore != VK_NULL_HANDLE);
+        if (semaphore->vk().semaphore == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_SEMAPHORE;
         info.objectHandle = (uint64)semaphore->vk().semaphore;
@@ -5272,7 +5308,7 @@ void set_name(ResourceVariant resource, const std::string& name)
     else if (AccelerationStructure** ppAS = std::get_if<AccelerationStructure*>(&resource))
     {
         AccelerationStructure* as = *ppAS;
-        FE_CHECK(as->vk().accelerationStructure != VK_NULL_HANDLE);
+        if (as->vk().accelerationStructure == VK_NULL_HANDLE) return;
 
         info.objectType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
         info.objectHandle = (uint64)as->vk().accelerationStructure;
@@ -5377,6 +5413,7 @@ void fill_function_table()
     fe::rhi::draw_indexed_indirect = draw_indexed_indirect;
 
     fe::rhi::dispatch = dispatch;
+    fe::rhi::dispatch_mesh = dispatch_mesh;
     fe::rhi::add_pipeline_barriers = add_pipeline_barriers;
 
     fe::rhi::acquire_next_image = acquire_next_image;

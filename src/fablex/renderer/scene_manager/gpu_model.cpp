@@ -6,6 +6,7 @@
 #include "asset_manager/model/model.h"
 #include "core/primitives/aabb.h"
 #include "shaders/shader_interop_renderer.h"
+#include "meshoptimizer.h"
 
 namespace fe::renderer
 {
@@ -90,6 +91,88 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
         }
     }
 
+    const float coneWeight = 0.5f;
+
+    const size_t maxMeshlets = meshopt_buildMeshletsBound(
+        m_model->index_count(), 
+        MESHLET_VERTEX_COUNT, 
+        MESHLET_TRIANGLE_COUNT
+    );
+
+    std::vector<meshopt_Meshlet> meshoptMeshlets(maxMeshlets);
+    std::vector<unsigned int> meshletVertices(maxMeshlets * MESHLET_VERTEX_COUNT);
+    std::vector<unsigned char> meshletTriangles(maxMeshlets * MESHLET_TRIANGLE_COUNT * 3);
+
+    m_meshletCount = meshopt_buildMeshlets(
+        meshoptMeshlets.data(),
+        meshletVertices.data(),
+        meshletTriangles.data(),
+        m_model->indices().data(),
+        m_model->index_count(),
+        (float*)m_model->vertex_positions().data(),
+        m_model->vertex_count(),
+        sizeof(Float3),
+        MESHLET_VERTEX_COUNT,
+        MESHLET_TRIANGLE_COUNT,
+        coneWeight
+    );
+
+    std::vector<ShaderMeshlet> shaderMeshlets;
+    std::vector<ShaderMeshletBounds> shaderMeshletBounds;
+
+    shaderMeshlets.reserve(m_meshletCount);
+    shaderMeshletBounds.reserve(m_meshletCount);
+
+    const meshopt_Meshlet& lastMeshlet = meshoptMeshlets[m_meshletCount - 1];
+    meshletVertices.resize(lastMeshlet.vertex_offset + lastMeshlet.vertex_count);
+    meshletTriangles.resize(lastMeshlet.triangle_offset + ((lastMeshlet.triangle_count * 3 + 3) & ~3));
+    meshoptMeshlets.resize(m_meshletCount);
+
+    for (const meshopt_Meshlet& meshoptMeshlet : meshoptMeshlets)
+    {
+        meshopt_optimizeMeshlet(
+            &meshletVertices[meshoptMeshlet.vertex_offset], 
+            &meshletTriangles[meshoptMeshlet.triangle_offset], 
+            meshoptMeshlet.triangle_count,
+            meshoptMeshlet.vertex_count
+        );
+
+        meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+            &meshletVertices[meshoptMeshlet.vertex_offset], 
+            &meshletTriangles[meshoptMeshlet.triangle_offset], 
+            meshoptMeshlet.triangle_count, 
+            &m_model->vertex_positions()[0].x, 
+            m_model->vertex_count(), 
+            sizeof(Float3)
+        );
+
+        ShaderMeshletBounds& shaderMeshletBoundsEntry = shaderMeshletBounds.emplace_back();
+        shaderMeshletBoundsEntry.bounds.center.x = bounds.center[0];
+        shaderMeshletBoundsEntry.bounds.center.y = bounds.center[1];
+        shaderMeshletBoundsEntry.bounds.center.z = bounds.center[2];
+        shaderMeshletBoundsEntry.bounds.radius = bounds.radius;
+        shaderMeshletBoundsEntry.coneAxis.x = bounds.cone_axis[0];
+        shaderMeshletBoundsEntry.coneAxis.y = bounds.cone_axis[1];
+        shaderMeshletBoundsEntry.coneAxis.z = bounds.cone_axis[2];
+        shaderMeshletBoundsEntry.coneCutoff = bounds.cone_cutoff;
+
+        ShaderMeshlet& shaderMeshlet = shaderMeshlets.emplace_back();
+        shaderMeshlet.triangleCount = meshoptMeshlet.triangle_count;
+        shaderMeshlet.vertexCount = meshoptMeshlet.vertex_count;
+
+        for (size_t i = 0; i != meshoptMeshlet.triangle_count; ++i)
+        {
+            shaderMeshlet.triangles[i].init(
+                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 0),
+                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 1),
+                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 2)
+            );
+        }
+
+        for (size_t i = 0; i != meshoptMeshlet.vertex_count; ++i)
+            shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
+    }
+
     rhi::BufferInfo bufferInfo;
     bufferInfo.bufferUsage = 
         rhi::ResourceUsage::STORAGE_BUFFER |
@@ -112,6 +195,17 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
         rhi::align_to(m_model->vertex_atlas().size() * sizeof(VertexUV16Bit), alignment) +
         rhi::align_to(m_model->vertex_colors().size() * sizeof(VertexColor), alignment);
 
+    if (!shaderMeshlets.empty())
+    {
+        bufferInfo.size = rhi::align_to(bufferInfo.size, sizeof(ShaderMeshlet));
+        bufferInfo.size = rhi::align_to(bufferInfo.size + shaderMeshlets.size() * sizeof(ShaderMeshlet), alignment);
+    }
+
+    if (!shaderMeshletBounds.empty())
+    {
+        bufferInfo.size = rhi::align_to(bufferInfo.size, sizeof(ShaderMeshletBounds));
+        bufferInfo.size = rhi::align_to(bufferInfo.size + shaderMeshletBounds.size() * sizeof(ShaderMeshletBounds), alignment);
+    }
 
     rhi::create_buffer(&m_generalBuffer, &bufferInfo);
 
@@ -194,6 +288,24 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
     uint32* indexData = reinterpret_cast<uint32*>(bufferData + bufferOffset);
     bufferOffset += rhi::align_to(m_indices.size, alignment);
     memcpy(indexData, m_model->indices().data(), m_indices.size);
+
+    if (!shaderMeshlets.empty())
+    {
+        bufferOffset = rhi::align_to(bufferOffset, sizeof(ShaderMeshlet));
+        m_meshlets.offset = bufferOffset;
+        m_meshlets.size = shaderMeshlets.size() * sizeof(ShaderMeshlet);
+        memcpy(bufferData + bufferOffset, shaderMeshlets.data(), m_meshlets.size);
+        bufferOffset += rhi::align_to(m_meshlets.size, alignment);
+    }
+
+    if (!shaderMeshletBounds.empty())
+    {
+        bufferOffset = rhi::align_to(bufferOffset, sizeof(ShaderMeshletBounds));
+        m_meshletBounds.offset = bufferOffset;
+        m_meshletBounds.size = shaderMeshletBounds.size() * sizeof(ShaderMeshletBounds);
+        memcpy(bufferData + bufferOffset, shaderMeshletBounds.data(), m_meshletBounds.size);
+        bufferOffset += rhi::align_to(m_meshletBounds.size, alignment);
+    }
 
     if (!m_model->vertex_normals().empty())
     {
@@ -307,43 +419,44 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
     rhi::copy_buffer(cmd, stagingBuffer, m_generalBuffer, stagingBuffer->size, 0, 0);
 
     FE_CHECK(m_vertexPositionsWinds.is_valid());
-    configure_buffer_view(m_vertexPositionsWinds, m_positionFormat);
+    configure_buffer_view(m_vertexPositionsWinds, m_positionFormat, "Vertices");
 
     FE_CHECK(m_indices.is_valid());
-    configure_buffer_view(m_indices, rhi::Format::R32_UINT);
+    configure_buffer_view(m_indices, rhi::Format::R32_UINT, "Indices");
+
+    if (m_meshlets.is_valid())
+        configure_buffer_view(m_meshlets, rhi::Format::UNDEFINED, "Meshlets");
+
+    if (m_meshletBounds.is_valid())
+        configure_buffer_view(m_meshletBounds, rhi::Format::UNDEFINED, "MeshletBounds");
 
     if (m_vertexNormals.is_valid())
-        configure_buffer_view(m_vertexNormals, VertexNormal::FORMAT);
+        configure_buffer_view(m_vertexNormals, VertexNormal::FORMAT, "VertexNormals");
 
     if (m_vertexTangents.is_valid())
-        configure_buffer_view(m_vertexTangents, VertexTangent::FORMAT);
+        configure_buffer_view(m_vertexTangents, VertexTangent::FORMAT, "VertexTangents");
 
     if (m_vertexUVs.is_valid())
-        configure_buffer_view(m_vertexUVs, m_uvFormat);
+        configure_buffer_view(m_vertexUVs, m_uvFormat, "VertexUVs");
 
     if (m_vertexAtlas.is_valid())
-        configure_buffer_view(m_vertexAtlas, VertexUV16Bit::FORMAT);
+        configure_buffer_view(m_vertexAtlas, VertexUV16Bit::FORMAT, "VertexAtlas");
 
     if (m_vertexColors.is_valid())
-        configure_buffer_view(m_vertexColors, VertexColor::FORMAT);
+        configure_buffer_view(m_vertexColors, VertexColor::FORMAT, "VertexColors");
 }
 
 void GPUModel::destroy()
 {
-    rhi::destroy_buffer_view(m_indices.srv);
-    rhi::destroy_buffer_view(m_indices.uav);
-    rhi::destroy_buffer_view(m_vertexPositionsWinds.srv);
-    rhi::destroy_buffer_view(m_vertexPositionsWinds.uav);
-    rhi::destroy_buffer_view(m_vertexNormals.srv);
-    rhi::destroy_buffer_view(m_vertexNormals.uav);
-    rhi::destroy_buffer_view(m_vertexTangents.srv);
-    rhi::destroy_buffer_view(m_vertexTangents.uav);
-    rhi::destroy_buffer_view(m_vertexUVs.srv);
-    rhi::destroy_buffer_view(m_vertexUVs.uav);
-    rhi::destroy_buffer_view(m_vertexAtlas.srv);
-    rhi::destroy_buffer_view(m_vertexAtlas.uav);
-    rhi::destroy_buffer_view(m_vertexColors.srv);
-    rhi::destroy_buffer_view(m_vertexColors.uav);
+    m_indices.cleanup();
+    m_vertexPositionsWinds.cleanup();
+    m_meshlets.cleanup();
+    m_meshletBounds.cleanup();
+    m_vertexNormals.cleanup();
+    m_vertexTangents.cleanup();
+    m_vertexUVs.cleanup();
+    m_vertexAtlas.cleanup();
+    m_vertexColors.cleanup();
 
     rhi::destroy_buffer(m_generalBuffer);
 }
@@ -352,6 +465,8 @@ void GPUModel::fill_shader_model(ShaderModel& outRendererModel)
 {
     outRendererModel.indexBuffer = get_srv_indices();
     outRendererModel.vertexBufferPosWind = get_srv_positions_winds();
+    outRendererModel.vertexBufferMeshlets = get_srv_meshlets();
+    outRendererModel.vertexBufferMeshletBounds = get_srv_meshlet_bounds();
     outRendererModel.vertexBufferNormals = get_srv_normals();
     outRendererModel.vertexBufferTangents = get_srv_tangents();
     outRendererModel.vertexBufferUVs = get_srv_uvs();
@@ -380,6 +495,16 @@ int32 GPUModel::get_srv_positions_winds() const
     return m_vertexPositionsWinds.srv ? m_vertexPositionsWinds.srv->descriptorIndex : -1;
 }
 
+int32 GPUModel::get_srv_meshlets() const
+{
+    return m_meshlets.srv ? m_meshlets.srv->descriptorIndex : -1;
+}
+
+int32 GPUModel::get_srv_meshlet_bounds() const
+{
+    return m_meshletBounds.srv ? m_meshletBounds.srv->descriptorIndex : -1;
+}
+
 int32 GPUModel::get_srv_normals() const
 {
     return m_vertexNormals.srv ? m_vertexNormals.srv->descriptorIndex : -1;
@@ -405,7 +530,7 @@ int32 GPUModel::get_srv_colors() const
     return m_vertexColors.srv ? m_vertexColors.srv->descriptorIndex : -1;
 }
 
-void GPUModel::configure_buffer_view(BufferView& bufferView, rhi::Format format, bool requireUAV)
+void GPUModel::configure_buffer_view(BufferView& bufferView, rhi::Format format, std::string debugName, bool requireUAV)
 {
     rhi::BufferViewInfo bufferViewInfo;
     bufferViewInfo.newFormat = format;
@@ -413,12 +538,22 @@ void GPUModel::configure_buffer_view(BufferView& bufferView, rhi::Format format,
     bufferViewInfo.size = bufferView.size;
     bufferViewInfo.type = rhi::ViewType::SRV;
     rhi::create_buffer_view(&bufferView.srv, &bufferViewInfo, m_generalBuffer);
+    rhi::set_name(bufferView.srv, m_model->get_name() + debugName + "SRV");
 
     if (requireUAV)
     {
         bufferViewInfo.type = rhi::ViewType::UAV;
         rhi::create_buffer_view(&bufferView.uav, &bufferViewInfo, m_generalBuffer);
+        rhi::set_name(bufferView.srv, m_model->get_name() + debugName + "UAV");
     }
+}
+
+void GPUModel::BufferView::cleanup()
+{
+    rhi::destroy_buffer_view(srv);
+    rhi::destroy_buffer_view(uav);
+    offset = 0;
+    size = 0;
 }
 
 }

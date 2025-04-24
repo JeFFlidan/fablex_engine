@@ -55,6 +55,9 @@ public:
 
     // ========== End Object interface ==========
 
+    uint64 index_count() const { return m_indices.size(); }
+    uint64 vertex_count() const { return m_vertexPositions.size(); }
+
     const std::vector<uint32>& indices() const { return m_indices; }
     const std::vector<Float3>& vertex_positions() const { return m_vertexPositions; }
     const std::vector<Float3>& vertex_normals() const { return m_vertexNormals; }

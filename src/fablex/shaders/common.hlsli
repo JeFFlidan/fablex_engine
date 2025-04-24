@@ -76,6 +76,8 @@ static const uint BINDLESS_DESCRIPTOR_SET_ACCELERATION_STRUCTURE = 7;
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModelInstanceID> bindlessStructuredModelInstanceIDs[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMaterial> bindlessStructuredMaterials[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderEntity> bindlessStructuredEntities[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMeshlet> bindlesStructuredMeshlets[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMeshletBounds> bindlesStructuredMeshletBounds[];
 #endif
 
 FrameUB get_frame()

@@ -94,6 +94,7 @@ inline void (*draw_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, 
 inline void (*draw_indexed_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride);
 
 inline void (*dispatch)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+inline void (*dispatch_mesh)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 inline void (*add_pipeline_barriers)(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers);
 
 inline void (*acquire_next_image)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex);

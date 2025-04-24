@@ -1,4 +1,4 @@
-#include "object_pass.h"
+#include "object_mesh_test_pass.h"
 #include "render_context.h"
 #include "rhi/rhi.h"
 #include "scene_manager/scene_manager.h"
@@ -6,9 +6,9 @@
 namespace fe::renderer
 {
 
-FE_DEFINE_OBJECT(ObjectPass, RenderPass);
+FE_DEFINE_OBJECT(ObjectMeshTestPass, RenderPass);
 
-void ObjectPass::create_pipeline()
+void ObjectMeshTestPass::create_pipeline()
 {
     create_graphics_pipeline([&](rhi::GraphicsPipelineInfo& info)
     {
@@ -17,7 +17,7 @@ void ObjectPass::create_pipeline()
     });
 }
 
-void ObjectPass::execute(rhi::CommandBuffer* cmd)
+void ObjectMeshTestPass::execute(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
 
@@ -40,9 +40,9 @@ void ObjectPass::execute(rhi::CommandBuffer* cmd)
     // TEST
     for (GPUModel* gpuModel : sceneManager->get_gpu_models())
     {
-        rhi::bind_index_buffer(cmd, gpuModel->get_buffer(), gpuModel->get_index_offset());
-        rhi::draw_indexed(cmd, gpuModel->get_index_count(), 1, 0, 0, 0);
+        rhi::dispatch_mesh(cmd, gpuModel->get_meshlet_count(), 1, 1);
     }
 }
+
 
 }

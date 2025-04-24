@@ -27,7 +27,7 @@ void Engine::configure_test_scene()
     FileSystem::create_project_directory(projectDirectory);
 
     asset::ModelImportContext importContext;
-    importContext.originalFilePath = FileSystem::get_absolute_path("content/cubes.glb");
+    importContext.originalFilePath = FileSystem::get_absolute_path("content/horse.glb");
     importContext.projectDirectory = projectDirectory;
     importContext.mergeMeshes = true;
     asset::ModelImportResult importResult;
@@ -44,7 +44,7 @@ void Engine::configure_test_scene()
     cameraEntity->set_name("Camera");
     EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
     cameraComponent->mouseSensitivity = 0.12f;
-    cameraComponent->movementSpeed = 60.0f;
+    cameraComponent->movementSpeed = 9.0f;
     cameraComponent->window = m_window;
 }
 
