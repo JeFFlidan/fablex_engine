@@ -21,21 +21,14 @@ GPUModel::~GPUModel()
     destroy();
 }
 
-void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
+void GPUModel::build(SceneManager* sceneManager)
 {
     destroy();
 
-    m_aabb.minPoint = Float3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
-    m_aabb.maxPoint = Float3(FLOAT_MIN, FLOAT_MIN, FLOAT_MIN);
-
-    for (const Float3& position : m_model->vertex_positions())
-    {
-        m_aabb.minPoint = min(position, m_aabb.minPoint);
-        m_aabb.maxPoint = max(position, m_aabb.maxPoint);
-    }
-
     const float targetPrecision = 1.0f / 1000.0f;
     m_positionFormat = VertexPositionWind16Bit::FORMAT;
+
+    const AABB& aabb = get_aabb();
 
     for (uint32 i = 0; i != m_model->vertex_positions().size(); ++i)
     {
@@ -43,8 +36,8 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
         const uint8 wind = m_model->vertex_wind_weights().empty() ? 0xFF : m_model->vertex_wind_weights()[i];
 
         VertexPositionWind16Bit vertex;
-        vertex.from_full(m_aabb, position, wind);
-        const Float3 posAfterCompression = vertex.get_position(m_aabb);
+        vertex.from_full(aabb, position, wind);
+        const Float3 posAfterCompression = vertex.get_position(aabb);
 
         if (
             std::abs(posAfterCompression.x - position.x) <= targetPrecision &&
@@ -235,7 +228,7 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
             const Float3& position = m_model->vertex_positions()[i];
             uint8 wind = m_model->vertex_wind_weights().empty() ? 0 : m_model->vertex_wind_weights()[i];
             VertexPositionWind16Bit vertex;
-            vertex.from_full(m_aabb, position, wind);
+            vertex.from_full(aabb, position, wind);
             memcpy(vertices + i, &vertex, sizeof(VertexPositionWind16Bit));
         }
 
@@ -288,24 +281,6 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
     uint32* indexData = reinterpret_cast<uint32*>(bufferData + bufferOffset);
     bufferOffset += rhi::align_to(m_indices.size, alignment);
     memcpy(indexData, m_model->indices().data(), m_indices.size);
-
-    if (!shaderMeshlets.empty())
-    {
-        bufferOffset = rhi::align_to(bufferOffset, sizeof(ShaderMeshlet));
-        m_meshlets.offset = bufferOffset;
-        m_meshlets.size = shaderMeshlets.size() * sizeof(ShaderMeshlet);
-        memcpy(bufferData + bufferOffset, shaderMeshlets.data(), m_meshlets.size);
-        bufferOffset += rhi::align_to(m_meshlets.size, alignment);
-    }
-
-    if (!shaderMeshletBounds.empty())
-    {
-        bufferOffset = rhi::align_to(bufferOffset, sizeof(ShaderMeshletBounds));
-        m_meshletBounds.offset = bufferOffset;
-        m_meshletBounds.size = shaderMeshletBounds.size() * sizeof(ShaderMeshletBounds);
-        memcpy(bufferData + bufferOffset, shaderMeshletBounds.data(), m_meshletBounds.size);
-        bufferOffset += rhi::align_to(m_meshletBounds.size, alignment);
-    }
 
     if (!m_model->vertex_normals().empty())
     {
@@ -416,7 +391,28 @@ void GPUModel::build(rhi::CommandBuffer* cmd, SceneManager* sceneManager)
         }
     }
 
-    rhi::copy_buffer(cmd, stagingBuffer, m_generalBuffer, stagingBuffer->size, 0, 0);
+    if (!shaderMeshlets.empty())
+    {
+        bufferOffset = rhi::align_to(bufferOffset, sizeof(ShaderMeshlet));
+        m_meshlets.offset = bufferOffset;
+        m_meshlets.size = shaderMeshlets.size() * sizeof(ShaderMeshlet);
+        memcpy(bufferData + bufferOffset, shaderMeshlets.data(), m_meshlets.size);
+        bufferOffset += rhi::align_to(m_meshlets.size, alignment);
+    }
+
+    if (!shaderMeshletBounds.empty())
+    {
+        bufferOffset = rhi::align_to(bufferOffset, sizeof(ShaderMeshletBounds));
+        m_meshletBounds.offset = bufferOffset;
+        m_meshletBounds.size = shaderMeshletBounds.size() * sizeof(ShaderMeshletBounds);
+        memcpy(bufferData + bufferOffset, shaderMeshletBounds.data(), m_meshletBounds.size);
+        bufferOffset += rhi::align_to(m_meshletBounds.size, alignment);
+    }
+
+    sceneManager->get_cmd_recorder().record([&](rhi::CommandBuffer* cmd)
+    {
+        rhi::copy_buffer(cmd, stagingBuffer, m_generalBuffer, stagingBuffer->size, 0, 0);
+    });
 
     FE_CHECK(m_vertexPositionsWinds.is_valid());
     configure_buffer_view(m_vertexPositionsWinds, m_positionFormat, "Vertices");
@@ -473,11 +469,21 @@ void GPUModel::fill_shader_model(ShaderModel& outRendererModel)
     outRendererModel.vertexBufferAtlas = get_srv_atlas();
     outRendererModel.vertexBufferColors = get_srv_colors();
 
-    outRendererModel.aabbMin = m_aabb.minPoint;
-    outRendererModel.aabbMax = m_aabb.maxPoint;
+    outRendererModel.aabbMin = get_aabb().minPoint;
+    outRendererModel.aabbMax = get_aabb().maxPoint;
 
     outRendererModel.uvRangeMin = m_uvRangeMin;
     outRendererModel.uvRangeMax = m_uvRangeMax;
+}
+
+const AABB& GPUModel::get_aabb() const
+{
+    return m_model->aabb();
+}
+
+uint32 GPUModel::get_thread_group_count_x() const
+{
+    return static_cast<uint32>(m_meshletCount / 32 + 1);
 }
 
 uint64 GPUModel::get_index_count() const

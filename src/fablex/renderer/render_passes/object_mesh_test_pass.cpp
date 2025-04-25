@@ -36,11 +36,26 @@ void ObjectMeshTestPass::execute(rhi::CommandBuffer* cmd)
     rhi::set_scissors(cmd, scissors);
 
     bind_pipeline(cmd);
+
+    uint instanceOffset = 0;
     
     // TEST
     for (GPUModel* gpuModel : sceneManager->get_gpu_models())
     {
-        rhi::dispatch_mesh(cmd, gpuModel->get_meshlet_count(), 1, 1);
+        ObjectPushConstants pushConstants;
+        pushConstants.modelIndex = sceneManager->get_model_index(gpuModel);
+        pushConstants.instanceOffset = instanceOffset;
+        push_constants(cmd, &pushConstants);
+
+        uint32 instanceCount = sceneManager->get_instance_count(gpuModel);
+        instanceOffset += instanceCount;
+
+        rhi::dispatch_mesh(
+            cmd, 
+            gpuModel->get_thread_group_count_x(), 
+            sceneManager->get_instance_count(gpuModel), 
+            1
+        );
     }
 }
 

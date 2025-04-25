@@ -10,6 +10,7 @@ namespace fe::renderer
 {
 
 class SceneManager;
+class CommandRecorder;
 
 class GPUModel
 {
@@ -17,16 +18,17 @@ public:
     GPUModel(asset::Model* model);
     ~GPUModel();
 
-    void build(rhi::CommandBuffer* cmd, SceneManager* sceneManager);
+    void build(SceneManager* sceneManager);
     void destroy();
 
     void fill_shader_model(ShaderModel& outRendererModel);
 
     asset::Model* get_model() const { return m_model; }
-    AABB get_aabb() const { return m_aabb; }
+    const AABB& get_aabb() const;
     rhi::Format get_position_format() const { return m_positionFormat; }
     rhi::Format get_uv_format() const { return m_uvFormat; }
-    float get_meshlet_count() const { return m_meshletCount; }
+    uint64 get_meshlet_count() const { return m_meshletCount; }
+    uint32 get_thread_group_count_x() const;
     rhi::Buffer* get_buffer() const { return m_generalBuffer; }
     uint64 get_index_offset() const { return m_indices.offset; }
     uint64 get_index_count() const;
@@ -56,12 +58,11 @@ private:
     };
 
     asset::Model* m_model = nullptr;
-    AABB m_aabb;
     rhi::Format m_positionFormat = rhi::Format::UNDEFINED;
     rhi::Format m_uvFormat = rhi::Format::UNDEFINED;
     Float2 m_uvRangeMin = Float2(0.0f, 0.0f);
     Float2 m_uvRangeMax = Float2(1.0f, 1.0f);
-    float m_meshletCount = 0;
+    uint64 m_meshletCount = 0;
 
     rhi::Buffer* m_generalBuffer = nullptr;
     BufferView m_indices;

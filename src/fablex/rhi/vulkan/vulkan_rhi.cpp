@@ -3479,7 +3479,7 @@ void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info, con
     FE_CHECK(buffer);
 
     if (buffer->size < info->offset + info->size)
-        FE_LOG(LogVulkanRHI, FATAL, "create_buffer_view(): Buffer view needs more memory than buffer can provide");
+        FE_LOG(LogVulkanRHI, FATAL, "create_buffer_view(): Buffer view needs more memory than buffer can provide. Buffer size: {}; View offset: {}; View size: {}", buffer->size, info->offset, info->size);
 
     if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::STORAGE_TEXEL_BUFFER) ||
         !has_flag(buffer->bufferUsage, rhi::ResourceUsage::UNIFORM_TEXEL_BUFFER))

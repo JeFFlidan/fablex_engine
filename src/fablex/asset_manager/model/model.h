@@ -2,7 +2,7 @@
 
 #include "asset_manager/asset.h"
 #include "asset_manager/common.h"
-#include "core/primitives/sphere.h"
+#include "core/primitives/aabb.h"
 
 namespace fe::asset
 {
@@ -69,7 +69,7 @@ public:
     const std::vector<Float2>& vertex_atlas() const { return m_vertexAtlas; }
     const std::vector<uint32>& vertex_colors() const { return m_vertexColors; }
     const std::vector<uint8>& vertex_wind_weights() const { return m_vertexWindWeights; }
-    const Sphere& sphere_bounds() const { return m_sphereBounds; }
+    const AABB& aabb() const { return m_aabb; }
 
     // ========== Begin Asset interface ==========
 
@@ -92,7 +92,7 @@ protected:
     std::vector<Mesh> m_meshes;
     std::vector<std::string> m_materialNames;
     
-    Sphere m_sphereBounds;
+    AABB m_aabb;
 };
 
 FE_DEFINE_ASSET_POOL_SIZE(Model, 512);
@@ -115,7 +115,7 @@ struct ModelProxy
         vertexWindWeights(model->m_vertexWindWeights),
         meshes(model->m_meshes),
         materialNames(model->m_materialNames),
-        sphereBounds(model->m_sphereBounds)
+        aabb(model->m_aabb)
     {
 
     }
@@ -134,7 +134,7 @@ struct ModelProxy
     std::vector<Mesh>& meshes;
     std::vector<std::string>& materialNames;
     
-    Sphere& sphereBounds;
+    AABB& aabb;
 };
 
 #endif // FE_MODEL_PROXY

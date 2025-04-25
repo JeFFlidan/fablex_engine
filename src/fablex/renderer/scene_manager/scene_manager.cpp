@@ -5,6 +5,7 @@
 #include "engine/components/model_component.h"
 #include "engine/components/editor_camera_component.h"
 #include "core/task_composer.h"
+#include "core/primitives/sphere.h"
 #include "asset_manager/model/model.h"
 #include "shaders/shader_interop_renderer.h"
 
@@ -44,6 +45,8 @@ SceneManager::~SceneManager()
 
 void SceneManager::upload(rhi::CommandBuffer* cmd)
 {
+    m_cmdRecorder.set_cmd_buffer(cmd);
+
     BufferArray& stagingBuffers = m_stagingBuffersByFrameIndex[g_frameIndex];
     for (rhi::Buffer* buffer : stagingBuffers)
         rhi::destroy_buffer(buffer);
@@ -59,20 +62,28 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         {
             ++m_modelComponentCount;
 
-            if (m_gpuModelIndexByUUID.find(modelComponent->get_model_uuid()) != m_gpuModelIndexByUUID.end())
+            if (m_gpuModelInfoByUUID.find(modelComponent->get_model_uuid()) != m_gpuModelInfoByUUID.end())
+            {
+                ++m_gpuModelInfoByUUID[modelComponent->get_model_uuid()].instanceCount;
                 continue;
+            }
+
+            // If many instances were created at once, scene manager can create seceral GPUModel, so this line prevents that
+            GPUModelInfo& gpuModelInfo = m_gpuModelInfoByUUID[modelComponent->get_model_uuid()];
+            ++gpuModelInfo.instanceCount;
 
             // TEMP!!!! Must be done using TaskGorup with LOW priority 
-            TaskComposer::execute(taskGroup, [this, modelComponent, cmd](TaskExecutionInfo execInfo)
+            TaskComposer::execute(taskGroup, [this, modelComponent](TaskExecutionInfo execInfo)
             {
                 asset::Model* model = modelComponent->get_model();
                 FE_CHECK(model);
 
                 GPUModel* gpuModel = m_gpuModelAllocator.allocate(model);
-                gpuModel->build(cmd, this);
+                gpuModel->build(this);
 
+                std::scoped_lock<std::mutex> locker(m_gpuModelMutex);
                 m_gpuModels.push_back(gpuModel);
-                m_gpuModelIndexByUUID[model->get_uuid()] = m_gpuModels.size() - 1;
+                m_gpuModelInfoByUUID[model->get_uuid()].index = m_gpuModels.size() - 1;
             });
         }
 
@@ -110,11 +121,12 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         {
             if (engine::ModelComponent* modelComponent = entity->get_component<engine::ModelComponent>())
             {
-                GPUModel* gpuModel = m_gpuModels.at(m_gpuModelIndexByUUID.at(modelComponent->get_model_uuid()));
+                const GPUModelInfo& gpuModelInfo = m_gpuModelInfoByUUID.at(modelComponent->get_model_uuid());
+                GPUModel* gpuModel = m_gpuModels.at(gpuModelInfo.index);
 
                 ShaderModelInstance& modelInstance = shaderModelInstances[index++];
                 modelInstance.init();
-                modelInstance.geometryOffset = m_gpuModelIndexByUUID.at(modelComponent->get_model_uuid());
+                modelInstance.geometryOffset = gpuModelInfo.index;
 
                 Sphere sphereBounds(gpuModel->get_aabb());
                 modelInstance.sphereBounds.center = sphereBounds.center;
@@ -140,6 +152,22 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     TaskComposer::wait(taskGroup);
 }
 
+uint32 SceneManager::get_model_index(GPUModel* gpuModel) const
+{
+    auto it = m_gpuModelInfoByUUID.find(gpuModel->get_model()->get_uuid());
+    if (it == m_gpuModelInfoByUUID.end())
+        return ~0u;
+    return it->second.index;
+}
+
+uint32 SceneManager::get_instance_count(GPUModel* gpuModel) const
+{
+    auto it = m_gpuModelInfoByUUID.find(gpuModel->get_model()->get_uuid());
+    if (it == m_gpuModelInfoByUUID.end())
+        return ~0u;
+    return it->second.instanceCount;
+}
+
 void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
 {
     FE_CHECK(buffer);
@@ -152,8 +180,8 @@ rhi::Buffer* SceneManager::get_model_buffer()
         m_modelBuffers.push_back(create_uma_storage_buffer());
 
     rhi::Buffer* buffer = m_modelBuffers.at(g_frameIndex);
-    uint64 cpuEntriesSize = sizeof(ShaderModel) * m_gpuModelIndexByUUID.size();
-    
+    uint64 cpuEntriesSize = sizeof(ShaderModel) * m_gpuModelInfoByUUID.size();
+
     if (buffer->size < cpuEntriesSize)
     {
         rhi::destroy_buffer(buffer);

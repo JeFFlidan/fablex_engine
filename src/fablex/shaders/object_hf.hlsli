@@ -14,6 +14,8 @@
 #define OBJECT_SHADER_USE_VERTEX_ID
 #endif
 
+PUSH_CONSTANTS(pushConstants, ObjectPushConstants)
+
 struct VertexInput
 {
     uint instanceID : SV_InstanceID;
@@ -21,12 +23,12 @@ struct VertexInput
 
     ShaderModelInstance get_model_instance()
     {
-        return ::get_model_instance(instanceID);
+        return ::get_model_instance(pushConstants.instanceOffset + instanceID);
     }
 
     ShaderModel get_model()
     {
-        return ::get_model(get_model_instance().geometryOffset);
+        return ::get_model(pushConstants.modelIndex);
     }
 
     float4 get_position_wind()

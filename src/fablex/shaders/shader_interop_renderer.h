@@ -165,7 +165,7 @@ struct ShaderMaterial
 	}
 };
 
-struct alignas(16) ShaderModel
+struct ShaderModel
 {
 	int indexBuffer;
 	int vertexBufferPosWind;
@@ -251,7 +251,7 @@ struct ShaderSphereBounds
 	}
 };
 
-struct alignas(16) ShaderModelInstance
+struct ShaderModelInstance
 {
 	ShaderTransform transform;	// With quantization mapping
 	ShaderTransform rawTransform; // Without quantization mapping
@@ -633,10 +633,19 @@ struct DepthReduceData
 
 static const uint DEPTH_REDUCE_GROUP_SIZE = 32;
 
+// ============= PUSH CONSTANTS =============
+
 struct TriangleSwapChainPushConstants
 {
 	uint triangleTextureIndex;
 	float3 alignment;
+};
+
+struct ObjectPushConstants
+{
+	uint modelIndex;
+	uint instanceOffset;
+	uint2 padding;
 };
 
 #endif // SHADER_INTEROP_RENDERER

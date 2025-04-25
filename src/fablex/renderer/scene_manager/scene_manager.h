@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gpu_model.h"
+#include "command_recorder.h"
 #include "engine/entity/entity.h"
 #include "asset_manager/model/model.h"
 #include "core/pool_allocator.h"
@@ -13,6 +14,8 @@ namespace fe::renderer
 constexpr uint64 ONE_MEBIBYTE = 1048576;
 constexpr uint64 DEFAULT_GPU_BUFFER_SIZE = ONE_MEBIBYTE * 32;
 
+class CommandRecorder;
+
 class SceneManager
 {
 public:
@@ -22,12 +25,23 @@ public:
     void upload(rhi::CommandBuffer* cmd);
 
     void add_staging_buffer(rhi::Buffer* buffer);
+    const CommandRecorder& get_cmd_recorder() const { return m_cmdRecorder; }
     const std::vector<GPUModel*>& get_gpu_models() const { return m_gpuModels; }
+    uint32 get_model_index(GPUModel* gpuModel) const;
+    uint32 get_instance_count(GPUModel* gpuModel) const;
 
 private:
     using ShaderCameraArray = std::array<ShaderCamera, MAX_CAMERA_COUNT>;
     using BufferArray = std::vector<rhi::Buffer*>;
     using EntityArray = std::vector<engine::Entity*>;
+
+    struct GPUModelInfo
+    {
+        uint32 index = 0;
+        uint32 instanceCount = 0;
+    };
+
+    CommandRecorder m_cmdRecorder;
 
     EntityArray m_entities;
     EntityArray m_pendingEntities;
@@ -35,8 +49,9 @@ private:
     uint64 m_modelComponentCount = 0;
 
     PoolAllocator<GPUModel, asset::AssetPoolSize<asset::Model>::poolSize> m_gpuModelAllocator;
+    std::mutex m_gpuModelMutex;
     std::vector<GPUModel*> m_gpuModels;
-    std::unordered_map<UUID, uint32> m_gpuModelIndexByUUID;
+    std::unordered_map<UUID, GPUModelInfo> m_gpuModelInfoByUUID;
 
     std::unordered_map<uint64, BufferArray> m_stagingBuffersByFrameIndex;
 

@@ -42,6 +42,10 @@
                 "Name": "ObjectMeshTestPipeline",
                 "Shaders": [
                     {
+                        "Type": "TASK",
+                        "Path": "object_ts_test.hlsl"
+                    },
+                    {
                         "Type": "MESH",
                         "Path": "object_ms_test.hlsl"
                     },

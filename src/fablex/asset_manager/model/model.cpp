@@ -35,8 +35,8 @@ void Model::serialize(Archive& archive) const
     }
 
     archive << m_materialNames;
-    archive << m_sphereBounds.center;
-    archive << m_sphereBounds.radius;
+    archive << m_aabb.minPoint;
+    archive << m_aabb.maxPoint;
 }
 
 void Model::deserialize(Archive& archive)
@@ -65,8 +65,8 @@ void Model::deserialize(Archive& archive)
     }
 
     archive >> m_materialNames;
-    archive >> m_sphereBounds.center;
-    archive >> m_sphereBounds.radius;
+    archive >> m_aabb.minPoint;
+    archive >> m_aabb.maxPoint;
 }
 
 }
