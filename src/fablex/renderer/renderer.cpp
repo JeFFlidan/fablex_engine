@@ -221,7 +221,7 @@ void Renderer::prepare_render_graph_execution()
 void Renderer::execute_render_graph()
 {
     record_upload_cmd();
-    // record_bvh_build_cmd();
+    record_bvh_build_cmd();
     TaskComposer::wait(m_commandRecordingTaskGroup);
     record_worker_cmds();
     submit();
@@ -354,30 +354,30 @@ void Renderer::configure_pipeline_barriers()
 void Renderer::record_upload_cmd()
 {
     m_uploadSemaphore = m_syncManager->get_semaphore();
-    rhi::set_name(m_uploadSemaphore, "UploadSemaphore");
+    rhi::set_name(m_uploadSemaphore, "UploadSemaphore" + std::to_string(g_frameIndex));
 
-    TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo execInfo)
-    {
-        rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
-        rhi::begin_command_buffer(cmd);
-        m_sceneManager->upload(cmd);
-        rhi::end_command_buffer(cmd);
+    rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
+    rhi::begin_command_buffer(cmd);
+    m_sceneManager->upload(cmd);
+    rhi::end_command_buffer(cmd);
 
-        m_uploadSubmitInfo.clear();
-        m_uploadSubmitInfo.cmdBuffers.push_back(cmd);
-        m_uploadSubmitInfo.signalSemaphores.push_back(m_uploadSemaphore);
-        m_uploadSubmitInfo.waitSemaphores.push_back(m_acquireSemaphore);
-    });
+    m_uploadSubmitInfo.clear();
+    m_uploadSubmitInfo.cmdBuffers.push_back(cmd);
+    m_uploadSubmitInfo.signalSemaphores.push_back(m_uploadSemaphore);
+    m_uploadSubmitInfo.waitSemaphores.push_back(m_acquireSemaphore);
 }
 
 void Renderer::record_bvh_build_cmd()
 {
     m_bvhBuildSemaphore = m_syncManager->get_semaphore();
+    rhi::set_name(m_bvhBuildSemaphore, "BVHBuildSemaphore" + std::to_string(g_frameIndex));
+    m_bvhBuildSubmitInfo.queueType = rhi::QueueType::COMPUTE;
 
     TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo execInfo)
     {
         rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
         rhi::begin_command_buffer(cmd);
+        m_sceneManager->build_bvh(cmd);
         rhi::end_command_buffer(cmd);
 
         m_bvhBuildSubmitInfo.clear();
@@ -463,16 +463,21 @@ void Renderer::submit()
 {
     TaskComposer::wait(m_commandRecordingTaskGroup);
 
-    // TODO: Do I need it when ray tracing is implemented???
-    if (!m_bvhBuildSemaphore && m_uploadSemaphore)
+    // TODO: TEMP!!!!
+    if (m_bvhBuildSemaphore)
     {
         std::vector<SubmitContext>& submitContexts = m_submitContextsPerQueue.at(uint64(rhi::QueueType::GRAPHICS));
-        submitContexts.at(0).waitSemaphores.push_back(m_uploadSemaphore);
+        submitContexts.at(0).waitSemaphores.push_back(m_bvhBuildSemaphore);
     }
+
+    if (is_upload_cmd_submit_required())
+        rhi::submit({ m_uploadSubmitInfo}, m_syncManager->get_fence());
+
+    if (is_bvh_build_cmd_submit_required())
+        rhi::submit({ m_bvhBuildSubmitInfo }, m_syncManager->get_fence());
 
     uint32 queueIndex = 0;
     rhi::QueueType queueType = (rhi::QueueType)queueIndex;
-    TaskGroup submitTaskGroup;
 
     std::vector<SubmitInfoArray> submitInfosPerQueue;
     submitInfosPerQueue.resize(rhi::g_queueCount);
@@ -483,18 +488,6 @@ void Renderer::submit()
             continue;
 
         SubmitInfoArray& submitInfos = submitInfosPerQueue.at(queueIndex);
-
-        if ((queueType == m_bvhBuildSubmitInfo.queueType && is_bvh_build_cmd_submit_required()) 
-            || (queueType == m_uploadSubmitInfo.queueType && is_upload_cmd_submit_required()))
-        {
-            submitInfos.reserve(submitContexts.size() + 1);
-        }
-
-        if (queueType == m_bvhBuildSubmitInfo.queueType && is_bvh_build_cmd_submit_required())
-            submitInfos.push_back(m_bvhBuildSubmitInfo);
-
-        if (queueType == m_uploadSubmitInfo.queueType && is_upload_cmd_submit_required())
-            submitInfos.push_back(m_uploadSubmitInfo);
 
         for (const SubmitContext& submitContext : submitContexts)
         {
@@ -508,16 +501,11 @@ void Renderer::submit()
             submitInfo.waitSemaphores = submitContext.waitSemaphores;
         }
 
-        TaskComposer::execute(submitTaskGroup, [&](TaskExecutionInfo execInfo)
-        {
-            rhi::submit(submitInfos, m_syncManager->get_fence());
-        });
+        rhi::submit(submitInfos, m_syncManager->get_fence());
 
         ++queueIndex;
         queueType = (rhi::QueueType)queueIndex;
     }
-
-    TaskComposer::wait(submitTaskGroup);
 }
 
 bool Renderer::is_upload_cmd_submit_required() const

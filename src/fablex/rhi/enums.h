@@ -58,6 +58,7 @@ enum class ResourceFlags : uint32
     CUBE_TEXTURE = 1 << 0,
     RAW_BUFFER = 1 << 1,
     STRUCTURED_BUFFER = 1 << 2,
+    RAY_TRACING = 1 << 3,
 };
 
 enum class LogicOp : uint32

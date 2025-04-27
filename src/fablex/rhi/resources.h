@@ -463,7 +463,7 @@ struct TLAS
         enum class Flags
         {
             UNDEFINED = 0,
-            TRIANGLE_CULL_DiSABLE = 1 << 0,
+            TRIANGLE_CULL_DISABLE = 1 << 0,
             TRIANGLE_FRONT_COUNTERCLOCKWISE = 1 << 1,
             FORCE_OPAQUE = 1 << 2,
             FORCE_NON_OPAQUE = 1 << 3

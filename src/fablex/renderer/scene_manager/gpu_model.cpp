@@ -18,12 +18,13 @@ GPUModel::GPUModel(asset::Model* model) : m_model(model)
 
 GPUModel::~GPUModel()
 {
-    destroy();
+    destroy_BLASes();
+    destroy_buffer_views();
 }
 
-void GPUModel::build(SceneManager* sceneManager)
+void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder)
 {
-    destroy();
+    destroy_buffer_views();
 
     const float targetPrecision = 1.0f / 1000.0f;
     m_positionFormat = VertexPositionWind16Bit::FORMAT;
@@ -176,6 +177,7 @@ void GPUModel::build(SceneManager* sceneManager)
         rhi::ResourceUsage::VERTEX_BUFFER;
 
     bufferInfo.memoryUsage = rhi::MemoryUsage::GPU;
+    bufferInfo.flags = rhi::ResourceFlags::RAY_TRACING;
     
     // TODO: Add bone indices to size when animations will be implemented
     const uint64 alignment = rhi::get_min_offset_alignment(&bufferInfo);
@@ -409,7 +411,7 @@ void GPUModel::build(SceneManager* sceneManager)
         bufferOffset += rhi::align_to(m_meshletBounds.size, alignment);
     }
 
-    sceneManager->get_cmd_recorder().record([&](rhi::CommandBuffer* cmd)
+    cmdRecorder.record([&](rhi::CommandBuffer* cmd)
     {
         rhi::copy_buffer(cmd, stagingBuffer, m_generalBuffer, stagingBuffer->size, 0, 0);
     });
@@ -442,7 +444,61 @@ void GPUModel::build(SceneManager* sceneManager)
         configure_buffer_view(m_vertexColors, VertexColor::FORMAT, "VertexColors");
 }
 
-void GPUModel::destroy()
+void GPUModel::build_blas(const CommandRecorder& cmdRecorder)
+{
+    if (m_BLASes.empty())
+    {
+        rhi::AccelerationStructureInfo asInfo;
+        asInfo.type = rhi::AccelerationStructureInfo::BOTTOM_LEVEL;
+        asInfo.flags |= rhi::AccelerationStructureInfo::Flags::PREFER_FAST_TRACE;
+        
+        rhi::BLAS::Geometry& geometry = asInfo.blas.geometries.emplace_back();
+        geometry.triangles.vertexBuffer = m_generalBuffer;
+        geometry.triangles.vertexOffset = m_vertexPositionsWinds.offset;
+        geometry.triangles.vertexCount = m_model->vertex_count();
+        geometry.triangles.vertexFormat = m_positionFormat == VertexPosition32Bit::FORMAT ? rhi::Format::R32G32B32_SFLOAT : m_positionFormat;
+        geometry.triangles.vertexStride = rhi::get_format_stride(m_positionFormat);
+        geometry.triangles.indexBuffer = m_generalBuffer;
+        geometry.triangles.indexCount = m_model->index_count();
+        geometry.triangles.indexOffset = m_indices.offset / sizeof(uint32);
+
+        rhi::create_acceleration_structure(&m_BLASes.emplace_back(), &asInfo);
+    }
+
+    switch (m_BLASState)
+    {
+    case BLASState::REQUIRES_REBUILD:
+    {
+        cmdRecorder.record([&](rhi::CommandBuffer* cmd)
+        {
+            for (rhi::AccelerationStructure* as : m_BLASes)
+                rhi::build_acceleration_structure(cmd, as, nullptr);
+
+            m_BLASState = BLASState::READY;
+        });
+
+        break;
+    }
+    case BLASState::REQUIRES_REFIT:
+    {
+        cmdRecorder.record([&](rhi::CommandBuffer* cmd)
+        {
+            for (rhi::AccelerationStructure* as : m_BLASes)
+                rhi::build_acceleration_structure(cmd, as, as);
+
+            m_BLASState = BLASState::READY;
+        });
+
+        break;
+    }
+    case BLASState::READY:
+    {
+        return;
+    }
+    }
+}
+
+void GPUModel::destroy_buffer_views()
 {
     m_indices.cleanup();
     m_vertexPositionsWinds.cleanup();
@@ -455,6 +511,14 @@ void GPUModel::destroy()
     m_vertexColors.cleanup();
 
     rhi::destroy_buffer(m_generalBuffer);
+}
+
+void GPUModel::destroy_BLASes()
+{
+    for (rhi::AccelerationStructure* as : m_BLASes)
+        rhi::destroy_acceleration_structure(as);
+    m_BLASes.clear();
+    m_BLASState = BLASState::REQUIRES_REBUILD;
 }
 
 void GPUModel::fill_shader_model(ShaderModel& outRendererModel)

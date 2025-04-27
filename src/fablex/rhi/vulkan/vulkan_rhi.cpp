@@ -1226,13 +1226,20 @@ public:
         VkQueue handle = VK_NULL_HANDLE;
         bool isSparseBindingSupported{false};
 
-        void init(VkDevice device)
+        void init(VkDevice device, const std::string& debugName)
         {
             VkDeviceQueueInfo2 queueInfo{};
             queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
             queueInfo.queueIndex = 0;
             queueInfo.queueFamilyIndex = family;
             vkGetDeviceQueue2(device, &queueInfo, &handle);
+
+            VkDebugUtilsObjectNameInfoEXT info{};
+            info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            info.pObjectName = debugName.c_str();
+            info.objectHandle = (uint64)handle;
+            info.objectType = VK_OBJECT_TYPE_QUEUE;
+            vkSetDebugUtilsObjectNameEXT(device, &info);
         }
     };
 
@@ -1379,9 +1386,9 @@ public:
 
         volkLoadDevice(device);
 
-        graphicsQueue.init(device);
-        computeQueue.init(device);
-        transferQueue.init(device);
+        graphicsQueue.init(device, "GraphicsQueue");
+        computeQueue.init(device, "ComputeQueue");
+        transferQueue.init(device, "TransferQueue");
 
         fill_gpu_properties();
 
@@ -2884,7 +2891,7 @@ void fill_blas_geometry(
         
         outGeometry->geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
         triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-        
+
         triangles.indexType = VK_INDEX_TYPE_UINT32;
         triangles.indexData.deviceAddress = trianglesInfo.indexBuffer->vk().address +
             trianglesInfo.indexOffset * sizeof(uint32);
@@ -2911,6 +2918,8 @@ void fill_blas_geometry(
             outRange->primitiveCount = trianglesInfo.indexCount / 3;
             outRange->primitiveOffset = 0;
         }
+
+        break;
     }
     case BLAS::Geometry::PROCEDURAL_AABBS:
     {
@@ -2930,6 +2939,8 @@ void fill_blas_geometry(
             outRange->primitiveCount = aabbsInfo.count;
             outRange->primitiveOffset = aabbsInfo.ofsset;
         }
+
+        break;
     }
     }
 }
@@ -3184,6 +3195,9 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
 
     if (g_device.features1_2.bufferDeviceAddress == VK_TRUE)
         bufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+    if (has_flag(info->flags, rhi::ResourceFlags::RAY_TRACING))
+        bufferCreateInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
     
     if (!bufferCreateInfo.usage)
         FE_LOG(LogVulkanRHI, FATAL, "Invalid buffer usage.");
@@ -4139,7 +4153,7 @@ void create_acceleration_structure(AccelerationStructure** accelerationStructure
 
     accelerationStructurePtr->vk().scratchAddress = get_device_address(accelerationStructurePtr->vk().buffer)
         + sizesInfo.accelerationStructureSize;
-        
+
     if (info->type == AccelerationStructureInfo::TOP_LEVEL)
         g_descriptorHeap.allocate_descriptor(accelerationStructurePtr);
 
@@ -4154,10 +4168,16 @@ void destroy_acceleration_structure(AccelerationStructure* accelerationStructure
     if (accelerationStructure->info.type == AccelerationStructureInfo::TOP_LEVEL)
         g_descriptorHeap.free_descriptor(accelerationStructure);
 
+    if (accelerationStructure->vk().buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(g_allocator.gpuAllocator, accelerationStructure->vk().buffer, accelerationStructure->vk().allocation);
+
+    if (accelerationStructure->vk().accelerationStructure != VK_NULL_HANDLE)
+        vkDestroyAccelerationStructureKHR(g_device.device, accelerationStructure->vk().accelerationStructure, nullptr);
+
     g_allocator.accelerationStructureAllocator.free(accelerationStructure);
 }
 
-void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, void* dest)
+void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, void* dst)
 {
     FE_CHECK(instance);
     FE_CHECK(instance->blas);
@@ -4169,7 +4189,7 @@ void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, v
     vkInstance.instanceShaderBindingTableRecordOffset = instance->instanceContributionToHitGroupIndex;
     vkInstance.flags = 0;
 
-    if (has_flag(instance->flags, TLAS::Instance::Flags::TRIANGLE_CULL_DiSABLE))
+    if (has_flag(instance->flags, TLAS::Instance::Flags::TRIANGLE_CULL_DISABLE))
         vkInstance.flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
     if (has_flag(instance->flags, TLAS::Instance::Flags::TRIANGLE_FRONT_COUNTERCLOCKWISE))
         vkInstance.flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR;
@@ -4180,7 +4200,7 @@ void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, v
 
     vkInstance.accelerationStructureReference = instance->blas->vk().accelerationStructureAddress;
 
-    std::memcpy(dest, &vkInstance, sizeof(VkAccelerationStructureInstanceKHR));
+    std::memcpy(dst, &vkInstance, sizeof(VkAccelerationStructureInstanceKHR));
 }
 
 void bind_uniform_buffer(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset)
@@ -4691,7 +4711,7 @@ void build_acceleration_structure(CommandBuffer* cmd, const AccelerationStructur
     FE_CHECK(cmd);
     FE_CHECK(dst);
 
-    VkAccelerationStructureBuildGeometryInfoKHR buildInfo;
+    VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
     std::vector<VkAccelerationStructureGeometryKHR> geometries;
     std::vector<VkAccelerationStructureBuildRangeInfoKHR> ranges;
 
@@ -5040,7 +5060,6 @@ void acquire_next_image(SwapChain* swapChain, Semaphore* signalSemaphore, Fence*
 
 void submit(const std::vector<SubmitInfo>& submitInfos, rhi::Fence* signalFence)
 {
-    FE_CHECK(signalFence);
     FE_CHECK(!submitInfos.empty());
 
 	std::vector<std::vector<VkCommandBufferSubmitInfo>> cmdSubmitInfosForAllBatches;
@@ -5124,11 +5143,13 @@ void submit(const std::vector<SubmitInfo>& submitInfos, rhi::Fence* signalFence)
         vkSubmitInfo.pSignalSemaphoreInfos = signalSemaphoreSubmitInfos.data();
     }
 
+    VkFence fence = signalFence ? signalFence->vk().fence : VK_NULL_HANDLE;
+
     VK_CHECK(vkQueueSubmit2(
         g_device.get_queue(queueType).handle, 
         vkSubmitInfos.size(), 
         vkSubmitInfos.data(), 
-        signalFence->vk().fence
+        fence
     ));
 }
 

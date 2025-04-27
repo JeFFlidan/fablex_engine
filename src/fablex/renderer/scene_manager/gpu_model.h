@@ -12,14 +12,23 @@ namespace fe::renderer
 class SceneManager;
 class CommandRecorder;
 
+enum class BLASState
+{
+    REQUIRES_REBUILD,
+    REQUIRES_REFIT,
+    READY
+};
+
 class GPUModel
 {
 public:
     GPUModel(asset::Model* model);
     ~GPUModel();
 
-    void build(SceneManager* sceneManager);
-    void destroy();
+    void build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder);
+    void build_blas(const CommandRecorder& cmdRecorder);
+    void destroy_buffer_views();
+    void destroy_BLASes();
 
     void fill_shader_model(ShaderModel& outRendererModel);
 
@@ -31,7 +40,8 @@ public:
     uint32 get_thread_group_count_x() const;
     rhi::Buffer* get_buffer() const { return m_generalBuffer; }
     uint64 get_index_offset() const { return m_indices.offset; }
-    uint64 get_index_count() const;
+    uint64 get_index_count() const; 
+    const std::vector<rhi::AccelerationStructure*>& get_BLASes() const { return m_BLASes; }
 
     int32 get_srv_indices() const;
     int32 get_srv_positions_winds() const;
@@ -74,6 +84,9 @@ private:
     BufferView m_vertexUVs;
     BufferView m_vertexAtlas;
     BufferView m_vertexColors;
+
+    BLASState m_BLASState = BLASState::REQUIRES_REBUILD;
+    std::vector<rhi::AccelerationStructure*> m_BLASes;
 
     void configure_buffer_view(BufferView& bufferView, rhi::Format format, std::string debugName, bool requireUAV = false);
 };

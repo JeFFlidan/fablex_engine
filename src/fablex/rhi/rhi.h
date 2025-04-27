@@ -41,7 +41,7 @@ inline void (*destroy_pipeline)(Pipeline* pipeline);
 
 inline void (*create_acceleration_structure)(AccelerationStructure** accelerationStructure, AccelerationStructureInfo* info);
 inline void (*destroy_acceleration_structure)(AccelerationStructure* accelerationStructure);
-inline void (*write_top_level_acceleration_structure_instance)(TLAS::Instance* instance, void* dest);
+inline void (*write_top_level_acceleration_structure_instance)(TLAS::Instance* instance, void* dst);
 
 inline void (*bind_uniform_buffer)(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset);
 
