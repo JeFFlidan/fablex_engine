@@ -42,6 +42,7 @@ protected:
     virtual void schedule_resources_internal() { }
 
     uint32 get_input_texture_descriptor(uint64 pushConstantsOffset, rhi::ViewType viewType, uint32 mipLevel = 0) const;
+    uint32 get_output_storage_texture_descriptor(uint64 pushConstantOffset, uint32 mipLevel = 0) const;
     uint32 get_sampler_descriptor(ResourceName samplerName) const;
     
     void create_compute_pipeline();
@@ -60,6 +61,9 @@ protected:
 
     void bind_pipeline(rhi::CommandBuffer* cmd);
     void push_constants(rhi::CommandBuffer* cmd, void* data);
+    void set_default_viewport_and_scissor(rhi::CommandBuffer* cmd) const;
+    void set_viewport_and_scissor_by_window(rhi::CommandBuffer* cmd) const;
+    void fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const;
 
 private:
     const PipelineMetadata& get_pipeline_metadata() const;

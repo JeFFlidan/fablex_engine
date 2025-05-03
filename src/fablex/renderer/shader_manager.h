@@ -54,6 +54,7 @@ public:
         const std::vector<std::string>& defines = {}
     );
     
+    // For non-rt and non-lib shaders only
     rhi::Shader* get_shader(const std::string& relativePath);
     rhi::Shader* get_shader(const ShaderMetadata& shaderMetadata);
     
@@ -61,12 +62,23 @@ public:
     void wait_shaders_loading();
 
 private:
+    struct ShaderLib
+    {
+        rhi::Shader* shader;
+        std::string entryPoint;
+    };
+
+    using ShaderLibraryArrayHandle = uint32;
+    using ShaderVariant = std::variant<rhi::Shader*, ShaderLibraryArrayHandle>;
+    using ShaderLibArray = std::vector<ShaderLib>;
+
     std::unique_ptr<IShaderCompiler> m_shaderCompiler = nullptr;
-    std::unordered_map<std::string, rhi::Shader*> m_shaderByRelativePath{};
+    std::unordered_map<std::string, ShaderVariant> m_shaderByRelativePath{};
+    std::vector<ShaderLibArray> m_shaderLibraries;
     TaskGroup* m_taskGroup = nullptr;
     std::mutex m_mutex{};
 
-    void add_shader(const std::string& relativePath, rhi::Shader* shader);
+    void add_shader(const std::string& relativePath, const std::string& entryPoint, rhi::Shader* shader);
 };
 
 }

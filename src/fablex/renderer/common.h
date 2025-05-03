@@ -16,25 +16,6 @@ using PushConstantsName = Name;
 
 FE_DEFINE_LOG_CATEGORY(LogRenderer);
 
-struct RenderSurface
-{
-    uint32 width;
-    uint32 height;
-    rhi::Format renderTargetFormat;
-    rhi::Format depthStencilFormat;
-    rhi::SwapChain* mainSwapChain;
-
-    uint32 get_window_width() const
-    {
-        return mainSwapChain->window->get_info().width;
-    }
-
-    uint32 get_window_height() const
-    {
-        return mainSwapChain->window->get_info().height;
-    }
-};
-
 struct TextureMetadata
 {
     ResourceName textureName;

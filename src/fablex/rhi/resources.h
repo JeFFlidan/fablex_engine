@@ -373,6 +373,7 @@ struct ShaderHitGroup
     static constexpr uint32 s_invalidIndex = ~0u;
 
     Type type = GENERAL;
+    ShaderType shaderType = ShaderType::UNDEFINED;
     std::string name;
     uint32 generalShader = s_invalidIndex;
     uint32 closestHitShader = s_invalidIndex;
@@ -787,6 +788,36 @@ struct Scissor
     int32 top = 0;
     int32 right = 0;
     int32 bottom = 0;
+};
+
+struct ShaderIdentifierBuffer
+{
+    enum Type
+    {
+        UNDEFINED,
+        RAY_GENERATION,
+        RAY_MISS,
+        RAY_HIT,
+        RAY_CALLABLE
+    };
+
+    Type type = UNDEFINED;
+    std::string name;
+    rhi::Buffer* buffer = nullptr;
+    uint64 offset = 0;
+    uint64 size = 0;
+    uint64 stride = 0;
+};
+
+struct DispatchRaysInfo
+{
+    ShaderIdentifierBuffer rayGeneration;
+    ShaderIdentifierBuffer miss;
+    ShaderIdentifierBuffer hitGroup;
+    ShaderIdentifierBuffer callable;
+    uint32 width = 1;
+    uint32 height = 1;
+    uint32 depth = 1;
 };
 
 struct QueryPoolInfo

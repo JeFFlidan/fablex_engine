@@ -23,17 +23,7 @@ void SwapChainPass::execute(rhi::CommandBuffer* cmd)
 
     const RenderSurface& renderSurface = m_renderContext->get_render_surface();
     
-    rhi::Viewport viewport;
-    viewport.width = renderSurface.get_window_width();
-    viewport.height = renderSurface.get_window_height();
-    std::vector<rhi::Viewport> viewports = { viewport };
-    rhi::set_viewports(cmd, viewports);
-
-    rhi::Scissor scissor;
-    scissor.right = (int32_t)renderSurface.get_window_width();
-    scissor.bottom = (int32_t)renderSurface.get_window_height();
-    std::vector<rhi::Scissor> scissors = { scissor };
-    rhi::set_scissors(cmd, scissors);
+    set_viewport_and_scissor_by_window(cmd);
 
     TriangleSwapChainPushConstants pushConstants;
     pushConstants.triangleTextureIndex = get_input_texture_descriptor(

@@ -16,17 +16,7 @@ void TrianglePass::execute(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
 
-    rhi::Viewport viewport;
-    viewport.width = m_renderContext->get_render_surface().width;
-    viewport.height = m_renderContext->get_render_surface().height;
-    std::vector<rhi::Viewport> viewports = { viewport };
-    rhi::set_viewports(cmd, viewports);
-
-    rhi::Scissor scissor;
-    scissor.right = (int32_t)m_renderContext->get_render_surface().width;
-    scissor.bottom = (int32_t)m_renderContext->get_render_surface().height;
-    std::vector<rhi::Scissor> scissors = { scissor };
-    rhi::set_scissors(cmd, scissors);
+    set_default_viewport_and_scissor(cmd);
 
     bind_pipeline(cmd);
 

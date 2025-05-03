@@ -411,7 +411,6 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
             instance.instanceContributionToHitGroupIndex = 0;
             instance.flags = rhi::TLAS::Instance::Flags::TRIANGLE_CULL_DISABLE;
 
-            // DO I NEED REMAP FOR TLAS????
             Matrix remapMat = modelComponent->get_model()->aabb().get_unorm_remap_matrix();
             Float4x4 transformMat = remapMat * entity->get_world_transform();
 

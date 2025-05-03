@@ -125,6 +125,16 @@ uint32 RenderPass::get_input_texture_descriptor(uint64 pushConstantsOffset, rhi:
     }
 }
 
+uint32 RenderPass::get_output_storage_texture_descriptor(uint64 pushConstantOffset, uint32 mipLevel) const
+{
+    uint64 index = (pushConstantOffset / 4) - m_metadata->inputTextureNames.size();
+    ResourceName textureName = m_metadata->outputStorageTextureNames.at(index);
+    RenderPassName renderPassName = m_metadata->renderPassName;
+    RenderGraphResourceManager* resourceManager = m_renderContext->get_render_graph_resource_manager();
+
+    return resourceManager->get_texture_uav_descriptor(renderPassName, textureName, mipLevel);
+}
+
 uint32 RenderPass::get_sampler_descriptor(ResourceName samplerName) const
 {
     return m_renderContext->get_render_graph_resource_manager()->get_sampler_descriptor(samplerName);
@@ -163,6 +173,23 @@ void RenderPass::bind_pipeline(rhi::CommandBuffer* cmd)
 void RenderPass::push_constants(rhi::CommandBuffer* cmd, void* data)
 {
     m_renderContext->get_pipeline_manager()->push_constants(cmd, m_metadata->pipelineName, data);
+}
+
+void RenderPass::set_default_viewport_and_scissor(rhi::CommandBuffer* cmd) const
+{
+    m_renderContext->get_render_surface().set_default_viewport(cmd);
+    m_renderContext->get_render_surface().set_default_scissor(cmd);
+}
+
+void RenderPass::set_viewport_and_scissor_by_window(rhi::CommandBuffer* cmd) const
+{
+    m_renderContext->get_render_surface().set_viewport_by_window(cmd);
+    m_renderContext->get_render_surface().set_scissor_by_window(cmd);
+}
+
+void RenderPass::fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const
+{
+    m_renderContext->get_pipeline_manager()->fill_dispatch_rays_info(m_metadata->pipelineName, outInfo);
 }
 
 const PipelineMetadata& RenderPass::get_pipeline_metadata() const

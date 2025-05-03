@@ -93,7 +93,7 @@ FileStream* FileSystem::open(const std::string& strPath, const char* mode)
 
     if (!file)
     {
-        FE_LOG(LogFileSystem, ERROR, "File is invalid after opening");
+        FE_LOG(LogFileSystem, ERROR, "File is invalid after opening {}", strPath);
         return nullptr;
     }
 

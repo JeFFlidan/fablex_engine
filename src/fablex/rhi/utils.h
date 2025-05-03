@@ -608,6 +608,23 @@ inline bool is_format_block_compressed(Format format)
     }
 }
 
+inline bool is_rt_shader(rhi::ShaderType shaderType)
+{
+    switch (shaderType)
+    {
+    case rhi::ShaderType::LIB:
+    case rhi::ShaderType::RAY_GENERATION:
+    case rhi::ShaderType::RAY_MISS:
+    case rhi::ShaderType::RAY_CLOSEST_HIT:
+    case rhi::ShaderType::RAY_ANY_HIT:
+    case rhi::ShaderType::RAY_CALLABLE:
+    case rhi::ShaderType::RAY_INTERSECTION:
+        return true;
+    default:
+        return false;
+    }
+}
+
 inline uint32 get_queue_index(rhi::QueueType queueType)
 {
     return std::underlying_type_t<rhi::QueueType>(queueType);

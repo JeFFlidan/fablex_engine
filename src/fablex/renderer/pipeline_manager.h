@@ -37,13 +37,17 @@ public:
     
     void bind_pipeline(rhi::CommandBuffer* cmd, PipelineName name) const;
     void push_constants(rhi::CommandBuffer* cmd, PipelineName name, void* data) const;
+    void fill_dispatch_rays_info(PipelineName name, rhi::DispatchRaysInfo& outInfo) const;  // Only for simple RT pipelines
     rhi::Pipeline* get_pipeline(PipelineName name) const;
 
 private:
     using PipelineInfoVariant = std::variant<rhi::GraphicsPipelineInfo*, rhi::ComputePipelineInfo*, rhi::RayTracingPipelineInfo*>;
+    using ShaderIdentifierArray = std::vector<rhi::ShaderIdentifierBuffer>;
 
     std::unordered_map<PipelineName, rhi::Pipeline*> m_pipelineByName;
-    std::mutex m_mutex;
+    std::unordered_map<PipelineName, ShaderIdentifierArray> m_shaderIdentifiersByName;  // Only for RT pipelines
+    std::mutex m_pipelineMapMutex;
+    std::mutex m_shaderIdentifiersMapMutex;
     ShaderManager* m_shaderManager = nullptr;
     TaskGroup* m_taskGroup = nullptr;
 

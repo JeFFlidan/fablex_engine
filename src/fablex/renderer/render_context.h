@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "render_surface.h"
 
 namespace fe::renderer
 {

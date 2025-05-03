@@ -1,0 +1,62 @@
+{
+    "RenderPasses": [
+        {
+            "Name": "SwapChainPass",
+            "Type": "GRAPHICS",
+            "RenderTargets": [
+                {
+                    "ColorClearValue": [0.1, 0.1, 0.1, 1.0]
+                }
+            ],
+            "InputTextures": [
+                "RTColorOutput"
+            ],
+            "Pipeline": {
+                "Name": "SwapChainPipeline",
+                "Shaders": [
+                    {
+                        "Type": "VERTEX",
+                        "Path": "output_plane_vs.hlsl"
+                    },
+                    {
+                        "Type": "FRAGMENT",
+                        "Path": "output_plane_fs.hlsl"
+                    }
+                ]
+            }
+        },
+        {
+            "Name": "RTTestPass",
+            "Type": "GRAPHICS",
+            "OutputStorageTextures": [
+                "RTColorOutput"
+            ],
+            "Pipeline": {
+                "Name": "RTTestPipeline",
+                "Shaders": [
+                    {
+                        "Type": "RAY_GENERATION",
+                        "Path": "rt_lib_test.hlsl",
+                        "EntryPoint": "raygen"
+                    },
+                    {
+                        "Type": "RAY_MISS",
+                        "Path": "rt_lib_test.hlsl",
+                        "EntryPoint": "miss"
+                    },
+                    {
+                        "Type": "RAY_CLOSEST_HIT",
+                        "Path": "rt_lib_test.hlsl",
+                        "EntryPoint": "closest_hit"
+                    }
+                ]
+            }
+        }
+    ],
+    "RenderTextures": [
+        {
+            "Name": "RTColorOutput",
+            "Format": "R8G8B8A8_UNORM"
+        }
+    ]
+}

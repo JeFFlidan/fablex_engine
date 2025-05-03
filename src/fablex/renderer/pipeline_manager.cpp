@@ -5,6 +5,7 @@
 #include "core/task_composer.h"
 #include "rhi/rhi.h"
 #include "core/math.h"
+#include "core/utils.h"
 
 namespace fe::renderer
 {
@@ -19,6 +20,10 @@ PipelineManager::~PipelineManager()
 {
     for (auto [name, pipeline] : m_pipelineByName)
         rhi::destroy_pipeline(pipeline);
+
+    for (auto& [name, identifiers] : m_shaderIdentifiersByName)
+        for (const rhi::ShaderIdentifierBuffer& identifier : identifiers)
+            rhi::destroy_buffer(identifier.buffer);
 }
 
 void PipelineManager::create_graphics_pipeline(const PipelineMetadata& pipelineMetadata)
@@ -176,16 +181,16 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
         switch (shaderType)
         {
         case rhi::ShaderType::RAY_ANY_HIT:
-            wordToRemove = "Any";
+            wordToRemove = "any";
             break;
         case rhi::ShaderType::RAY_CLOSEST_HIT:
-            wordToRemove = "Closest";
+            wordToRemove = "closest";
             break;
         default:
             return std::string();
         }
 
-        size_t pos = entryPoint.find(wordToRemove);
+        size_t pos = Utils::to_lower(entryPoint).find(wordToRemove);
         FE_CHECK(pos != std::string::npos);
         return entryPoint.erase(pos, wordToRemove.length());
     };
@@ -236,6 +241,7 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
         }
 
         hitGroup->type = shaderMetadata.hitGroupType;
+        hitGroup->shaderType = shaderMetadata.type;
 
         if (hitGroup->name.empty())
             hitGroup->name = getHitGroupName(shaderMetadata.entryPoint, shaderMetadata.type);
@@ -262,6 +268,7 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
         {
             rhi::ShaderHitGroup& hitGroup = outInfo.shaderHitGroups.emplace_back();
             hitGroup.type = rhi::ShaderHitGroup::GENERAL;
+            hitGroup.shaderType = shaderMetadata.type;
             hitGroup.generalShader = outInfo.shaderLibraries.size() - 1;
             hitGroup.name = shaderMetadata.entryPoint;
             break;
@@ -285,16 +292,107 @@ void PipelineManager::create_pipeline(PipelineName pipelineName, PipelineInfoVar
     rhi::Pipeline* pipeline = nullptr;
 
     if (rhi::GraphicsPipelineInfo** info = std::get_if<rhi::GraphicsPipelineInfo*>(&infoVariant))
+    {
         rhi::create_graphics_pipeline(&pipeline, *info);
+    }
     else if (rhi::ComputePipelineInfo** info = std::get_if<rhi::ComputePipelineInfo*>(&infoVariant))
+    {
         rhi::create_compute_pipeline(&pipeline, *info);
+    }
     else if (rhi::RayTracingPipelineInfo** info = std::get_if<rhi::RayTracingPipelineInfo*>(&infoVariant))
+    {
         rhi::create_ray_tracing_pipeline(&pipeline, *info);
 
-    std::scoped_lock<std::mutex> locker(m_mutex);
+        {
+            std::scoped_lock<std::mutex> locker(m_shaderIdentifiersMapMutex);
+            m_shaderIdentifiersByName[pipelineName];
+        }
+
+        const uint64 identifierSize = rhi::get_shader_identifier_size();
+
+        auto createIdentifierBuffer = [&]()
+        {
+            rhi::BufferInfo bufferInfo;
+            bufferInfo.bufferUsage = rhi::ResourceUsage::STORAGE_BUFFER;
+            bufferInfo.memoryUsage = rhi::MemoryUsage::CPU_TO_GPU;
+            bufferInfo.flags = rhi::ResourceFlags::RAY_TRACING;
+            bufferInfo.size = identifierSize;
+
+            rhi::Buffer* buffer;
+            rhi::create_buffer(&buffer, &bufferInfo);
+            return buffer;
+        };
+
+        auto getIdentifierType = [&](const rhi::ShaderHitGroup& hitGroup)
+        {
+            switch (hitGroup.shaderType)
+            {
+            case rhi::ShaderType::RAY_GENERATION:
+                return rhi::ShaderIdentifierBuffer::RAY_GENERATION;
+            case rhi::ShaderType::RAY_MISS:
+                return rhi::ShaderIdentifierBuffer::RAY_MISS;
+            case rhi::ShaderType::RAY_ANY_HIT:
+            case rhi::ShaderType::RAY_CLOSEST_HIT:
+            case rhi::ShaderType::RAY_INTERSECTION:
+                return rhi::ShaderIdentifierBuffer::RAY_HIT;
+            case rhi::ShaderType::RAY_CALLABLE:
+                return rhi::ShaderIdentifierBuffer::RAY_CALLABLE;
+            default:
+                FE_CHECK(0);
+                return rhi::ShaderIdentifierBuffer::UNDEFINED;   // To prevent compilation warning
+            }
+        };
+
+        uint32 groupIndex = 0;
+        rhi::RayTracingPipelineInfo& infoRef = **info;
+
+        for (const rhi::ShaderHitGroup& shaderHitGroup : infoRef.shaderHitGroups)
+        {
+            ShaderIdentifierArray& shaderIdentifierArray = m_shaderIdentifiersByName[pipelineName];
+            rhi::ShaderIdentifierBuffer& identifier = shaderIdentifierArray.emplace_back();
+            identifier.name = shaderHitGroup.name;
+            identifier.type = getIdentifierType(shaderHitGroup);
+            identifier.buffer = createIdentifierBuffer();
+            identifier.size = identifierSize;
+            identifier.stride = identifierSize;
+            identifier.offset = 0;
+
+            rhi::write_shader_identifier(pipeline, groupIndex, identifier.buffer->mappedData);
+            
+            ++groupIndex;
+        }
+    }
+
+    std::scoped_lock<std::mutex> locker(m_pipelineMapMutex);
     m_pipelineByName[pipelineName] = pipeline;
 
     rhi::set_name(pipeline, pipelineName.to_string());
+}
+
+void PipelineManager::fill_dispatch_rays_info(PipelineName name, rhi::DispatchRaysInfo& outInfo) const
+{
+    const ShaderIdentifierArray& shaderIdentifierArray = m_shaderIdentifiersByName.at(name);
+
+    for (const rhi::ShaderIdentifierBuffer& identifier : shaderIdentifierArray)
+    {
+        switch (identifier.type)
+        {
+        case rhi::ShaderIdentifierBuffer::RAY_GENERATION:
+            outInfo.rayGeneration = identifier;
+            break;
+        case rhi::ShaderIdentifierBuffer::RAY_MISS:
+            outInfo.miss = identifier;
+            break;
+        case rhi::ShaderIdentifierBuffer::RAY_HIT:
+            outInfo.hitGroup = identifier;
+            break;
+        case rhi::ShaderIdentifierBuffer::RAY_CALLABLE:
+            outInfo.callable = identifier;
+            break;
+        default:
+            FE_CHECK(0);
+        }
+    }
 }
 
 }

@@ -42,6 +42,7 @@ inline void (*destroy_pipeline)(Pipeline* pipeline);
 inline void (*create_acceleration_structure)(AccelerationStructure** accelerationStructure, AccelerationStructureInfo* info);
 inline void (*destroy_acceleration_structure)(AccelerationStructure* accelerationStructure);
 inline void (*write_top_level_acceleration_structure_instance)(TLAS::Instance* instance, void* dst);
+inline void (*write_shader_identifier)(Pipeline* pipeline, uint32 groupIndex, void* dst);
 
 inline void (*bind_uniform_buffer)(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset);
 
@@ -95,6 +96,7 @@ inline void (*draw_indexed_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 
 
 inline void (*dispatch)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 inline void (*dispatch_mesh)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+inline void (*dispatch_rays)(CommandBuffer* cmd, const DispatchRaysInfo* dispatchRaysInfo);
 inline void (*add_pipeline_barriers)(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers);
 
 inline void (*acquire_next_image)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex);

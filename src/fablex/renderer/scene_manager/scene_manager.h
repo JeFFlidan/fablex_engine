@@ -27,9 +27,11 @@ public:
 
     void add_staging_buffer(rhi::Buffer* buffer);
     const CommandRecorder& get_cmd_recorder(rhi::QueueType queueType) const;
-    const std::vector<GPUModel*>& get_gpu_models() const { return m_gpuModels; }
     uint32 get_model_index(GPUModel* gpuModel) const;
     uint32 get_instance_count(GPUModel* gpuModel) const;
+
+    const std::vector<GPUModel*>& get_gpu_models() const { return m_gpuModels; }
+    rhi::AccelerationStructure* get_scene_TLAS() const { return m_TLAS; }
 
 private:
     using ShaderCameraArray = std::array<ShaderCamera, MAX_CAMERA_COUNT>;

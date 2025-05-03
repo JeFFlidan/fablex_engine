@@ -418,8 +418,9 @@ void Renderer::record_worker_cmds()
                         const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->get_name()];
                         rhi::add_pipeline_barriers(cmd, barriers);
                         rhi::SwapChain* usedSwapChain = nullptr;
+                        bool requiresBeginRendering = queueType == rhi::QueueType::GRAPHICS && !node->useRayTracing;
 
-                        if (queueType == rhi::QueueType::GRAPHICS)
+                        if (requiresBeginRendering)
                         {
                             rhi::RenderingBeginInfo::Type type = m_backBufferNode == node 
                                 ? rhi::RenderingBeginInfo::SWAP_CHAIN_PASS : rhi::RenderingBeginInfo::OFFSCREEN_PASS;
@@ -444,7 +445,7 @@ void Renderer::record_worker_cmds()
 
                         renderPass->execute(cmd);
 
-                        if (queueType == rhi::QueueType::GRAPHICS)
+                        if (requiresBeginRendering)
                             rhi::end_rendering(cmd, usedSwapChain);
 
                     }

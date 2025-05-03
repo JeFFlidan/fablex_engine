@@ -5,6 +5,7 @@
 #include "core/file_system/file_system.h"
 #include "core/task_composer.h"
 #include "rhi/rhi.h"
+#include "rhi/utils.h"
 
 #ifdef WIN32
 #define DXCOMPILER_ENABLED
@@ -215,6 +216,12 @@ private:
             targetProfile = L"as";
             break;
         case rhi::ShaderType::LIB:
+        case rhi::ShaderType::RAY_GENERATION:
+        case rhi::ShaderType::RAY_MISS:
+        case rhi::ShaderType::RAY_CLOSEST_HIT:
+        case rhi::ShaderType::RAY_ANY_HIT:
+        case rhi::ShaderType::RAY_CALLABLE:
+        case rhi::ShaderType::RAY_INTERSECTION:
             targetProfile = L"lib";
             break;
         default:
@@ -362,6 +369,9 @@ public:
     {
         std::string shaderName = FileSystem::get_file_name(inputInfo.path);
 
+        if (rhi::is_rt_shader(inputInfo.type))
+            shaderName += "_" + inputInfo.entryPoint;
+
         std::string shaderBinObjectRelativePath;
         get_shader_object_relative_path(shaderName, shaderBinObjectRelativePath);
         std::string shaderMetadataRelativePath = "intermediate/shader_cache/metadata/" + shaderName + ".aameta";
@@ -430,8 +440,21 @@ ShaderManager::ShaderManager()
 
 ShaderManager::~ShaderManager()
 {
-    for (auto& [path, shader] : m_shaderByRelativePath)
-        rhi::destroy_shader(shader);
+    for (auto& [path, shaderVariant] : m_shaderByRelativePath)
+    {
+        std::visit(Utils::make_visitor(
+            [](rhi::Shader* shader)
+            {
+                rhi::destroy_shader(shader);
+            },
+            [this](ShaderLibraryArrayHandle handle)
+            {
+                FE_CHECK(handle < m_shaderLibraries.size());
+                for (const ShaderLib& shaderLib : m_shaderLibraries[handle])
+                    rhi::destroy_shader(shaderLib.shader);
+            }
+        ), shaderVariant);
+    }
 }
 
 rhi::Shader* ShaderManager::load_shader(
@@ -442,20 +465,31 @@ rhi::Shader* ShaderManager::load_shader(
     const std::vector<std::string>& defines
 )
 {
-    if (rhi::Shader* shader = get_shader(relativePath))
-        return shader;
+    {
+        std::scoped_lock<std::mutex> locker(m_mutex);
+
+        auto it = m_shaderByRelativePath.find(relativePath);
+        if (it != m_shaderByRelativePath.end())
+        {
+            
+            if (rhi::Shader** shader = std::get_if<rhi::Shader*>(&it->second))
+                return *shader;
+            
+            if (ShaderLibraryArrayHandle handle = *std::get_if<ShaderLibraryArrayHandle>(&it->second))
+                if (handle < m_shaderLibraries.size())  
+                    for (const ShaderLib& shaderLib : m_shaderLibraries[handle])
+                        if (shaderLib.entryPoint == entryPoint)
+                            return shaderLib.shader;
+        }
+    }
 
     rhi::Shader* shader = nullptr;
 
     if (ShaderCache::is_shader_outdated(relativePath))
     {
-        // LOG_INFO("SHADER {} IS OUTDATED", relativeShaderPath.c_str())
         std::string shaderExtension = FileSystem::get_file_extension(relativePath);
         if (shaderExtension != "hlsl")
-        {
             FE_LOG(LogShaderCompiler, FATAL, "Can't load shader with extension {}", shaderExtension);
-
-        }
 
         rhi::ShaderFormat shaderFormat{ rhi::ShaderFormat::UNDEFINED };
         switch (ShaderCache::get_cache_type())
@@ -487,11 +521,10 @@ rhi::Shader* ShaderManager::load_shader(
         shaderInfo.size = outputInfo.dataSize;
 
         rhi::create_shader(&shader, &shaderInfo);
-        add_shader(relativePath, shader);
+        add_shader(relativePath, entryPoint, shader);
     }
     else
     {
-        // LOG_INFO("LOAD SHADER")
         std::vector<uint8_t> shaderData;
         ShaderCache::load_shader_bin(FileSystem::get_file_name(relativePath), shaderData);
 
@@ -501,7 +534,7 @@ rhi::Shader* ShaderManager::load_shader(
         shaderInfo.shaderType = shaderType;
 
         rhi::create_shader(&shader, &shaderInfo);
-        add_shader(relativePath, shader);
+        add_shader(relativePath, entryPoint, shader);
     }
 
     return shader;
@@ -514,7 +547,11 @@ rhi::Shader* ShaderManager::get_shader(const std::string& relativePath)
     auto it = m_shaderByRelativePath.find(relativePath);
     if (it == m_shaderByRelativePath.end())
         return nullptr;
-    return it->second;
+
+    if (rhi::Shader** shader = std::get_if<rhi::Shader*>(&it->second))
+        return *shader;
+
+    return nullptr;
 }
 
 rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
@@ -528,11 +565,39 @@ rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
     );
 }
 
-void ShaderManager::add_shader(const std::string& relativePath, rhi::Shader* shader)
+void ShaderManager::add_shader(
+    const std::string& relativePath,
+    const std::string& entryPoint, 
+    rhi::Shader* shader
+)
 {
     FE_CHECK(shader);
     std::scoped_lock locker(m_mutex);
-    m_shaderByRelativePath[relativePath] = shader;
+
+    if (rhi::is_rt_shader(shader->type))
+    {
+        auto it = m_shaderByRelativePath.find(relativePath);
+        ShaderLibraryArrayHandle handle;
+
+        if (it == m_shaderByRelativePath.end())
+        {
+            m_shaderLibraries.emplace_back();
+            handle = m_shaderLibraries.size() - 1;
+            m_shaderByRelativePath[relativePath] = handle;
+        }
+        else
+        {
+            handle = std::get<ShaderLibraryArrayHandle>(it->second);
+        }
+
+        ShaderLib& lib = m_shaderLibraries[handle].emplace_back();
+        lib.shader = shader;
+        lib.entryPoint = entryPoint;
+    }
+    else
+    {
+        m_shaderByRelativePath[relativePath] = shader;
+    }
 }
 
 void ShaderManager::request_shader_loading(const ShaderMetadata& shaderMetadata)

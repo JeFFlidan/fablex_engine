@@ -490,6 +490,14 @@ struct ShaderCamera
 #endif
 };
 
+struct Viewport
+{
+	float left;
+	float top;
+	float right;
+	float bottom;
+};
+
 static const uint MAX_CAMERA_COUNT = 16;
 
 struct CameraUB
@@ -604,7 +612,7 @@ struct ShaderMeshletTriangle
 	uint3 tri() { return uint3(i0(), i1(), i2()); }
 };
 
-struct alignas(16) ShaderMeshlet
+struct ShaderMeshlet
 {
 	uint vertexCount;
 	uint triangleCount;
@@ -614,7 +622,7 @@ struct alignas(16) ShaderMeshlet
 	ShaderMeshletTriangle triangles[MESHLET_TRIANGLE_COUNT];
 };
 
-struct alignas(16) ShaderMeshletBounds
+struct ShaderMeshletBounds
 {
 	ShaderSphereBounds bounds;
 	float3 coneAxis;
@@ -635,6 +643,10 @@ static const uint DEPTH_REDUCE_GROUP_SIZE = 32;
 
 // ============= PUSH CONSTANTS =============
 
+// In push constants input texture descriptors must go first, after them must be storage output texture descriptors.
+// This is necessary to automatically fill some fields of push constants.
+// Not best approach, but I will use it for now not to think about more robust way to fill push constants.
+
 struct TriangleSwapChainPushConstants
 {
 	uint triangleTextureIndex;
@@ -645,6 +657,13 @@ struct ObjectPushConstants
 {
 	uint modelIndex;
 	uint instanceOffset;
+	uint2 padding;
+};
+
+struct RayTracingPushConstants
+{
+	uint outputTargetIndex;
+	uint tlasIndex;
 	uint2 padding;
 };
 

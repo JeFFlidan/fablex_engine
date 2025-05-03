@@ -2045,12 +2045,16 @@ public:
     ZeroDescirptorSetInfo get_zero_descriptor_set_info(const std::vector<VkDescriptorSetLayoutBinding>& bindings)
     {
         uint64 hash = 0;
+        uint32 bindingMask = 0;
+
         for (const VkDescriptorSetLayoutBinding& binding : bindings)
         {
             Utils::hash_combine(hash, binding.binding);
             Utils::hash_combine(hash, binding.descriptorCount);
             Utils::hash_combine(hash, binding.descriptorType);
             Utils::hash_combine(hash, binding.stageFlags);
+
+            bindingMask |= 1 << binding.binding;
         }
 
         std::scoped_lock<std::mutex> locker(m_zeroDescriptorPool.mutex);
@@ -2061,6 +2065,7 @@ public:
 
         ZeroDescriptorPool::ZeroDescriptorSets newZeroSets;
         newZeroSets.bindingCount = bindings.size();
+        newZeroSets.bindingMask = bindingMask;
 
         VkDescriptorSetLayoutCreateInfo laycreateInfo{};
         laycreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -2111,7 +2116,7 @@ public:
         
         for (auto& [hash, zeroDescriptorSet] : m_zeroDescriptorPool.descriptorSetsByItsHash)
         {
-            if (slot >= zeroDescriptorSet.bindingCount)
+            if (!zeroDescriptorSet.has_binding(slot))
                 continue;
 
             auto& writeDescriptorSet = writes.emplace_back();
@@ -2226,6 +2231,12 @@ private:
             std::vector<VkDescriptorSet> descriptorSets;
             VkDescriptorSetLayout layout = VK_NULL_HANDLE;
             uint32 bindingCount;
+            uint32 bindingMask = 0;
+
+            bool has_binding(uint32 binding) const
+            {
+                return (bindingMask & (1u << binding)) != 0;
+            }
         };
 
         VkDescriptorPool pool = VK_NULL_HANDLE;
@@ -2370,7 +2381,7 @@ public:
             vkBinding.binding = binding->binding;
             vkBinding.descriptorCount = binding->count;
             vkBinding.descriptorType = (VkDescriptorType)binding->descriptor_type;
-            vkBinding.stageFlags =  get_shader_stage(shaderInfo->shaderType);
+            vkBinding.stageFlags = VK_SHADER_STAGE_ALL;
         }
 
         spvReflectDestroyShaderModule(&reflectModule);
@@ -3197,7 +3208,10 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
         bufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     if (has_flag(info->flags, rhi::ResourceFlags::RAY_TRACING))
+    {
         bufferCreateInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+        bufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
+    }
     
     if (!bufferCreateInfo.usage)
         FE_LOG(LogVulkanRHI, FATAL, "Invalid buffer usage.");
@@ -4203,6 +4217,20 @@ void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, v
     std::memcpy(dst, &vkInstance, sizeof(VkAccelerationStructureInstanceKHR));
 }
 
+void write_shader_identifier(Pipeline* pipeline, uint32 groupIndex, void* dst)
+{
+    FE_CHECK(pipeline->type == rhi::PipelineType::RAY_TRACING);
+
+    vkGetRayTracingShaderGroupHandlesKHR(
+        g_device.device, 
+        pipeline->vk().pipeline, 
+        groupIndex, 
+        1,
+        get_shader_identifier_size(),
+        dst 
+    );
+}
+
 void bind_uniform_buffer(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset)
 {
     FE_CHECK(buffer);
@@ -4939,6 +4967,45 @@ void dispatch_mesh(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCount
     vkCmdDrawMeshTasksEXT(cmd->vk().cmdBuffer, groupCountX, groupCountY, groupCountZ);
 }
 
+void dispatch_rays(CommandBuffer* cmd, const DispatchRaysInfo* info)
+{
+    FE_CHECK(cmd);
+
+    auto fillDeviceAddress = [&](
+        const ShaderIdentifierBuffer& inIdentifier,
+        VkStridedDeviceAddressRegionKHR& outRegion
+    )
+    {
+        outRegion.deviceAddress = inIdentifier.buffer ? inIdentifier.buffer->vk().address : 0;
+        outRegion.deviceAddress += inIdentifier.offset;
+        outRegion.size = inIdentifier.size;
+        outRegion.stride = inIdentifier.stride;
+    };
+
+    VkStridedDeviceAddressRegionKHR raygenDeviceAddress{};
+    fillDeviceAddress(info->rayGeneration, raygenDeviceAddress);
+
+    VkStridedDeviceAddressRegionKHR missDeviceAddress{};
+    fillDeviceAddress(info->miss, missDeviceAddress);
+
+    VkStridedDeviceAddressRegionKHR hitGroupDeviceAddress{};
+    fillDeviceAddress(info->hitGroup, hitGroupDeviceAddress);
+
+    VkStridedDeviceAddressRegionKHR callableDeviceAddress{};
+    fillDeviceAddress(info->callable, callableDeviceAddress);
+
+    vkCmdTraceRaysKHR(
+        cmd->vk().cmdBuffer,
+        &raygenDeviceAddress,
+        &missDeviceAddress,
+        &hitGroupDeviceAddress,
+        &callableDeviceAddress,
+        info->width,
+        info->height,
+        info->depth
+    );
+}
+
 void add_pipeline_barriers(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers)
 {
     FE_CHECK(cmd);
@@ -5392,6 +5459,7 @@ void fill_function_table()
     fe::rhi::create_acceleration_structure = create_acceleration_structure;
     fe::rhi::destroy_acceleration_structure = destroy_acceleration_structure;
     fe::rhi::write_top_level_acceleration_structure_instance = write_top_level_acceleration_structure_instance;
+    fe::rhi::write_shader_identifier = write_shader_identifier;
 
     fe::rhi::bind_uniform_buffer = bind_uniform_buffer;
 
@@ -5435,6 +5503,7 @@ void fill_function_table()
 
     fe::rhi::dispatch = dispatch;
     fe::rhi::dispatch_mesh = dispatch_mesh;
+    fe::rhi::dispatch_rays = dispatch_rays;
     fe::rhi::add_pipeline_barriers = add_pipeline_barriers;
 
     fe::rhi::acquire_next_image = acquire_next_image;
