@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "rhi/resources.h"
 #include "core/task_types.h"
 
@@ -45,6 +46,17 @@ public:
     ShaderManager();
     ~ShaderManager();
     
+    rhi::Shader* get_shader(const ShaderMetadata& shaderMetadata);
+    
+    void request_shader_loading(const ShaderMetadata& shaderMetadata);
+    void wait_shaders_loading();
+
+private:
+    std::unique_ptr<IShaderCompiler> m_shaderCompiler = nullptr;
+    std::unordered_map<ShaderMetadata, rhi::Shader*> m_shaderByMetadata{};
+    TaskGroup* m_taskGroup = nullptr;
+    std::mutex m_mutex{};
+
     // Relative path must not include src/fablex/shaders, only file names or subfolders of shaders + file names
     rhi::Shader* load_shader(
         const std::string& relativePath, 
@@ -53,32 +65,6 @@ public:
         rhi::HLSLShaderModel shaderModel = rhi::HLSLShaderModel::SM_6_7,
         const std::vector<std::string>& defines = {}
     );
-    
-    // For non-rt and non-lib shaders only
-    rhi::Shader* get_shader(const std::string& relativePath);
-    rhi::Shader* get_shader(const ShaderMetadata& shaderMetadata);
-    
-    void request_shader_loading(const ShaderMetadata& shaderMetadata);
-    void wait_shaders_loading();
-
-private:
-    struct ShaderLib
-    {
-        rhi::Shader* shader;
-        std::string entryPoint;
-    };
-
-    using ShaderLibraryArrayHandle = uint32;
-    using ShaderVariant = std::variant<rhi::Shader*, ShaderLibraryArrayHandle>;
-    using ShaderLibArray = std::vector<ShaderLib>;
-
-    std::unique_ptr<IShaderCompiler> m_shaderCompiler = nullptr;
-    std::unordered_map<std::string, ShaderVariant> m_shaderByRelativePath{};
-    std::vector<ShaderLibArray> m_shaderLibraries;
-    TaskGroup* m_taskGroup = nullptr;
-    std::mutex m_mutex{};
-
-    void add_shader(const std::string& relativePath, const std::string& entryPoint, rhi::Shader* shader);
 };
 
 }

@@ -4,6 +4,9 @@
 #include "core/logger.h"
 #include "core/window.h"
 #include "rhi/resources.h"
+#include "core/utils.h"
+
+#include <functional>
 
 namespace fe::renderer
 {
@@ -59,6 +62,15 @@ struct ShaderMetadata
     rhi::ShaderHitGroup::Type hitGroupType = rhi::ShaderHitGroup::TRIANGLES;    // Only for hit shaders
     std::string entryPoint;
     std::vector<std::string> defines;
+
+    bool operator==(const ShaderMetadata& other) const
+    {
+        return filePath == other.filePath
+            && type == other.type
+            && hitGroupType == other.hitGroupType
+            && entryPoint == other.entryPoint
+            && defines == other.defines;
+    }
 };
 
 struct PipelineMetadata
@@ -95,6 +107,29 @@ struct PushConstantsMetadata
 
     PushConstantsName name;
     std::vector<FieldMetadata> fieldsMetadata;
+};
+
+}
+
+namespace std 
+{
+
+template<>
+struct hash<fe::renderer::ShaderMetadata>
+{
+    std::size_t operator()(const fe::renderer::ShaderMetadata& m) const
+    {
+        std::size_t seed = 0;
+        fe::Utils::hash_combine(seed, m.filePath);
+        fe::Utils::hash_combine(seed, static_cast<int>(m.type));
+        fe::Utils::hash_combine(seed, static_cast<int>(m.hitGroupType));
+        fe::Utils::hash_combine(seed, m.entryPoint);
+
+        for (const std::string& def : m.defines)
+            fe::Utils::hash_combine(seed, def);
+
+        return seed;
+    }
 };
 
 }
