@@ -58,18 +58,6 @@ struct ShaderMaterial
 	ShaderTexture2D textures[TEXTURE_SLOT_COUNT];
 
 #ifndef __cplusplus
-	void init()
-	{
-		uint albedoDefaultValue = f32tof16(1.0f);
-		baseColor.x |= albedoDefaultValue;
-		baseColor.x |= albedoDefaultValue << 16u;
-		baseColor.y |= albedoDefaultValue;
-		baseColor.y |= albedoDefaultValue << 16u;
-		roughness16Metallic16 = f32tof16(0.5f);
-		opacity16SamplerIndex16 = f32tof16(1.0f);
-		flags8 = 0;
- 	}
-
 	inline float4 get_base_color()
 	{
 		return float4(
@@ -105,16 +93,19 @@ struct ShaderMaterial
 	{
 		return f16tof32(opacity16SamplerIndex16);
 	}
+
+	inline float4 sample_texture(TextureSlot textureSlot, in float4 uvSets)
+	{
+		SamplerState sampler = bindlessSamplers[descriptor_index(get_sampler_index())];
+		return textures[textureSlot].sample(sampler, uvSets);
+	}
+
 #else
 	void init()
 	{
-		uint albedoDefaultValue = DirectX::PackedVector::XMConvertFloatToHalf(1.0f);
-		baseColor.x |= albedoDefaultValue;
-		baseColor.x |= albedoDefaultValue << 16u;
-		baseColor.y |= albedoDefaultValue;
-		baseColor.y |= albedoDefaultValue << 16u;
-		roughness16Metallic16 = DirectX::PackedVector::XMConvertFloatToHalf(0.5f);
-		opacity16SamplerIndex16 = DirectX::PackedVector::XMConvertFloatToHalf(1.0f);
+		baseColor = uint2(0, 0);
+		roughness16Metallic16 = 0;
+		opacity16SamplerIndex16 = 0;
 		flags8 = 0;
 	}
 

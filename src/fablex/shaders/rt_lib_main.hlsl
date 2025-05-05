@@ -35,12 +35,14 @@ void closest_hit(inout RayPayload payload, in RayAttributes attr)
 
     Surface surface;
     surface.init(primitiveInfo, attr.barycentrics);
+    surface.V = -WorldRayDirection();
 
     FrameUB frame = get_frame();
     uint lightArrayOffset = frame.lightArrayOffset;
     uint lightArrayCount = frame.lightArrayCount;
 
     LightingResult lightingResult;
+    lightingResult.init(0, 0, 0, 0);
 
     for (uint i = lightArrayOffset; i != lightArrayOffset + lightArrayCount; ++i)
     {
@@ -52,12 +54,15 @@ void closest_hit(inout RayPayload payload, in RayAttributes attr)
         case SHADER_ENTITY_TYPE_SPOT_LIGHT:
             break;
         case SHADER_ENTITY_TYPE_DIRECTIONAL_LIGHT:
-            light_directional_lambert(entity, surface, lightingResult);
+            light_directional(entity, surface, lightingResult);
             break;
         }
     }
 
-    payload.color = float4(lightingResult.direct.diffuse, 1.0);
+    payload.color = float4(0.0, 0.0, 0.0, 1.0);
+    lightingResult.apply(payload.color);
+
+    // payload.color.xyz = lightingResult.direct.diffuse;
 }
 
 [shader("miss")]

@@ -84,7 +84,6 @@ private:
     TaskGroup m_textureTaskGroup;
     std::unordered_map<UUID, GPUTexture> m_gpuTextureByUUID;
 
-    std::mutex m_gpuMaterialMutex;
     std::vector<GPUMaterial> m_gpuMaterials;
     std::unordered_map<UUID, GPUMaterialInfo> m_gpuMaterialInfoByUUID;
 
@@ -121,6 +120,8 @@ private:
     rhi::Buffer* create_uma_uniform_buffer(uint64 size) const;
 
     void fill_tlas(rhi::CommandBuffer* cmd);
+
+    std::string generate_resource_name(const std::string& baseName) const;
 };
 
 }

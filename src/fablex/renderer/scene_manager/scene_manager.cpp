@@ -18,6 +18,13 @@ namespace fe::renderer
 constexpr uint64 SHADER_ENTITY_INIT_COUNT = 1024ULL;
 constexpr uint64 MATERIAL_INIT_COUNT = 256;
 
+const std::string MODEL_BUFFER_NAME = "ModelBuffer";
+const std::string MODEL_INSTANCE_BUFFER_NAME = "ModelInstanceBuffer";
+const std::string ENTITY_BUFFER_NAME = "EntityBuffer";
+const std::string MATERIAL_BUFFER_NAME = "MaterialBuffer";
+const std::string FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
+const std::string CAMERA_BUFFER_NAME = "CameraBuffer";
+
 SceneManager::SceneManager()
 {
     // For now some buffers support only CPU_TO_GPU memory usage
@@ -371,7 +378,12 @@ void SceneManager::create_samplers()
 
 void SceneManager::allocate_storage_buffers()
 {
-    auto alloc = [this](uint64 structSize, uint64 entryCount, std::vector<rhi::Buffer*>& buffers)
+    auto alloc = [this](
+        uint64 structSize, 
+        uint64 entryCount, 
+        std::vector<rhi::Buffer*>& buffers,
+        const std::string& debugName
+    )
     {
         uint64 cpuEntriesSize = entryCount * structSize;
 
@@ -381,6 +393,7 @@ void SceneManager::allocate_storage_buffers()
                 ? calc_buffer_size(0, cpuEntriesSize) : DEFAULT_GPU_BUFFER_SIZE;
 
             buffers.push_back(create_uma_storage_buffer(bufferSize));
+            rhi::set_name(buffers.back(), generate_resource_name(debugName));
         }
         else
         {
@@ -393,14 +406,15 @@ void SceneManager::allocate_storage_buffers()
 
                 uint64 newSize = calc_buffer_size(currentBufferSize, cpuEntriesSize);
                 buffers.at(g_frameIndex) = create_uma_storage_buffer(newSize);
+                rhi::set_name(buffers.back(), generate_resource_name(debugName));
             }
         }
     };
 
-    alloc(sizeof(ShaderModel), m_gpuModelInfoByUUID.size(), m_modelBuffers);
-    alloc(sizeof(ShaderModelInstance), m_modelComponents.size(), m_modelInstanceBuffers);
-    alloc(sizeof(ShaderEntity), m_shaderEntityComponents.size(), m_shaderEntityBuffers);
-    alloc(sizeof(ShaderMaterial), m_gpuMaterials.size(), m_materialBuffers);
+    alloc(sizeof(ShaderModel), m_gpuModelInfoByUUID.size(), m_modelBuffers, MODEL_BUFFER_NAME);
+    alloc(sizeof(ShaderModelInstance), m_modelComponents.size(), m_modelInstanceBuffers, MODEL_INSTANCE_BUFFER_NAME);
+    alloc(sizeof(ShaderEntity), m_shaderEntityComponents.size(), m_shaderEntityBuffers, ENTITY_BUFFER_NAME);
+    alloc(sizeof(ShaderMaterial), m_gpuMaterials.size(), m_materialBuffers, MATERIAL_BUFFER_NAME);
 }
 
 rhi::Buffer* SceneManager::get_model_buffer() const
@@ -434,7 +448,10 @@ uint64 SceneManager::calc_buffer_size(uint64 currentSize, uint64 cpuEntrieSize)
 void SceneManager::fill_frame_data()
 {
     if (m_frameBuffers.size() < g_frameIndex + 1)
+    {
         m_frameBuffers.push_back(create_uma_uniform_buffer(sizeof(FrameUB)));
+        rhi::set_name(m_frameBuffers.back(), generate_resource_name(FRAME_DATA_BUFFER_NAME));
+    }
     
     m_frameData.modelBufferIndex = get_model_buffer()->descriptorIndex;
     m_frameData.modelInstanceBufferIndex = get_model_instance_buffer()->descriptorIndex;
@@ -453,7 +470,10 @@ void SceneManager::fill_camera_buffers()
     static constexpr uint64 shaderCameraBufferSize = sizeof(ShaderCamera) * MAX_CAMERA_COUNT;
 
     if (m_cameraBuffers.size() < g_frameIndex + 1)
+    {
         m_cameraBuffers.push_back(create_uma_uniform_buffer(shaderCameraBufferSize));
+        rhi::set_name(m_frameBuffers.back(), generate_resource_name(CAMERA_BUFFER_NAME));
+    }
     
     if (!m_mainCameraEntity)
         return;
@@ -603,6 +623,11 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
     );
 
     rhi::build_acceleration_structure(cmd, m_TLAS, nullptr);
+}
+
+std::string SceneManager::generate_resource_name(const std::string& baseName) const
+{
+    return baseName + "_" + std::to_string(g_frameIndex);
 }
 
 }

@@ -38,11 +38,10 @@ void Engine::configure_test_scene()
     asset::OpaqueMaterial* opaqueMaterial1 = (asset::OpaqueMaterial*)asset::AssetManager::create_material(
         {{"Opaque1", projectDirectory}, asset::MaterialType::OPAQUE});
 
-    opaqueMaterial1->set_base_color(Float4(0.5, 0.8, 0.2, 1.0));
+    opaqueMaterial1->set_base_color(Float4(0.5, 0.8, 0.1, 1));
     opaqueMaterial1->set_roughness(0.5f);
     opaqueMaterial1->set_metallic(1.0f);
 
-    
     importContext.originalFilePath = FileSystem::get_absolute_path("content/boulder.glb");
     importContext.projectDirectory = projectDirectory;
     importContext.mergeMeshes = true;
@@ -54,7 +53,7 @@ void Engine::configure_test_scene()
     modelEntity->set_name("Boulder");
     ModelComponent* modelComponent = modelEntity->create_component<ModelComponent>();
     modelComponent->set_model(importResult2.models.at(0));
-    modelEntity->set_position(Float3(-5, 0, 0));
+    modelEntity->set_position(Float3(-2, 0, 5));
     MaterialComponent* matComponent = modelEntity->create_component<MaterialComponent>();
     matComponent->set_material(opaqueMaterial1);
 
@@ -79,20 +78,48 @@ void Engine::configure_test_scene()
         }
     }
 
-    // importContext.originalFilePath = FileSystem::get_absolute_path("content/boulder.glb");
-    // importContext.projectDirectory = projectDirectory;
-    // importContext.mergeMeshes = true;
-    // asset::ModelImportResult importResult2;
+    importContext.originalFilePath = FileSystem::get_absolute_path("content/sphere.glb");
+    importContext.projectDirectory = projectDirectory;
+    importContext.mergeMeshes = true;
+    asset::ModelImportResult importResult3;
 
-    // asset::AssetManager::import_model(importContext, importResult2);
+    asset::AssetManager::import_model(importContext, importResult3);
 
-    // Entity* modelEntity = m_world->create_entity();
-    // modelEntity->set_name("Boulder");
-    // ModelComponent* modelComponent = modelEntity->create_component<ModelComponent>();
-    // modelComponent->set_model(importResult2.models.at(0));
-    // modelEntity->set_position(Float3(-5, 0, 0));
-    // MaterialComponent* matComponent = modelEntity->create_component<MaterialComponent>();
-    // matComponent->set_material(opaqueMaterial1);
+    const uint32 sphereColumnCount = 10;
+    const uint32 sphereRowCount = 2;
+
+    float metallicValue = 1.0f;
+    const float roughnessValue = 0.1f;
+    const float xOffset = -10.0f;
+
+    for (uint32 j = 0; j != sphereRowCount; ++j)
+    {
+        for (uint32 i = 0; i != sphereColumnCount; ++i)
+        {
+            std::string postfix = std::to_string(i) + "_" + std::to_string(j);
+
+            asset::OpaqueMaterial* opaqueMaterial = (asset::OpaqueMaterial*)asset::AssetManager::create_material(
+                {{"Opaque" + postfix, projectDirectory}, asset::MaterialType::OPAQUE});
+
+            opaqueMaterial->set_base_color(Float4(1, 0, 0, 1));
+            opaqueMaterial->set_roughness(roughnessValue * (i + 1));
+            opaqueMaterial->set_metallic(metallicValue);
+
+            float x = xOffset + (-3.0f * i);
+            float y = 3.0f * j;
+            float z = 0.0f;
+
+            Entity* modelEntity = m_world->create_entity();
+            modelEntity->set_name("Sphere_" + postfix);
+            ModelComponent* modelComponent = modelEntity->create_component<ModelComponent>();
+            modelComponent->set_model(importResult3.models.at(0));
+            modelEntity->set_position(Float3(x, y, z));
+            MaterialComponent* matComponent = modelEntity->create_component<MaterialComponent>();
+            matComponent->set_material(opaqueMaterial);
+        }
+
+        metallicValue = 0.0f;
+    }
 
     Entity* cameraEntity = m_world->create_entity();
     cameraEntity->set_name("Camera");
@@ -103,8 +130,8 @@ void Engine::configure_test_scene()
 
     Entity* lightEntity = m_world->create_entity();
     lightEntity->set_name("Sun");
-    lightEntity->create_component<DirectionalLightComponent>();
-    lightEntity->set_rotation(Float3(1, 0, 0), -35);
+    lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
+    lightEntity->set_rotation(Float3(1, 0, 0), -30);
 }
 
 }

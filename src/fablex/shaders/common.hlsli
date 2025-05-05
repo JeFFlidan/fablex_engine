@@ -13,6 +13,11 @@ inline float3x3 adjoint(in float4x4 mat)
     );
 }
 
+uint descriptor_index(uint rawIndex)
+{
+    return NonUniformResourceIndex(rawIndex);
+}
+
 #if defined(__spirv__)
 
 static const uint BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER = 1;
@@ -82,11 +87,6 @@ static const uint BINDLESS_DESCRIPTOR_SET_ACCELERATION_STRUCTURE = 7;
 
 #define FLOAT_MAX 3.402823466e+38
 #define PI 3.14159265359
-
-uint descriptor_index(uint rawIndex)
-{
-    return NonUniformResourceIndex(rawIndex);
-}
 
 FrameUB get_frame()
 {

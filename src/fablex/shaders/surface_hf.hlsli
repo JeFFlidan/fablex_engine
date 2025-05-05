@@ -16,6 +16,12 @@ struct Surface
     float4 posWind1;
     float4 posWind2;
 
+    float4 baseColor;
+    float roughness;
+    float metallic;
+    float occlusion;
+    float3 F0;  // Fresnel value (specular color)
+
     float2 barycentrics;
 
     ShaderModelInstance instance;
@@ -77,6 +83,15 @@ struct Surface
         }
 
         N = normalize(N);
+
+        // TODO: Get values from textures
+        ShaderMaterial shaderMaterial = get_material(instance.materialIndex);
+        baseColor = shaderMaterial.get_base_color();
+        roughness = shaderMaterial.get_roughness();
+        roughness *= roughness;
+        metallic = shaderMaterial.get_metallic();
+        
+        F0 = lerp(float3(0.04f, 0.04f, 0.04f), baseColor.xyz, metallic);
 
         // TODO: UV
     }
