@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/object.h"
+#include "shaders/shader_interop_renderer.h"
 
 namespace fe::engine
 {

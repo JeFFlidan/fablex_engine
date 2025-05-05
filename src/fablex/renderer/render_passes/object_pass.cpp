@@ -27,11 +27,21 @@ void ObjectPass::execute(rhi::CommandBuffer* cmd)
 
     bind_pipeline(cmd);
     
+    uint instanceOffset = 0;
+
     // TEST
     for (GPUModel* gpuModel : sceneManager->get_gpu_models())
     {
+        ObjectPushConstants pushConstants;
+        pushConstants.modelIndex = sceneManager->get_model_index(gpuModel);
+        pushConstants.instanceOffset = instanceOffset;
+        push_constants(cmd, &pushConstants);
+
+        uint32 instanceCount = sceneManager->get_instance_count(gpuModel);
+        instanceOffset += instanceCount;
+
         rhi::bind_index_buffer(cmd, gpuModel->get_buffer(), gpuModel->get_index_offset());
-        rhi::draw_indexed(cmd, gpuModel->get_index_count(), 1, 0, 0, 0);
+        rhi::draw_indexed(cmd, gpuModel->get_index_count(), sceneManager->get_instance_count(gpuModel), 0, 0, 0);
     }
 }
 

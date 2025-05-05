@@ -1,4 +1,6 @@
 #include "model_component.h"
+#include "engine/entity/entity.h"
+#include "core/primitives/sphere.h"
 #include "asset_manager/asset_manager.h"
 
 namespace fe::engine
@@ -35,6 +37,23 @@ asset::Model* ModelComponent::get_model() const
 bool ModelComponent::is_model_loaded() const
 {
     return asset::AssetManager::is_asset_loaded(m_modelUUID);
+}
+
+void ModelComponent::fill_shader_instance_data(ShaderModelInstance& outModelInstance) const
+{
+    const AABB& aabb = get_model()->aabb(); 
+
+    Sphere sphereBounds(aabb);
+    outModelInstance.sphereBounds.center = sphereBounds.center;
+    outModelInstance.sphereBounds.radius = sphereBounds.radius;
+
+    Matrix remapMat = get_model()->aabb().get_unorm_remap_matrix();
+    Matrix transformMat = m_entity->get_world_transform();
+
+    outModelInstance.scale = m_entity->get_scale();
+    outModelInstance.transform.set_transfrom(remapMat * transformMat);
+    outModelInstance.rawTransform.set_transfrom(m_entity->get_world_transform());
+    outModelInstance.transformInverseTranspose.set_transfrom(transformMat.transpose().inverse());
 }
 
 }

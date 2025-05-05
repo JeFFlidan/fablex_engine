@@ -2,6 +2,7 @@
 
 #include "asset_manager/fwd.h"
 #include "engine/entity/component.h"
+#include "shaders/shader_interop_renderer.h"
 
 namespace fe::engine
 {
@@ -19,6 +20,8 @@ public:
     asset::Model* get_model() const;
 
     bool is_model_loaded() const;
+
+    void fill_shader_instance_data(ShaderModelInstance& outModelInstance) const;
 
 protected:
     UUID m_modelUUID = UUID::INVALID;

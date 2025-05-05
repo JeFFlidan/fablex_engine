@@ -2,10 +2,13 @@
 
 #include "gpu_model.h"
 #include "command_recorder.h"
-#include "engine/entity/entity.h"
-#include "asset_manager/model/model.h"
+
 #include "core/pool_allocator.h"
+#include "engine/entity/entity.h"
+#include "engine/components/fwd.h"
+#include "asset_manager/model/model.h"
 #include "shaders/shader_interop_renderer.h"
+
 #include <array>
 
 namespace fe::renderer
@@ -49,10 +52,13 @@ private:
 
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
 
-    EntityArray m_entities;
     EntityArray m_pendingEntities;
 
-    uint64 m_modelComponentCount = 0;
+    std::vector<engine::ModelComponent*> m_modelComponents;
+    std::vector<engine::ShaderEntityComponent*> m_shaderEntityComponents;
+
+    uint64 m_lightComponentCount = 0;
+    uint64 m_lightEntityBufferOffset = 0;   // NOT IN BYTES!!!
 
     std::vector<DeleteHandlerArray> m_deleteHandlersPerFrame;
 
@@ -63,6 +69,8 @@ private:
 
     BufferArray m_modelBuffers;
     BufferArray m_modelInstanceBuffers;
+
+    BufferArray m_shaderEntityBuffers;
 
     FrameUB m_frameData;
     ShaderCameraArray m_cameras;
@@ -75,8 +83,10 @@ private:
     std::vector<rhi::Buffer*> m_uploadBuffersForTLAS;
 
     void set_cmd(rhi::CommandBuffer* cmd);
+    void allocate_storage_buffers();
     rhi::Buffer* get_model_buffer();
     rhi::Buffer* get_model_instance_buffer();
+    rhi::Buffer* get_shader_entity_buffer();
     uint64 calc_buffer_size(uint64 currentSize, uint64 cpuEntrieSize);
 
     void fill_frame_data();

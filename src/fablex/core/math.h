@@ -361,7 +361,48 @@ struct Float2 : DirectX::XMFLOAT2
     {
         return std::sqrt(x * x + y * y);
     }
+
+    Float2 operator*(float value) const
+    {
+        return Float2(x * value, y * value);
+    }
+
+    Float2& operator*=(float value)
+    {
+        x *= value;
+        y *= value;
+        return *this;
+    }
+
+    Float2 operator+(const Float2& other) const
+    {
+        return Float2(x + other.x, y + other.y);
+    }
+
+    Float2& operator+=(const Float2& other)
+    {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
+
+    Float2 operator-(const Float2& other) const
+    {
+        return Float2(x - other.x, y - other.y);
+    }
+
+    Float2& operator-=(const Float2& other)
+    {
+        x -= other.x;
+        y -= other.y;
+        return *this;
+    }
 };
+
+inline Float2 operator*(float value, const Float2& vec)
+{
+    return vec * value;
+}
 
 struct Float3 : DirectX::XMFLOAT3
 {
@@ -388,7 +429,51 @@ struct Float3 : DirectX::XMFLOAT3
     {
         return std::sqrt(x * x + y * y + z * z);
     }
+
+    Float3 operator*(float value) const
+    {
+        return Float3(x * value, y * value, z * value);
+    }
+
+    Float3& operator*=(float value)
+    {
+        x *= value;
+        y *= value;
+        z *= value;
+        return *this;
+    }
+
+    Float3 operator+(const Float3& other) const
+    {
+        return Float3(x + other.x, y + other.y, z + other.z);
+    }
+
+    Float3& operator+=(const Float3& other)
+    {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        return *this;
+    }
+
+    Float3 operator-(const Float3& other) const
+    {
+        return Float3(x - other.x, y - other.y, z - other.z);
+    }
+
+    Float3& operator-=(const Float3& other)
+    {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        return *this;
+    }
 };
+
+inline Float3 operator*(float value, const Float3& vec)
+{
+    return vec * value;
+}
 
 struct Quat
 {
@@ -476,7 +561,54 @@ struct Float4 : DirectX::XMFLOAT4
     {
         return std::sqrt(x * x + y * y + z * z + w * w);
     }
+
+    Float4 operator*(float value) const
+    {
+        return Float4(x * value, y * value, z * value, w * value);
+    }
+
+    Float4& operator*=(float value)
+    {
+        x *= value;
+        y *= value;
+        z *= value;
+        w *= value;
+        return *this;
+    }
+
+    Float4 operator+(const Float4& other) const
+    {
+        return Float4(x + other.x, y + other.y, z + other.z, w * other.w);
+    }
+
+    Float4& operator+=(const Float4& other)
+    {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        w += other.w;
+        return *this;
+    }
+
+    Float4 operator-(const Float4& other) const
+    {
+        return Float4(x - other.x, y - other.y, z - other.z, w - other.w);
+    }
+
+    Float4& operator-=(const Float4& other)
+    {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        w -= other.w;
+        return *this;
+    }
 };
+
+inline Float4 operator*(float value, const Float4& vec)
+{
+    return vec * value;
+}
 
 struct Int2 : DirectX::XMINT2
 {

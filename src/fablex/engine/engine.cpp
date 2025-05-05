@@ -3,6 +3,7 @@
 #include "core/file_system/file_system.h"
 #include "components/model_component.h"
 #include "components/editor_camera_component.h"
+#include "components/light_components.h"
 
 namespace fe::engine
 {
@@ -72,6 +73,11 @@ void Engine::configure_test_scene()
     cameraComponent->mouseSensitivity = 0.12f;
     cameraComponent->movementSpeed = 9.0f;
     cameraComponent->window = m_window;
+
+    Entity* lightEntity = m_world->create_entity();
+    lightEntity->set_name("Sun");
+    lightEntity->create_component<DirectionalLightComponent>();
+    lightEntity->set_rotation(Float3(1, 0, 0), 45);
 }
 
 }

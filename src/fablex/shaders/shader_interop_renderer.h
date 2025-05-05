@@ -279,22 +279,37 @@ struct ShaderModelInstance
 
 enum ShaderEntityType
 {
-	DIRECTIONAL_LIGHT = 0,
-	POINT_LIGHT,
-	SPOT_LIGHT
+	SHADER_ENTITY_TYPE_UNDEFINED = 0,
+	SHADER_ENTITY_TYPE_DIRECTIONAL_LIGHT,
+	SHADER_ENTITY_TYPE_POINT_LIGHT,
+	SHADER_ENTITY_TYPE_SPOT_LIGHT,
 };
 
 // Must be aligned to 16 bytes. For now ShaderEntity supports point, spot and directional lights
 struct ShaderEntity
 {
+	float3 position;
 	uint type8Flags8;					// 16 bits are empty
-	float3 location;
+	
 	uint2 direction16OuterConeAngle16;	// There are 16 empty bits if RenderEntity type is dir light. I think it can be used in the future
 	uint2 color;						// half4
+	
 	uint matrixIndex16TextureIndex16;
 	uint attenuationRadius16;			// 16 bits are empty
 	uint extraInfo16;					// Can contain two half floats. For spot light it will contain info about angles. For point light it will contain info about cubemap 
 	uint empty;							// Will be used in the future
+
+	void init()
+	{
+		position = float3(0, 0, 0);
+		type8Flags8 = 0;
+		direction16OuterConeAngle16 = uint2(0, 0);
+		color = uint2(0, 0);
+		matrixIndex16TextureIndex16 = 0;
+		attenuationRadius16 = 0;
+		extraInfo16 = 0;
+		empty = 0;
+	}
 
 #ifndef __cplusplus
 	inline uint get_type()

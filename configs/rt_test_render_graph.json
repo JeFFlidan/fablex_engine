@@ -36,17 +36,17 @@
                 "Shaders": [
                     {
                         "Type": "RAY_GENERATION",
-                        "Path": "rt_lib_test.hlsl",
+                        "Path": "rt_lib_main.hlsl",
                         "EntryPoint": "raygen"
                     },
                     {
                         "Type": "RAY_MISS",
-                        "Path": "rt_lib_test.hlsl",
+                        "Path": "rt_lib_main.hlsl",
                         "EntryPoint": "miss"
                     },
                     {
                         "Type": "RAY_CLOSEST_HIT",
-                        "Path": "rt_lib_test.hlsl",
+                        "Path": "rt_lib_main.hlsl",
                         "EntryPoint": "closest_hit"
                     }
                 ]
