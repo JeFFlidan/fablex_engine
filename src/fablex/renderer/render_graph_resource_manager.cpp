@@ -20,9 +20,6 @@ RenderGraphResourceManager::~RenderGraphResourceManager()
 {
     m_currentFrameResourceList.clear();
     m_previousFrameResourceList.clear();
-
-    for (auto [name, sampler] : m_samplers)
-        rhi::destroy_sampler(sampler);
 }
 
 template <typename T>
@@ -102,16 +99,6 @@ uint32 RenderGraphResourceManager::get_texture_srv_descriptor(
         rhi::ResourceUsage::SAMPLED_TEXTURE, 
         rhi::ResourceLayout::SHADER_READ
     ).get_srv_descriptor();
-}
-
-uint32 RenderGraphResourceManager::get_sampler_descriptor(ResourceName samplerName) const
-{
-    auto it = m_samplers.find(samplerName);
-
-    if (it == m_samplers.end())
-        FE_LOG(LogRenderer, FATAL, "No sampler with name {}", samplerName.to_string());
-
-    return it->second->descriptorIndex;
 }
 
 Resource* RenderGraphResourceManager::get_resource(ResourceName resourceName)
@@ -214,19 +201,6 @@ void RenderGraphResourceManager::queue_resource_allocation(
 void RenderGraphResourceManager::queue_resource_usage(RenderPassName renderPassName, ResourceName resourceName, const SchedulingInfoConfigurator& configurator)
 {
     m_schedulingUsageRequests.emplace_back(SchedulingRequest(configurator, renderPassName, resourceName));
-}
-
-void RenderGraphResourceManager::create_sampler(ResourceName samplerName, const rhi::SamplerInfo& samplerInfo)
-{
-    if (m_samplers.contains(samplerName))
-    {
-        FE_LOG(LogRenderer, ERROR, "Sampler {} already exists.", samplerName.to_string());
-        return;
-    }
-
-    rhi::Sampler* sampler = nullptr;
-    rhi::create_sampler(&sampler, &samplerInfo);
-    m_samplers[samplerName] = sampler;
 }
 
 void RenderGraphResourceManager::create_resource(const ResourceCreationRequest& request)

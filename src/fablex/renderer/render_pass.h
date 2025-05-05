@@ -43,7 +43,6 @@ protected:
 
     uint32 get_input_texture_descriptor(uint64 pushConstantsOffset, rhi::ViewType viewType, uint32 mipLevel = 0) const;
     uint32 get_output_storage_texture_descriptor(uint64 pushConstantOffset, uint32 mipLevel = 0) const;
-    uint32 get_sampler_descriptor(ResourceName samplerName) const;
     
     void create_compute_pipeline();
     

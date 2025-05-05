@@ -5,6 +5,7 @@
 #include "model/model.h"
 #include "texture/texture.h"
 #include "material/material.h"
+#include "material/opaque_material.h"
 
 namespace fe::asset
 {
@@ -87,9 +88,11 @@ FE_DEFINE_ASSET_IMPORTED_EVENT(Model);
 FE_DEFINE_ASSET_IMPORTED_EVENT(Texture);
 
 FE_DEFINE_ASSET_CREATED_EVENT(Material);
+FE_DEFINE_ASSET_CREATED_EVENT(OpaqueMaterial);
 
 FE_DEFINE_ASSET_LOADED_EVENT(Model);
 FE_DEFINE_ASSET_LOADED_EVENT(Texture);
 FE_DEFINE_ASSET_LOADED_EVENT(Material);
+FE_DEFINE_ASSET_LOADED_EVENT(OpaqueMaterial);
 
 }

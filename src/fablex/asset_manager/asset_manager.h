@@ -6,7 +6,7 @@
 #include "asset_registry.h"
 #include "model/model.h"
 #include "texture/texture.h"
-#include "material/material.h"
+#include "material/opaque_material.h"
 #include "core/pool_allocator.h"
 #include "core/file_system/archive.h"
 
@@ -73,6 +73,7 @@ private:
     }
 
     static void configure_imported_asset(Asset* asset, const ImportContext& importContext);
+    static void configure_created_asset(Asset* asset, const CreateInfo& createInfo);
     static std::string generate_path(const std::string& projectDirectory, const std::string& name);
 };
 

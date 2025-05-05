@@ -7,13 +7,13 @@ namespace fe::renderer
 
 inline uint64 g_frameIndex = 0;
 
-constexpr const char* g_backBufferName = "BackBuffer_0451";
-constexpr const char* g_samplerLinearRepeat = "SamplerLinearRepeat";
-constexpr const char* g_samplerLinearClamp = "SamplerLinearClamp";
-constexpr const char* g_samplerLinearMirror = "SamplerLinearMirror";
-constexpr const char* g_samplerNearestRepeat = "SamplerNearestRepeat";
-constexpr const char* g_samplerNearestClamp = "SamplerNearesClamp";
-constexpr const char* g_samplerNearestMirror = "SamplerNearestMirror";
-constexpr const char* g_samplerMinimumNearestClamp = "SamplerMinimumNearestClamp";
+constexpr const char* BACK_BUFFER_NAME = "BackBuffer_0451";
+constexpr const char* SAMPLER_LINEAR_REPEAT = "SamplerLinearRepeat";
+constexpr const char* SAMPLER_LINEAR_CLAMP = "SamplerLinearClamp";
+constexpr const char* SAMPLER_LINEAR_MIRROR = "SamplerLinearMirror";
+constexpr const char* SAMPLER_NEAREST_REPEAT = "SamplerNearestRepeat";
+constexpr const char* SAMPLER_NEAREST_CLAMP = "SamplerNearesClamp";
+constexpr const char* SAMPLER_NEAREST_MIRROR = "SamplerNearestMirror";
+constexpr const char* SAMPLER_MINIMUM_NEAREST_CLAMP = "SamplerMinimumNearestClamp";
 
 }

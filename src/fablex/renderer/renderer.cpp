@@ -20,7 +20,6 @@ Renderer::Renderer(const RendererInfo& rendererInfo)
     m_renderGraph->load_from_metadata(m_config->get_render_graph_metadata_path(), m_renderPassContainer.get());
 
     create_main_swap_chain();
-    create_samplers();
     m_pipelineManager->create_pipelines(m_renderPassContainer.get());
 }
 
@@ -124,38 +123,6 @@ void Renderer::create_main_swap_chain()
     m_renderContext->set_main_swap_chain(m_mainSwapChain);
 
     FE_LOG(LogRenderer, INFO, "Main swap chain initialization completed.");
-}
-
-void Renderer::create_samplers()
-{
-    rhi::SamplerInfo samplerInfo;
-	samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_LINEAR;
-	samplerInfo.addressMode = rhi::AddressMode::REPEAT;
-	samplerInfo.borderColor = rhi::BorderColor::FLOAT_TRANSPARENT_BLACK;
-	samplerInfo.maxAnisotropy = 0.0f;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = std::numeric_limits<float>::max();
-	m_resourceManager->create_sampler(g_samplerLinearRepeat, samplerInfo);
-
-	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-	m_resourceManager->create_sampler(g_samplerLinearClamp, samplerInfo);
-
-	samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
-	m_resourceManager->create_sampler(g_samplerLinearMirror, samplerInfo);
-
-	samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_NEAREST;
-	samplerInfo.addressMode = rhi::AddressMode::REPEAT;
-	m_resourceManager->create_sampler(g_samplerNearestRepeat, samplerInfo);
-
-	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-	m_resourceManager->create_sampler(g_samplerNearestClamp, samplerInfo);
-
-	samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
-	m_resourceManager->create_sampler(g_samplerNearestMirror, samplerInfo);
-
-	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-	samplerInfo.filter = rhi::Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST;
-	m_resourceManager->create_sampler(g_samplerMinimumNearestClamp, samplerInfo);
 }
 
 void Renderer::acquire_next_image()
@@ -313,7 +280,7 @@ void Renderer::configure_pipeline_barriers()
             {
                 auto [resourceName, viewIndex] = RenderGraph::decode_view_name(viewName);
                 
-                if (resourceName == g_backBufferName)
+                if (resourceName == BACK_BUFFER_NAME)
                 {
                     m_backBufferNode = node;
                     return;

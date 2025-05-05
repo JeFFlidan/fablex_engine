@@ -55,11 +55,21 @@ Texture* AssetManager::create_texture(const TextureCreateInfo& createInfo)
 
 Material* AssetManager::create_material(const MaterialCreateInfo& createInfo)
 {
-    Material* material = allocate<Material>();
-    material->m_name = createInfo.name;
+    Material* material = nullptr;
+    switch (createInfo.type)
+    {
+    case MaterialType::OPAQUE:
+        material = allocate<OpaqueMaterial>();
+        break;
+    default:
+        FE_CHECK(0);
+    }
 
+    material->m_name = createInfo.name;
+    material->m_materialType = createInfo.type;
     material->make_dirty();
 
+    configure_created_asset(material, createInfo);
     EventManager::enqueue_event(AssetCreatedEvent<Material>(material));
     
     return material;
@@ -108,7 +118,7 @@ Texture* AssetManager::get_texture(UUID uuid)
 
 Material* AssetManager::get_material(UUID uuid)
 {
-    return get_asset<Material>(uuid);
+    return get_asset<OpaqueMaterial>(uuid); // TEMP, NEED TO THINK HOW TO IMPLEMENT IT BETTER
 }
 
 bool AssetManager::is_asset_loaded(UUID assetUUID)
@@ -146,6 +156,13 @@ void AssetManager::configure_imported_asset(Asset* asset, const ImportContext& i
 {
     asset->m_originalFilePath = importContext.originalFilePath;
     asset->m_assetPath = generate_path(importContext.projectDirectory, asset->get_name());
+    AssetRegistry::register_asset(asset);
+    s_assetStorage.add_asset(asset);
+}
+
+void AssetManager::configure_created_asset(Asset* asset, const CreateInfo& createInfo)
+{
+    asset->m_assetPath = generate_path(createInfo.projectDirectory, asset->get_name());
     AssetRegistry::register_asset(asset);
     s_assetStorage.add_asset(asset);
 }

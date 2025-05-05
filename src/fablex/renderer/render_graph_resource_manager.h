@@ -32,7 +32,6 @@ public:
     uint32 get_dsv_desciptor(RenderPassName renderPassName, ResourceName textureName) const;
     uint32 get_texture_uav_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
     uint32 get_texture_srv_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
-    uint32 get_sampler_descriptor(ResourceName samplerName) const;
 
     Resource* get_resource(ResourceName resourceName);
     const Resource* get_resource(ResourceName resourceName) const;
@@ -49,12 +48,10 @@ public:
     );
 
     void queue_resource_usage(RenderPassName renderPassName, ResourceName resourceName, const SchedulingInfoConfigurator& configurator);
-    void create_sampler(ResourceName samplerName, const rhi::SamplerInfo& samplerInfo);
 
 private:
     using ResourceMap = std::unordered_map<Name, uint64>;
     using ResourceList = std::vector<Resource>;
-    using SamplerMap = std::unordered_map<ResourceName, rhi::Sampler*>;
     using IntersectionEntryList = std::vector<Resource::IntersectionEntry>;
 
     struct SchedulingRequest
@@ -83,8 +80,6 @@ private:
     ResourceList m_currentFrameResourceList;
     IntersectionEntryList m_previousFrameIntersectionEntryList;
     IntersectionEntryList m_currentFrameIntersectionEntryList;
-
-    SamplerMap m_samplers;
 
     void create_resource(const ResourceCreationRequest& request);
     bool transfer_previous_frame_resources();

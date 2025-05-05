@@ -10,19 +10,28 @@ namespace fe
 class UUID
 {
 public:
-    constexpr static uint64 INVALID = 0;
+    static const UUID INVALID;
 
     UUID();
     UUID(uint64 uuid);
 
     operator uint64() const { return m_uuid; }
+    
     bool operator==(const UUID& uuid) const
     {
         return m_uuid == uuid.m_uuid;
     }
+
+    bool operator!=(const UUID& other) const
+    {
+        return m_uuid != other.m_uuid;
+    }
+
 private:
     uint64 m_uuid;
 };
+
+inline const UUID UUID::INVALID = 0;
 
 }
 

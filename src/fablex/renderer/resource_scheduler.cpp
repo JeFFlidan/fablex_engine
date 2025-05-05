@@ -125,7 +125,7 @@ void ResourceScheduler::write_to_back_buffer(RenderPassName renderPassName)
     RenderGraph::Node* node = s_renderContext->get_render_graph()->get_node(renderPassName);
     FE_CHECK(node);
 
-    node->add_write_dependency(g_backBufferName, 1);
+    node->add_write_dependency(BACK_BUFFER_NAME, 1);
 }
 
 void ResourceScheduler::use_ray_tracing(RenderPassName renderPassName)

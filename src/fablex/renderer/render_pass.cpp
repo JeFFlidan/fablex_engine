@@ -135,11 +135,6 @@ uint32 RenderPass::get_output_storage_texture_descriptor(uint64 pushConstantOffs
     return resourceManager->get_texture_uav_descriptor(renderPassName, textureName, mipLevel);
 }
 
-uint32 RenderPass::get_sampler_descriptor(ResourceName samplerName) const
-{
-    return m_renderContext->get_render_graph_resource_manager()->get_sampler_descriptor(samplerName);
-}
-
 void RenderPass::create_compute_pipeline()
 {
     m_renderContext->get_pipeline_manager()->create_compute_pipeline(get_pipeline_metadata());

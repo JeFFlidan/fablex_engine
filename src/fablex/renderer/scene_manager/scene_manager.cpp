@@ -7,15 +7,16 @@
 #include "engine/components/model_component.h"
 #include "engine/components/editor_camera_component.h"
 #include "engine/components/light_components.h"
-#include "core/task_composer.h"
 #include "core/primitives/sphere.h"
 #include "asset_manager/model/model.h"
+#include "asset_manager/texture/texture.h"
 #include "shaders/shader_interop_renderer.h"
 
 namespace fe::renderer
 {
 
 constexpr uint64 SHADER_ENTITY_INIT_COUNT = 1024ULL;
+constexpr uint64 MATERIAL_INIT_COUNT = 256;
 
 SceneManager::SceneManager()
 {
@@ -25,6 +26,8 @@ SceneManager::SceneManager()
     m_gpuModels.reserve(asset::AssetPoolSize<asset::Model>::poolSize);
     m_shaderEntityComponents.reserve(SHADER_ENTITY_INIT_COUNT);
     m_modelComponents.reserve(asset::AssetPoolSize<asset::Model>::poolSize * 4);
+    m_gpuMaterials.reserve(MATERIAL_INIT_COUNT);
+    m_materialComponents.reserve(asset::AssetPoolSize<asset::Model>::poolSize * 4);
 
     EventManager::subscribe<engine::EntityCreatedEvent>([this](const engine::EntityCreatedEvent& event)
     {
@@ -33,6 +36,8 @@ SceneManager::SceneManager()
 
     for (uint32 i = 0; i != rhi::g_queueCount; ++i)
         m_cmdRecorderPerQueue.emplace_back(new CommandRecorder());
+
+    create_samplers();
 }
 
 SceneManager::~SceneManager()
@@ -55,8 +60,13 @@ SceneManager::~SceneManager()
     for (rhi::Buffer* buffer : m_uploadBuffersForTLAS)
         rhi::destroy_buffer(buffer);
 
-    for (GPUModel* model : m_gpuModels)
-        m_gpuModelAllocator.free(model);
+    for (rhi::Buffer* buffer : m_materialBuffers)
+        rhi::destroy_buffer(buffer);
+
+    for (auto [name, sampler] : m_samplerByName)
+        rhi::destroy_sampler(sampler);
+
+    m_gpuModels.clear();
 
     for (const DeleteHandlerArray& deleteHandlers : m_deleteHandlersPerFrame)
         for (const DeleteHandler& deleteHandler : deleteHandlers)
@@ -93,26 +103,44 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
             if (m_gpuModelInfoByUUID.find(modelComponent->get_model_uuid()) != m_gpuModelInfoByUUID.end())
             {
                 ++m_gpuModelInfoByUUID[modelComponent->get_model_uuid()].instanceCount;
-                continue;
             }
-
-            // If many instances were created at once, scene manager can create seceral GPUModel, so this line prevents that
-            GPUModelInfo& gpuModelInfo = m_gpuModelInfoByUUID[modelComponent->get_model_uuid()];
-            ++gpuModelInfo.instanceCount;
-
-            // TEMP!!!! Must be done using TaskGorup with LOW priority 
-            TaskComposer::execute(taskGroup, [this, modelComponent](TaskExecutionInfo execInfo)
+            else
             {
                 asset::Model* model = modelComponent->get_model();
-                FE_CHECK(model);
+                uint64 index = m_gpuModels.size();
+                m_gpuModels.emplace_back(model);
 
-                GPUModel* gpuModel = m_gpuModelAllocator.allocate(model);
-                gpuModel->build(this, get_cmd_recorder(rhi::QueueType::GRAPHICS));
+                GPUModelInfo& gpuModelInfo = m_gpuModelInfoByUUID[model->get_uuid()];
+                gpuModelInfo.index = index;
+                ++gpuModelInfo.instanceCount;
+                
+                // TEMP!!!! Must be done using TaskGorup with LOW priority 
+                TaskComposer::execute(taskGroup, [this, index](TaskExecutionInfo execInfo)
+                {
+                    m_gpuModels[index].build(this, get_cmd_recorder(rhi::QueueType::GRAPHICS));
+                });
+            }
 
-                std::scoped_lock<std::mutex> locker(m_gpuModelMutex);
-                m_gpuModels.push_back(gpuModel);
-                m_gpuModelInfoByUUID[model->get_uuid()].index = m_gpuModels.size() - 1;
-            });
+        }
+
+        if (engine::MaterialComponent* materialComponent = entity->get_component<engine::MaterialComponent>())
+        {
+            UUID materialUUID = materialComponent->get_material_uuid();
+            m_materialComponents.push_back(materialComponent);
+
+            if (m_gpuMaterialInfoByUUID.find(materialUUID) == m_gpuMaterialInfoByUUID.end())
+            {
+                uint64 index = m_gpuMaterials.size();
+                m_gpuMaterials.emplace_back(materialComponent);
+                m_gpuMaterialInfoByUUID[materialUUID].index = index;
+
+                m_gpuMaterialInfoByUUID[materialComponent->get_material_uuid()];
+
+                TaskComposer::execute(taskGroup, [this, index](TaskExecutionInfo execInfo)
+                {
+                    m_gpuMaterials[index].build(this, get_cmd_recorder(rhi::QueueType::GRAPHICS));
+                });
+            }
         }
 
         if (engine::EditorCameraComponent* cameraComponent = entity->get_component<engine::EditorCameraComponent>())
@@ -130,6 +158,9 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     m_pendingEntities.clear();
 
     TaskComposer::wait(taskGroup);
+    TaskComposer::wait(m_textureTaskGroup);
+
+    FE_CHECK(m_materialComponents.size() == m_modelComponents.size());
 
     allocate_storage_buffers();
 
@@ -142,11 +173,11 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         ShaderModel* shaderModels = static_cast<ShaderModel*>(buffer->mappedData);
         uint64 index = 0;
 
-        for (GPUModel* gpuModel : m_gpuModels)
+        for (const GPUModel& gpuModel : m_gpuModels)
         {
             ShaderModel& shaderModel = shaderModels[index++];
             shaderModel.init();
-            gpuModel->fill_shader_model(shaderModel);
+            gpuModel.fill_shader_model(shaderModel);
         }
     });
 
@@ -156,13 +187,22 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         ShaderModelInstance* shaderModelInstances = static_cast<ShaderModelInstance*>(buffer->mappedData);
         uint64 index = 0;
 
+        auto getGPUMaterialInfo = [this](uint64 index)->const GPUMaterialInfo&
+        {
+            const engine::MaterialComponent* material = m_materialComponents.at(index);
+            return m_gpuMaterialInfoByUUID[material->get_material_uuid()];
+        };
+
         for (engine::ModelComponent* modelComponent : m_modelComponents)
         {
             const GPUModelInfo& gpuModelInfo = m_gpuModelInfoByUUID.at(modelComponent->get_model_uuid());
+            const GPUMaterialInfo& gpuMaterialInfo = getGPUMaterialInfo(index);
 
             ShaderModelInstance& modelInstance = shaderModelInstances[index++];
             modelInstance.init();
+            
             modelInstance.geometryOffset = gpuModelInfo.index;
+            modelInstance.materialIndex = gpuMaterialInfo.index;
 
             modelComponent->fill_shader_instance_data(modelInstance);
         }
@@ -187,6 +227,20 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
+        rhi::Buffer* buffer = get_material_buffer();
+        ShaderMaterial* shaderMaterials = static_cast<ShaderMaterial*>(buffer->mappedData);
+        uint64 index = 0;
+        
+        for (const GPUMaterial& material : m_gpuMaterials)
+        {
+            ShaderMaterial& shaderMaterial = shaderMaterials[index++];
+            shaderMaterial.init();
+            material.fill_shader_material(this, shaderMaterial);
+        }
+    });
+
+    TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
+    {
         fill_frame_data();
         fill_camera_buffers();
     });
@@ -200,26 +254,52 @@ void SceneManager::build_bvh(rhi::CommandBuffer* cmd)
 
     set_cmd(cmd);
 
-    for (GPUModel* gpuModel : m_gpuModels)
-        gpuModel->build_blas(get_cmd_recorder(rhi::QueueType::COMPUTE));
+    for (GPUModel& gpuModel : m_gpuModels)
+        gpuModel.build_blas(get_cmd_recorder(rhi::QueueType::COMPUTE));
 
     fill_tlas(cmd);
 }
 
-uint32 SceneManager::get_model_index(GPUModel* gpuModel) const
+bool SceneManager::is_texture_loaded_into_gpu(UUID textureUUID) const
 {
-    auto it = m_gpuModelInfoByUUID.find(gpuModel->get_model()->get_uuid());
+    return false;
+}
+
+void SceneManager::load_texture_into_gpu(UUID textureUUID) const
+{
+
+}
+
+uint32 SceneManager::get_model_index(const GPUModel& gpuModel) const
+{
+    auto it = m_gpuModelInfoByUUID.find(gpuModel.get_model()->get_uuid());
     if (it == m_gpuModelInfoByUUID.end())
         return ~0u;
     return it->second.index;
 }
 
-uint32 SceneManager::get_instance_count(GPUModel* gpuModel) const
+uint32 SceneManager::get_instance_count(const GPUModel& gpuModel) const
 {
-    auto it = m_gpuModelInfoByUUID.find(gpuModel->get_model()->get_uuid());
+    auto it = m_gpuModelInfoByUUID.find(gpuModel.get_model()->get_uuid());
     if (it == m_gpuModelInfoByUUID.end())
         return ~0u;
     return it->second.instanceCount;
+}
+
+int32 SceneManager::get_descriptor(asset::Texture* texture) const
+{
+    auto it = m_gpuTextureByUUID.find(texture->get_uuid());
+    if (it == m_gpuTextureByUUID.end())
+        return -1;
+    return it->second.get_gpu_texture_view()->descriptorIndex;
+}
+
+int32 SceneManager::get_sampler_descriptor(ResourceName samplerName) const
+{
+    auto it = m_samplerByName.find(samplerName);
+    if (it == m_samplerByName.end())
+        return -1;
+    return it->second->descriptorIndex;
 }
 
 void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
@@ -242,6 +322,51 @@ void SceneManager::set_cmd(rhi::CommandBuffer* cmd)
     FE_CHECK(cmd);
     
     get_cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
+}
+
+void SceneManager::create_samplers()
+{
+    auto createSampler = [&](Name name, const rhi::SamplerInfo& info)
+    {
+        if (m_samplerByName.contains(name))
+        {
+            FE_LOG(LogRenderer, ERROR, "Sampler {} already exists.", name.to_string());
+            return;
+        }
+    
+        rhi::Sampler* sampler = nullptr;
+        rhi::create_sampler(&sampler, &info);
+        m_samplerByName[name] = sampler;
+    };
+
+    rhi::SamplerInfo samplerInfo;
+	samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_LINEAR;
+	samplerInfo.addressMode = rhi::AddressMode::REPEAT;
+	samplerInfo.borderColor = rhi::BorderColor::FLOAT_TRANSPARENT_BLACK;
+	samplerInfo.maxAnisotropy = 0.0f;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = std::numeric_limits<float>::max();
+    createSampler(SAMPLER_LINEAR_REPEAT, samplerInfo);
+
+	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
+	createSampler(SAMPLER_LINEAR_CLAMP, samplerInfo);
+
+	samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
+	createSampler(SAMPLER_LINEAR_MIRROR, samplerInfo);
+
+	samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_NEAREST;
+	samplerInfo.addressMode = rhi::AddressMode::REPEAT;
+	createSampler(SAMPLER_NEAREST_REPEAT, samplerInfo);
+
+	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
+	createSampler(SAMPLER_NEAREST_CLAMP, samplerInfo);
+
+	samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
+	createSampler(SAMPLER_NEAREST_MIRROR, samplerInfo);
+
+	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
+	samplerInfo.filter = rhi::Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST;
+	createSampler(SAMPLER_MINIMUM_NEAREST_CLAMP, samplerInfo);
 }
 
 void SceneManager::allocate_storage_buffers()
@@ -275,19 +400,25 @@ void SceneManager::allocate_storage_buffers()
     alloc(sizeof(ShaderModel), m_gpuModelInfoByUUID.size(), m_modelBuffers);
     alloc(sizeof(ShaderModelInstance), m_modelComponents.size(), m_modelInstanceBuffers);
     alloc(sizeof(ShaderEntity), m_shaderEntityComponents.size(), m_shaderEntityBuffers);
+    alloc(sizeof(ShaderMaterial), m_gpuMaterials.size(), m_materialBuffers);
 }
 
-rhi::Buffer* SceneManager::get_model_buffer()
+rhi::Buffer* SceneManager::get_model_buffer() const
 {
     return m_modelBuffers.at(g_frameIndex);
 }
 
-rhi::Buffer* SceneManager::get_model_instance_buffer()
+rhi::Buffer* SceneManager::get_model_instance_buffer() const
 {
     return m_modelInstanceBuffers.at(g_frameIndex);
 }
 
-rhi::Buffer* SceneManager::get_shader_entity_buffer()
+rhi::Buffer* SceneManager::get_material_buffer() const
+{
+    return m_materialBuffers.at(g_frameIndex);
+}
+
+rhi::Buffer* SceneManager::get_shader_entity_buffer() const
 {
     return m_shaderEntityBuffers.at(g_frameIndex);
 }
@@ -310,6 +441,7 @@ void SceneManager::fill_frame_data()
     m_frameData.entityBufferIndex = get_shader_entity_buffer()->descriptorIndex;
     m_frameData.lightArrayCount = m_lightComponentCount;
     m_frameData.lightArrayOffset = 0;
+    m_frameData.materialBufferIndex = get_material_buffer()->descriptorIndex;
 
     rhi::Buffer* buffer = m_frameBuffers.at(g_frameIndex);
     memcpy(buffer->mappedData, &m_frameData, sizeof(FrameUB));
@@ -440,7 +572,7 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
             rhi::TLAS::Instance instance;
             instance.instanceID = instanceCount;
 
-            instance.blas = m_gpuModels.at(gpuModelInfo.index)->get_BLASes().at(0);
+            instance.blas = m_gpuModels.at(gpuModelInfo.index).get_BLASes().at(0);
             instance.instanceMask = 1 << 0; // TEMP
             instance.instanceContributionToHitGroupIndex = 0;
             instance.flags = rhi::TLAS::Instance::Flags::TRIANGLE_CULL_DISABLE;

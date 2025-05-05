@@ -4,6 +4,13 @@
 namespace fe::engine
 {
 
+FE_DEFINE_OBJECT(MaterialComponent, Component);
+FE_BEGIN_PROPERTY_REGISTER(MaterialComponent)
+{
+
+}
+FE_END_PROPERTY_REGISTER(MaterialComponent)
+
 void MaterialComponent::set_material(asset::Material* material)
 {
     m_materialUUID = material->get_uuid();

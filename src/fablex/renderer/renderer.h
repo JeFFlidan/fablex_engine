@@ -88,7 +88,6 @@ private:
     void init_managers();
     void init_render_context();
     void create_main_swap_chain();
-    void create_samplers();
 
     void acquire_next_image();
     void begin_frame();

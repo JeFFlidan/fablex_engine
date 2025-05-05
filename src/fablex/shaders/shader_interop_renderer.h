@@ -6,13 +6,13 @@
 static const uint SHADER_MATERIAL_FLAG_TRANSPARENT = 1 << 0;
 static const uint SHADER_MATERIAL_FLAG_UNLIT = 1 << 1;
 
-enum TEXTURE_SLOT
+enum TextureSlot
 {
-	ALBEDO = 0,
-	NORMAL,
-	ROUGHNESS,
-	METALLIC,
-	AO,
+	TEXTURE_SLOT_BASE_COLOR = 0,
+	TEXTURE_SLOT_NORMAL,
+	TEXTURE_SLOT_ROUGHNESS,
+	TEXTURE_SLOT_METALLIC,
+	TEXTURE_SLOT_AO,
 
 	TEXTURE_SLOT_COUNT
 };
@@ -49,7 +49,7 @@ struct ShaderTexture2D
 
 struct ShaderMaterial
 {
-	uint2 albedo;	//half4
+	uint2 baseColor;	//half4
 	uint roughness16Metallic16;
 	uint opacity16SamplerIndex16;
 	uint flags8;		// 24 bits are empty
@@ -61,22 +61,22 @@ struct ShaderMaterial
 	void init()
 	{
 		uint albedoDefaultValue = f32tof16(1.0f);
-		albedo.x |= albedoDefaultValue;
-		albedo.x |= albedoDefaultValue << 16u;
-		albedo.y |= albedoDefaultValue;
-		albedo.y |= albedoDefaultValue << 16u;
+		baseColor.x |= albedoDefaultValue;
+		baseColor.x |= albedoDefaultValue << 16u;
+		baseColor.y |= albedoDefaultValue;
+		baseColor.y |= albedoDefaultValue << 16u;
 		roughness16Metallic16 = f32tof16(0.5f);
 		opacity16SamplerIndex16 = f32tof16(1.0f);
 		flags8 = 0;
  	}
 
-	inline float4 get_albedo()
+	inline float4 get_base_color()
 	{
 		return float4(
-			f16tof32(albedo.x),
-			f16tof32(albedo.x >> 16u),
-			f16tof32(albedo.y),
-			f16tof32(albedo.y >> 16u)
+			f16tof32(baseColor.x),
+			f16tof32(baseColor.x >> 16u),
+			f16tof32(baseColor.y),
+			f16tof32(baseColor.y >> 16u)
 		);
 	}
 
@@ -109,21 +109,21 @@ struct ShaderMaterial
 	void init()
 	{
 		uint albedoDefaultValue = DirectX::PackedVector::XMConvertFloatToHalf(1.0f);
-		albedo.x |= albedoDefaultValue;
-		albedo.x |= albedoDefaultValue << 16u;
-		albedo.y |= albedoDefaultValue;
-		albedo.y |= albedoDefaultValue << 16u;
+		baseColor.x |= albedoDefaultValue;
+		baseColor.x |= albedoDefaultValue << 16u;
+		baseColor.y |= albedoDefaultValue;
+		baseColor.y |= albedoDefaultValue << 16u;
 		roughness16Metallic16 = DirectX::PackedVector::XMConvertFloatToHalf(0.5f);
 		opacity16SamplerIndex16 = DirectX::PackedVector::XMConvertFloatToHalf(1.0f);
 		flags8 = 0;
 	}
 
-	inline void set_albedo(float4 albedoVal)
+	inline void set_base_color(float4 inBaseColor)
 	{
-		albedo.x |= DirectX::PackedVector::XMConvertFloatToHalf(albedoVal.x);
-		albedo.x |= DirectX::PackedVector::XMConvertFloatToHalf(albedoVal.y) << 16u;
-		albedo.y |= DirectX::PackedVector::XMConvertFloatToHalf(albedoVal.z);
-		albedo.y |= DirectX::PackedVector::XMConvertFloatToHalf(albedoVal.w) << 16u;
+		baseColor.x |= DirectX::PackedVector::XMConvertFloatToHalf(inBaseColor.x);
+		baseColor.x |= DirectX::PackedVector::XMConvertFloatToHalf(inBaseColor.y) << 16u;
+		baseColor.y |= DirectX::PackedVector::XMConvertFloatToHalf(inBaseColor.z);
+		baseColor.y |= DirectX::PackedVector::XMConvertFloatToHalf(inBaseColor.w) << 16u;
 	}
 
 	inline void set_roughness(float roughness)

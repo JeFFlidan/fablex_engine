@@ -521,23 +521,23 @@ void GPUModel::destroy_BLASes()
     m_BLASState = BLASState::REQUIRES_REBUILD;
 }
 
-void GPUModel::fill_shader_model(ShaderModel& outRendererModel)
+void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
 {
-    outRendererModel.indexBuffer = get_srv_indices();
-    outRendererModel.vertexBufferPosWind = get_srv_positions_winds();
-    outRendererModel.vertexBufferMeshlets = get_srv_meshlets();
-    outRendererModel.vertexBufferMeshletBounds = get_srv_meshlet_bounds();
-    outRendererModel.vertexBufferNormals = get_srv_normals();
-    outRendererModel.vertexBufferTangents = get_srv_tangents();
-    outRendererModel.vertexBufferUVs = get_srv_uvs();
-    outRendererModel.vertexBufferAtlas = get_srv_atlas();
-    outRendererModel.vertexBufferColors = get_srv_colors();
+    outShaderModel.indexBuffer = get_srv_indices();
+    outShaderModel.vertexBufferPosWind = get_srv_positions_winds();
+    outShaderModel.vertexBufferMeshlets = get_srv_meshlets();
+    outShaderModel.vertexBufferMeshletBounds = get_srv_meshlet_bounds();
+    outShaderModel.vertexBufferNormals = get_srv_normals();
+    outShaderModel.vertexBufferTangents = get_srv_tangents();
+    outShaderModel.vertexBufferUVs = get_srv_uvs();
+    outShaderModel.vertexBufferAtlas = get_srv_atlas();
+    outShaderModel.vertexBufferColors = get_srv_colors();
 
-    outRendererModel.aabbMin = get_aabb().minPoint;
-    outRendererModel.aabbMax = get_aabb().maxPoint;
+    outShaderModel.aabbMin = get_aabb().minPoint;
+    outShaderModel.aabbMax = get_aabb().maxPoint;
 
-    outRendererModel.uvRangeMin = m_uvRangeMin;
-    outRendererModel.uvRangeMax = m_uvRangeMax;
+    outShaderModel.uvRangeMin = m_uvRangeMin;
+    outShaderModel.uvRangeMax = m_uvRangeMax;
 }
 
 const AABB& GPUModel::get_aabb() const

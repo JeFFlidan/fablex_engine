@@ -8,9 +8,15 @@ namespace fe::asset
 
 class Texture;
 
+enum class MaterialType
+{
+    UNDEFINED,
+    OPAQUE,
+};
+
 struct MaterialCreateInfo : public CreateInfo
 {
-    
+    MaterialType type;
 };
 
 // This material implementation is temp
@@ -18,6 +24,8 @@ class Material : public Asset
 {
     FE_DECLARE_OBJECT(Material)
     FE_DECLARE_PROPERTY_REGISTER(Material)
+
+    friend AssetManager;
 
 public:
     // ========== Begin Object interface ==========
@@ -30,29 +38,12 @@ public:
     // ========== Begin Asset interface ==========
 
     virtual Type get_type() const override { return Type::MATERIAL; }
+    MaterialType get_material_type() const { return m_materialType; } 
 
     // ========== End Asset interface ==========
 
-    void set_base_color(Texture* baseColorTexture);
-    void set_normal(Texture* normalMapTexture);
-    void set_roughness(Texture* roughnessTexture);
-    void set_metallic(Texture* metallicTexture);
-    void set_ambient_occlusion(Texture* ambientOcclusionTexture);
-
-    Texture* base_color() const;
-    Texture* normal() const;
-    Texture* roughness() const;
-    Texture* metallic() const;
-    Texture* ambient_occlusion() const;
-
 protected:
-    UUID m_baseColorUUID = UUID::INVALID;
-    UUID m_normalMapUUID = UUID::INVALID;
-    UUID m_roughnessUUID = UUID::INVALID;
-    UUID m_metallicUUID = UUID::INVALID;
-    UUID m_ambientOcclusionUUID = UUID::INVALID;
+    MaterialType m_materialType;
 };
-
-FE_DEFINE_ASSET_POOL_SIZE(Material, 256);
 
 }

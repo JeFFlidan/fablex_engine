@@ -1,12 +1,14 @@
 #pragma once
 
 #include "gpu_model.h"
+#include "gpu_texture.h"
+#include "gpu_material.h"
 #include "command_recorder.h"
+#include "common.h"
 
-#include "core/pool_allocator.h"
 #include "engine/entity/entity.h"
 #include "engine/components/fwd.h"
-#include "asset_manager/model/model.h"
+#include "core/task_composer.h"
 #include "shaders/shader_interop_renderer.h"
 
 #include <array>
@@ -28,12 +30,17 @@ public:
     void upload(rhi::CommandBuffer* cmd);
     void build_bvh(rhi::CommandBuffer* cmd);
 
+    bool is_texture_loaded_into_gpu(UUID textureUUID) const;
+    void load_texture_into_gpu(UUID textureUUID) const;
+
     void add_staging_buffer(rhi::Buffer* buffer);
     const CommandRecorder& get_cmd_recorder(rhi::QueueType queueType) const;
-    uint32 get_model_index(GPUModel* gpuModel) const;
-    uint32 get_instance_count(GPUModel* gpuModel) const;
+    uint32 get_model_index(const GPUModel& gpuModel) const;
+    uint32 get_instance_count(const GPUModel& gpuModel) const;
+    int32 get_descriptor(asset::Texture* texture) const;
+    int32 get_sampler_descriptor(ResourceName samplerName) const;
 
-    const std::vector<GPUModel*>& get_gpu_models() const { return m_gpuModels; }
+    const std::vector<GPUModel>& get_gpu_models() const { return m_gpuModels; }
     rhi::AccelerationStructure* get_scene_TLAS() const { return m_TLAS; }
 
 private:
@@ -50,11 +57,17 @@ private:
         uint32 instanceCount = 0;
     };
 
+    struct GPUMaterialInfo
+    {
+        uint32 index = 0;
+    };
+
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
 
     EntityArray m_pendingEntities;
 
     std::vector<engine::ModelComponent*> m_modelComponents;
+    std::vector<engine::MaterialComponent*> m_materialComponents; 
     std::vector<engine::ShaderEntityComponent*> m_shaderEntityComponents;
 
     uint64 m_lightComponentCount = 0;
@@ -62,14 +75,22 @@ private:
 
     std::vector<DeleteHandlerArray> m_deleteHandlersPerFrame;
 
-    PoolAllocator<GPUModel, asset::AssetPoolSize<asset::Model>::poolSize> m_gpuModelAllocator;
-    std::mutex m_gpuModelMutex;
-    std::vector<GPUModel*> m_gpuModels;
+    std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
+
+    std::vector<GPUModel> m_gpuModels;
     std::unordered_map<UUID, GPUModelInfo> m_gpuModelInfoByUUID;
+
+    std::mutex m_textureMutex;
+    TaskGroup m_textureTaskGroup;
+    std::unordered_map<UUID, GPUTexture> m_gpuTextureByUUID;
+
+    std::mutex m_gpuMaterialMutex;
+    std::vector<GPUMaterial> m_gpuMaterials;
+    std::unordered_map<UUID, GPUMaterialInfo> m_gpuMaterialInfoByUUID;
 
     BufferArray m_modelBuffers;
     BufferArray m_modelInstanceBuffers;
-
+    BufferArray m_materialBuffers;
     BufferArray m_shaderEntityBuffers;
 
     FrameUB m_frameData;
@@ -83,10 +104,12 @@ private:
     std::vector<rhi::Buffer*> m_uploadBuffersForTLAS;
 
     void set_cmd(rhi::CommandBuffer* cmd);
+    void create_samplers();
     void allocate_storage_buffers();
-    rhi::Buffer* get_model_buffer();
-    rhi::Buffer* get_model_instance_buffer();
-    rhi::Buffer* get_shader_entity_buffer();
+    rhi::Buffer* get_model_buffer() const;
+    rhi::Buffer* get_model_instance_buffer() const;
+    rhi::Buffer* get_material_buffer() const;
+    rhi::Buffer* get_shader_entity_buffer() const;
     uint64 calc_buffer_size(uint64 currentSize, uint64 cpuEntrieSize);
 
     void fill_frame_data();

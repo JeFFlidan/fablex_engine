@@ -30,7 +30,7 @@ public:
     void destroy_buffer_views();
     void destroy_BLASes();
 
-    void fill_shader_model(ShaderModel& outRendererModel);
+    void fill_shader_model(ShaderModel& outShaderModel) const;
 
     asset::Model* get_model() const { return m_model; }
     const AABB& get_aabb() const;
