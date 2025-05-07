@@ -8,8 +8,8 @@
 #include "engine/components/editor_camera_component.h"
 #include "engine/components/light_components.h"
 #include "core/primitives/sphere.h"
-#include "asset_manager/model/model.h"
-#include "asset_manager/texture/texture.h"
+#include "core/task_composer.h"
+#include "asset_manager/asset_manager.h"
 #include "shaders/shader_interop_renderer.h"
 
 namespace fe::renderer
@@ -29,21 +29,11 @@ SceneManager::SceneManager()
 {
     // For now some buffers support only CPU_TO_GPU memory usage
     FE_CHECK(rhi::has_capability(rhi::GPUCapability::CACHE_COHERENT_UMA));
+    FE_CHECK(rhi::has_capability(rhi::GPUCapability::RAY_TRACING));
 
-    m_gpuModels.reserve(asset::AssetPoolSize<asset::Model>::poolSize);
-    m_shaderEntityComponents.reserve(SHADER_ENTITY_INIT_COUNT);
-    m_modelComponents.reserve(asset::AssetPoolSize<asset::Model>::poolSize * 4);
-    m_gpuMaterials.reserve(MATERIAL_INIT_COUNT);
-    m_materialComponents.reserve(asset::AssetPoolSize<asset::Model>::poolSize * 4);
-
-    EventManager::subscribe<engine::EntityCreatedEvent>([this](const engine::EntityCreatedEvent& event)
-    {
-        m_pendingEntities.push_back(event.get_entity());
-    });
-
-    for (uint32 i = 0; i != rhi::g_queueCount; ++i)
-        m_cmdRecorderPerQueue.emplace_back(new CommandRecorder());
-
+    allocate_arrays();
+    init_callbacks();
+    load_resources();
     create_samplers();
 }
 
@@ -74,6 +64,7 @@ SceneManager::~SceneManager()
         rhi::destroy_sampler(sampler);
 
     m_gpuModels.clear();
+    m_gpuTextureByUUID.clear();
 
     for (const DeleteHandlerArray& deleteHandlers : m_deleteHandlersPerFrame)
         for (const DeleteHandler& deleteHandler : deleteHandlers)
@@ -165,7 +156,6 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     m_pendingEntities.clear();
 
     TaskComposer::wait(taskGroup);
-    TaskComposer::wait(m_textureTaskGroup);
 
     FE_CHECK(m_materialComponents.size() == m_modelComponents.size());
 
@@ -173,6 +163,14 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     // More offsets will be added further when new ShaderEntities will be created
     m_lightEntityBufferOffset = 0;
+
+    TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
+    {
+        for (auto& [texture, initInfo] : m_pendingTextureCreateInfos)
+        {
+            m_gpuTextureByUUID.at(texture->get_uuid())->build(get_cmd_recorder(rhi::QueueType::GRAPHICS), initInfo);
+        }
+    });
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
@@ -253,6 +251,14 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     });
 
     TaskComposer::wait(taskGroup);
+
+    for (auto& [texture, initInfo] : m_pendingTextureCreateInfos)
+    {
+        rhi::Buffer* buffer = initInfo.buffer;
+        add_delete_handler([buffer](){ rhi::destroy_buffer(buffer); });
+    }
+
+    m_pendingTextureCreateInfos.clear();
 }
 
 void SceneManager::build_bvh(rhi::CommandBuffer* cmd)
@@ -298,7 +304,7 @@ int32 SceneManager::get_descriptor(asset::Texture* texture) const
     auto it = m_gpuTextureByUUID.find(texture->get_uuid());
     if (it == m_gpuTextureByUUID.end())
         return -1;
-    return it->second.get_gpu_texture_view()->descriptorIndex;
+    return it->second->get_gpu_texture_view()->descriptorIndex;
 }
 
 int32 SceneManager::get_sampler_descriptor(ResourceName samplerName) const
@@ -307,6 +313,14 @@ int32 SceneManager::get_sampler_descriptor(ResourceName samplerName) const
     if (it == m_samplerByName.end())
         return -1;
     return it->second->descriptorIndex;
+}
+
+const GPUTexture& SceneManager::get_blue_noise_texture() const
+{
+    auto it = m_gpuTextureByUUID.find(m_blueNoiseTextureUUID);
+    if (it == m_gpuTextureByUUID.end())
+        FE_LOG(LogRenderer, FATAL, "Blue noise texture is not loaded");
+    return *it->second.get();
 }
 
 void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
@@ -324,11 +338,55 @@ const CommandRecorder& SceneManager::get_cmd_recorder(rhi::QueueType queueType) 
     return *m_cmdRecorderPerQueue.at(rhi::get_queue_index(queueType));
 }
 
-void SceneManager::set_cmd(rhi::CommandBuffer* cmd)
+void SceneManager::allocate_arrays()
 {
-    FE_CHECK(cmd);
-    
-    get_cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
+    m_gpuModels.reserve(asset::AssetPoolSize<asset::Model>::poolSize);
+    m_shaderEntityComponents.reserve(SHADER_ENTITY_INIT_COUNT);
+    m_modelComponents.reserve(asset::AssetPoolSize<asset::Model>::poolSize * 4);
+    m_gpuMaterials.reserve(MATERIAL_INIT_COUNT);
+    m_materialComponents.reserve(asset::AssetPoolSize<asset::Model>::poolSize * 4);
+
+    for (uint32 i = 0; i != rhi::g_queueCount; ++i)
+        m_cmdRecorderPerQueue.emplace_back(new CommandRecorder());
+}
+
+void SceneManager::init_callbacks()
+{
+    EventManager::subscribe<engine::EntityCreatedEvent>([this](const engine::EntityCreatedEvent& event)
+    {
+        m_pendingEntities.push_back(event.get_entity());
+    });
+
+    EventManager::subscribe<asset::CopyTextureIntoGPURequest>([this](const asset::CopyTextureIntoGPURequest& event)
+    {
+        asset::Texture* texture = event.get_texture();
+        const rhi::TextureInitInfo& initInfo = event.get_texture_init_info();
+
+        GPUTexture* gpuTexture = nullptr;
+
+        {
+            std::scoped_lock<std::mutex> locker(m_textureMutex);
+            GPUTextureCreateInfo& createInfo = m_pendingTextureCreateInfos.emplace_back();
+            createInfo.textureAsset = texture;
+            createInfo.initInfo = initInfo;
+            m_gpuTextureByUUID.emplace(texture->get_uuid(), new GPUTexture(texture));
+            gpuTexture = m_gpuTextureByUUID.at(texture->get_uuid()).get();
+        }
+
+        gpuTexture->create(initInfo.mipMaps.size());
+    });
+}
+
+void SceneManager::load_resources()
+{
+    asset::TextureImportContext blueNoiseImportContext;
+    blueNoiseImportContext.originalFilePath = "content/BlueNoise3DIndependent.dds";
+    blueNoiseImportContext.projectDirectory = " ";
+
+    asset::TextureImportResult blueNoiseImportResult;
+
+    asset::AssetManager::import_texture(blueNoiseImportContext, blueNoiseImportResult);
+    m_blueNoiseTextureUUID = blueNoiseImportResult.texture->get_uuid();
 }
 
 void SceneManager::create_samplers()
@@ -347,33 +405,40 @@ void SceneManager::create_samplers()
     };
 
     rhi::SamplerInfo samplerInfo;
-	samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_LINEAR;
-	samplerInfo.addressMode = rhi::AddressMode::REPEAT;
-	samplerInfo.borderColor = rhi::BorderColor::FLOAT_TRANSPARENT_BLACK;
-	samplerInfo.maxAnisotropy = 0.0f;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = std::numeric_limits<float>::max();
+    samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_LINEAR;
+    samplerInfo.addressMode = rhi::AddressMode::REPEAT;
+    samplerInfo.borderColor = rhi::BorderColor::FLOAT_TRANSPARENT_BLACK;
+    samplerInfo.maxAnisotropy = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = std::numeric_limits<float>::max();
     createSampler(SAMPLER_LINEAR_REPEAT, samplerInfo);
 
-	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-	createSampler(SAMPLER_LINEAR_CLAMP, samplerInfo);
+    samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
+    createSampler(SAMPLER_LINEAR_CLAMP, samplerInfo);
 
-	samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
-	createSampler(SAMPLER_LINEAR_MIRROR, samplerInfo);
+    samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
+    createSampler(SAMPLER_LINEAR_MIRROR, samplerInfo);
 
-	samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_NEAREST;
-	samplerInfo.addressMode = rhi::AddressMode::REPEAT;
-	createSampler(SAMPLER_NEAREST_REPEAT, samplerInfo);
+    samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_NEAREST;
+    samplerInfo.addressMode = rhi::AddressMode::REPEAT;
+    createSampler(SAMPLER_NEAREST_REPEAT, samplerInfo);
 
-	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-	createSampler(SAMPLER_NEAREST_CLAMP, samplerInfo);
+    samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
+    createSampler(SAMPLER_NEAREST_CLAMP, samplerInfo);
 
-	samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
-	createSampler(SAMPLER_NEAREST_MIRROR, samplerInfo);
+    samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
+    createSampler(SAMPLER_NEAREST_MIRROR, samplerInfo);
 
-	samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-	samplerInfo.filter = rhi::Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST;
-	createSampler(SAMPLER_MINIMUM_NEAREST_CLAMP, samplerInfo);
+    samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
+    samplerInfo.filter = rhi::Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST;
+    createSampler(SAMPLER_MINIMUM_NEAREST_CLAMP, samplerInfo);
+}
+
+void SceneManager::set_cmd(rhi::CommandBuffer* cmd)
+{
+    FE_CHECK(cmd);
+    
+    get_cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
 }
 
 void SceneManager::allocate_storage_buffers()

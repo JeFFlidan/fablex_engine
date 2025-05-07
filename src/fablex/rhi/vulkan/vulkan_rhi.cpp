@@ -2858,6 +2858,60 @@ void execute_image_barrier(CommandBuffer* cmd, VkImageMemoryBarrier2& imageBarri
     vkCmdPipelineBarrier2(cmd->vk().cmdBuffer, &dependencyInfo);
 }
 
+void add_pre_transfer_image_barrier(CommandBuffer* cmd, Texture* texture)
+{
+    VkImageMemoryBarrier2 imageBarrier{};
+    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imageBarrier.srcAccessMask = 0;
+    imageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+    imageBarrier.image = texture->vk().image;
+    imageBarrier.subresourceRange = {
+        get_image_aspect(texture->textureUsage),
+        0,
+        texture->mipLevels,
+        0,
+        texture->layersCount 
+    };
+
+    VkDependencyInfo dependencyInfo{};
+    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dependencyInfo.imageMemoryBarrierCount = 1;
+    dependencyInfo.pImageMemoryBarriers = &imageBarrier;
+
+    vkCmdPipelineBarrier2(cmd->vk().cmdBuffer, &dependencyInfo);   
+}
+
+void add_post_transfer_image_barrier(CommandBuffer* cmd, Texture* texture)
+{
+    VkImageMemoryBarrier2 imageBarrier{};
+    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imageBarrier.newLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+    imageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+    imageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+    imageBarrier.image = texture->vk().image;
+    imageBarrier.subresourceRange = {
+        get_image_aspect(texture->textureUsage),
+        0,
+        texture->mipLevels,
+        0,
+        texture->layersCount 
+    };
+
+    VkDependencyInfo dependencyInfo{};
+    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dependencyInfo.imageMemoryBarrierCount = 1;
+    dependencyInfo.pImageMemoryBarriers = &imageBarrier;
+
+    vkCmdPipelineBarrier2(cmd->vk().cmdBuffer, &dependencyInfo);
+}
+
 VkDeviceAddress get_device_address(VkBuffer buffer)
 {
     FE_CHECK(buffer != VK_NULL_HANDLE);
@@ -4461,6 +4515,55 @@ void copy_texture(CommandBuffer* cmd, Texture* srcTexture, Texture* dstTexture)
     vkCmdCopyImage2(cmd->vk().cmdBuffer, &copyImageInfo);
 }
 
+void init_texture(CommandBuffer* cmd, Texture* dstTexture, const TextureInitInfo* initInfo)
+{
+    FE_CHECK(cmd);
+    FE_CHECK(dstTexture);
+    FE_CHECK(initInfo);
+    FE_CHECK(!initInfo->mipMaps.empty());
+
+    add_pre_transfer_image_barrier(cmd, dstTexture);
+
+    std::vector<VkBufferImageCopy2> copyRegions;
+    copyRegions.reserve(initInfo->mipMaps.size());
+
+    uint32 width = dstTexture->width;
+    uint32 height = dstTexture->height;
+    uint32 depth = dstTexture->depth;
+    uint32 mipLevel = 0;
+
+    for (const MipMap& mipMap : initInfo->mipMaps)
+    {
+        VkBufferImageCopy2& copyRegion = copyRegions.emplace_back();
+        copyRegion.sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2;
+        copyRegion.bufferOffset = mipMap.offset;
+        copyRegion.bufferRowLength = 0;
+        copyRegion.bufferImageHeight = 0;
+        copyRegion.imageExtent = { width, height, depth };
+        copyRegion.imageOffset = { 0, 0, 0 };
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel = mipLevel++;
+        copyRegion.imageSubresource.baseArrayLayer = mipMap.layer;
+        copyRegion.imageSubresource.layerCount = 1;
+
+        width = std::max(1u, width / 2u);
+        height = std::max(1u, height / 2u);
+        depth = std::max(1u, depth / 2u);
+    }
+
+    VkCopyBufferToImageInfo2 copyBufferToImageInfo{};
+    copyBufferToImageInfo.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2;
+    copyBufferToImageInfo.regionCount = copyRegions.size();
+    copyBufferToImageInfo.pRegions = copyRegions.data();
+    copyBufferToImageInfo.srcBuffer = initInfo->buffer->vk().buffer;
+    copyBufferToImageInfo.dstImage = dstTexture->vk().image;
+    copyBufferToImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+    vkCmdCopyBufferToImage2(cmd->vk().cmdBuffer, &copyBufferToImageInfo);
+
+    add_post_transfer_image_barrier(cmd, dstTexture);
+}
+
 void copy_buffer_to_texture(CommandBuffer* cmd, Buffer* srcBuffer, Texture* dstTexture)
 {
     FE_CHECK(cmd);
@@ -4472,29 +4575,7 @@ void copy_buffer_to_texture(CommandBuffer* cmd, Buffer* srcBuffer, Texture* dstT
     if (!has_flag(dstTexture->textureUsage, rhi::ResourceUsage::TRANSFER_DST))
         FE_LOG(LogVulkanRHI, FATAL, "copy_buffer_to_texture(): Destination buffer doesn't have TRANSFER_DST usage.");
 
-    VkImageMemoryBarrier2 imageBarrier{};
-    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    imageBarrier.srcAccessMask = 0;
-    imageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-    imageBarrier.image = dstTexture->vk().image;
-    imageBarrier.subresourceRange = {
-        get_image_aspect(dstTexture->textureUsage),
-        0,
-        dstTexture->mipLevels,
-        0,
-        dstTexture->layersCount 
-    };
-
-    VkDependencyInfo dependencyInfo{};
-    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dependencyInfo.imageMemoryBarrierCount = 1;
-    dependencyInfo.pImageMemoryBarriers = &imageBarrier;
-
-    vkCmdPipelineBarrier2(cmd->vk().cmdBuffer, &dependencyInfo);
+    add_pre_transfer_image_barrier(cmd, dstTexture);
     
     VkBufferImageCopy2 copyRegion{};
     copyRegion.sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2;
@@ -4517,14 +4598,7 @@ void copy_buffer_to_texture(CommandBuffer* cmd, Buffer* srcBuffer, Texture* dstT
     
     vkCmdCopyBufferToImage2(cmd->vk().cmdBuffer, &copyBufferToImageInfo);
     
-    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    imageBarrier.newLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
-    imageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-    imageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-
-    vkCmdPipelineBarrier2(cmd->vk().cmdBuffer, &dependencyInfo);
+    add_post_transfer_image_barrier(cmd, dstTexture);
 }
 
 void copy_texture_to_buffer(CommandBuffer* cmd, Texture* srcTexture, Buffer* dstBuffer)
@@ -5479,6 +5553,7 @@ void fill_function_table()
     fe::rhi::fill_buffer = fill_buffer;
     fe::rhi::copy_buffer = copy_buffer;
     fe::rhi::copy_texture = copy_texture;
+    fe::rhi::init_texture = init_texture;
     fe::rhi::copy_buffer_to_texture = copy_buffer_to_texture;
     fe::rhi::copy_texture_to_buffer = copy_texture_to_buffer;
     fe::rhi::blit_texture = blit_texture;

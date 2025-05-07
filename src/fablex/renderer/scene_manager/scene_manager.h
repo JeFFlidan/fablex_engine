@@ -8,10 +8,10 @@
 
 #include "engine/entity/entity.h"
 #include "engine/components/fwd.h"
-#include "core/task_composer.h"
 #include "shaders/shader_interop_renderer.h"
 
 #include <array>
+#include <memory>
 
 namespace fe::renderer
 {
@@ -39,6 +39,7 @@ public:
     uint32 get_instance_count(const GPUModel& gpuModel) const;
     int32 get_descriptor(asset::Texture* texture) const;
     int32 get_sampler_descriptor(ResourceName samplerName) const;
+    const GPUTexture& get_blue_noise_texture() const;
 
     const std::vector<GPUModel>& get_gpu_models() const { return m_gpuModels; }
     rhi::AccelerationStructure* get_scene_TLAS() const { return m_TLAS; }
@@ -62,9 +63,17 @@ private:
         uint32 index = 0;
     };
 
+    struct GPUTextureCreateInfo
+    {
+        asset::Texture* textureAsset;
+        rhi::TextureInitInfo initInfo;
+    };
+
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
 
     EntityArray m_pendingEntities;
+    
+    std::vector<GPUTextureCreateInfo> m_pendingTextureCreateInfos;
 
     std::vector<engine::ModelComponent*> m_modelComponents;
     std::vector<engine::MaterialComponent*> m_materialComponents; 
@@ -76,13 +85,13 @@ private:
     std::vector<DeleteHandlerArray> m_deleteHandlersPerFrame;
 
     std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
+    UUID m_blueNoiseTextureUUID = UUID::INVALID;
 
     std::vector<GPUModel> m_gpuModels;
     std::unordered_map<UUID, GPUModelInfo> m_gpuModelInfoByUUID;
 
     std::mutex m_textureMutex;
-    TaskGroup m_textureTaskGroup;
-    std::unordered_map<UUID, GPUTexture> m_gpuTextureByUUID;
+    std::unordered_map<UUID, std::unique_ptr<GPUTexture>> m_gpuTextureByUUID;
 
     std::vector<GPUMaterial> m_gpuMaterials;
     std::unordered_map<UUID, GPUMaterialInfo> m_gpuMaterialInfoByUUID;
@@ -98,12 +107,16 @@ private:
     BufferArray m_frameBuffers;
     BufferArray m_cameraBuffers;
 
-    std::vector<engine::Entity*> m_entitiesForTLAS;
+    EntityArray m_entitiesForTLAS;
     rhi::AccelerationStructure* m_TLAS = nullptr;
-    std::vector<rhi::Buffer*> m_uploadBuffersForTLAS;
+    BufferArray m_uploadBuffersForTLAS;
+
+    void allocate_arrays();
+    void init_callbacks();
+    void load_resources();
+    void create_samplers();
 
     void set_cmd(rhi::CommandBuffer* cmd);
-    void create_samplers();
     void allocate_storage_buffers();
     rhi::Buffer* get_model_buffer() const;
     rhi::Buffer* get_model_instance_buffer() const;

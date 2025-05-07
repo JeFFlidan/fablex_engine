@@ -174,16 +174,18 @@ struct CopyTextureIntoGPURequest : public IEvent
 public:
     FE_DECLARE_EVENT(CopyTextureIntoGPURequest);
 
-    CopyTextureIntoGPURequest(UUID textureAssetUUID, const rhi::TextureInitInfo& info)
-        : m_textureUUID(textureAssetUUID), m_initInfo(info) { }
+    CopyTextureIntoGPURequest(Texture* texture, const rhi::TextureInitInfo& info)
+        : m_texture(texture), m_initInfo(info) { }
 
     const rhi::TextureInitInfo& get_texture_init_info() const  
     { 
         return m_initInfo; 
-    } 
+    }
+
+    Texture* get_texture() const { return m_texture; }
 
 private:
-    UUID m_textureUUID;
+    Texture* m_texture;
     rhi::TextureInitInfo m_initInfo;
 };
 

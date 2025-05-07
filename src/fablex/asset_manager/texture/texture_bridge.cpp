@@ -73,21 +73,24 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
 
         for (uint32 mip = 0; mip != ddsTextureInfo.num_mips; ++mip)
         {
+            uint32 mipLevelSize = 0;
+
             for (uint32 depthLayer = 0; depthLayer != ddsTextureInfo.depth; ++depthLayer)
             {
                 ddsktx_sub_data subData;
                 ddsktx_get_sub(&ddsTextureInfo, &subData, textureRawData.data(), (int)textureRawData.size(), 0, depthLayer, mip);
 
+                mipLevelSize += subData.size_bytes;
                 const uint32 blockSize = rhi::get_block_format_size(textureProxy.format);
                 const uint32 numBlocksX = std::max(1u, subData.width / blockSize);
                 const uint32 numBlockY = std::max(1u, subData.height / blockSize);
                 const uint32 dstRowPitch = numBlocksX * rhi::get_format_stride(textureProxy.format);
-                // const uint32 dstSlicePitch = dstRowPitch * numBlockY;    // Maybe I will use this when add texture array support
+                const uint32 dstSlicePitch = dstRowPitch * numBlockY;
                 const uint32 srcRowPitch = subData.row_pitch_bytes;
-                // const uint32 srcSlicePitch = subData.size_bytes;         // Maybe I will use this when add texture array support
+                // const uint32 srcSlicePitch = subData.size_bytes;
 
                 uint8* srcSlice = (uint8*)subData.buff;
-                uint8* dstSlice = bufferMappedData + bufferOffset;
+                uint8* dstSlice = bufferMappedData + bufferOffset + dstSlicePitch * depthLayer;
 
                 for (uint32 y = 0; y != numBlockY; ++y)
                 {
@@ -98,16 +101,17 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                     );
                 }
 
-                rhi::MipMap& mipMap = gpuTextureInitInfo.mipMaps.emplace_back();
-                mipMap.layer = 0;   // TEMP
-                mipMap.offset = bufferOffset;
-
-                bufferOffset += subData.size_bytes;
+                
             }
+            rhi::MipMap& mipMap = gpuTextureInitInfo.mipMaps.emplace_back();
+            mipMap.layer = 0;   // TEMP
+            mipMap.offset = bufferOffset;
+
+            bufferOffset += mipLevelSize;
         }
 
-        CopyTextureIntoGPURequest request(outImportResult.texture->get_uuid(), gpuTextureInitInfo);
-        EventManager::enqueue_event(request);
+        CopyTextureIntoGPURequest request(outImportResult.texture, gpuTextureInitInfo);
+        EventManager::trigger_event(request);
     }
     else
     {

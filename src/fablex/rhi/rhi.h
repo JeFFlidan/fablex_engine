@@ -61,6 +61,7 @@ inline void (*destroy_fence)(Fence* fence);
 
 inline void (*fill_buffer)(CommandBuffer* cmd, Buffer* dstBuffer, uint32 dstOffset, uint32 size, uint32 data);
 inline void (*copy_buffer)(CommandBuffer* cmd, Buffer* srcBuffer, Buffer* dstBuffer, uint32 size, uint32 srcOffset, uint32 dstOffset);
+inline void (*init_texture)(CommandBuffer* cmd, Texture* dstTexture, const TextureInitInfo* initInfo);
 inline void (*copy_texture)(CommandBuffer* cmd, Texture* srcTexture, Texture* dstTexture);
 inline void (*copy_buffer_to_texture)(CommandBuffer* cmd, Buffer* srcBuffer, Texture* dstTexture);
 inline void (*copy_texture_to_buffer)(CommandBuffer* cmd, Texture* srcTexture, Buffer* dstBuffer);
