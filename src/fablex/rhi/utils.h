@@ -608,6 +608,13 @@ inline bool is_format_block_compressed(Format format)
     }
 }
 
+inline uint32 get_block_format_size(Format format)
+{
+    if (is_format_block_compressed(format))
+        return 4;
+    return 1;
+}
+
 inline bool is_rt_shader(rhi::ShaderType shaderType)
 {
     switch (shaderType)

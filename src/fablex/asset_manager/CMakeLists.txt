@@ -15,6 +15,7 @@ target_link_libraries(asset_manager
     stb
     basisu
     tinygltf
+    ddsktx
 )
 
 target_include_directories(asset_manager 

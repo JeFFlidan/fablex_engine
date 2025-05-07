@@ -1,8 +1,12 @@
 #define FE_TEXTURE_PROXY
+#define DDSKTX_IMPLEMENT
 #include "texture_bridge.h"
 #include "asset_manager/asset_manager.h"
 #include "core/color.h"
 #include "core/file_system/file_system.h"
+#include "rhi/rhi.h"
+#include "rhi/utils.h"
+#include "core/event.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -39,6 +43,71 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
     else if (extension == "hdr")
     {
         // TODO
+    }
+    else if (extension == "dds")
+    {
+        ddsktx_texture_info ddsTextureInfo;
+        ddsktx_error error;
+
+        if (!ddsktx_parse(&ddsTextureInfo, textureRawData.data(), (int)textureRawData.size(), &error))
+        {
+            FE_LOG(LogAssetManager, ERROR, "Failed to load dds texture {}. Parser error: {}", inImportContext.originalFilePath, error.msg);
+            return false;
+        }
+
+        FE_CHECK_MSG(ddsTextureInfo.num_layers == 1, "Texture arrays are not supported");
+
+        textureProxy.width = ddsTextureInfo.width;
+        textureProxy.height = ddsTextureInfo.height;
+        textureProxy.depth = ddsTextureInfo.depth;
+        textureProxy.format = dds_format_to_internal(ddsTextureInfo.format);
+        textureProxy.bcFormat = rhi::is_format_block_compressed(textureProxy.format) 
+            ? textureProxy.format : rhi::Format::UNDEFINED;
+
+        rhi::TextureInitInfo gpuTextureInitInfo;
+        gpuTextureInitInfo.mipMaps.reserve(ddsTextureInfo.num_mips);
+        gpuTextureInitInfo.buffer = create_upload_buffer(ddsTextureInfo.size_bytes);
+
+        uint32 bufferOffset = 0;
+        uint8* bufferMappedData = (uint8*)gpuTextureInitInfo.buffer->mappedData;
+
+        for (uint32 mip = 0; mip != ddsTextureInfo.num_mips; ++mip)
+        {
+            for (uint32 depthLayer = 0; depthLayer != ddsTextureInfo.depth; ++depthLayer)
+            {
+                ddsktx_sub_data subData;
+                ddsktx_get_sub(&ddsTextureInfo, &subData, textureRawData.data(), (int)textureRawData.size(), 0, depthLayer, mip);
+
+                const uint32 blockSize = rhi::get_block_format_size(textureProxy.format);
+                const uint32 numBlocksX = std::max(1u, subData.width / blockSize);
+                const uint32 numBlockY = std::max(1u, subData.height / blockSize);
+                const uint32 dstRowPitch = numBlocksX * rhi::get_format_stride(textureProxy.format);
+                // const uint32 dstSlicePitch = dstRowPitch * numBlockY;    // Maybe I will use this when add texture array support
+                const uint32 srcRowPitch = subData.row_pitch_bytes;
+                // const uint32 srcSlicePitch = subData.size_bytes;         // Maybe I will use this when add texture array support
+
+                uint8* srcSlice = (uint8*)subData.buff;
+                uint8* dstSlice = bufferMappedData + bufferOffset;
+
+                for (uint32 y = 0; y != numBlockY; ++y)
+                {
+                    memcpy(
+                        dstSlice + dstRowPitch * y,
+                        srcSlice + srcRowPitch * y,
+                        dstRowPitch
+                    );
+                }
+
+                rhi::MipMap& mipMap = gpuTextureInitInfo.mipMaps.emplace_back();
+                mipMap.layer = 0;   // TEMP
+                mipMap.offset = bufferOffset;
+
+                bufferOffset += subData.size_bytes;
+            }
+        }
+
+        CopyTextureIntoGPURequest request(outImportResult.texture->get_uuid(), gpuTextureInitInfo);
+        EventManager::enqueue_event(request);
     }
     else
     {
@@ -167,6 +236,70 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
     }
 
     return true;
+}
+
+rhi::Format TextureBridge::dds_format_to_internal(ddsktx_format ddsKtxFormat)
+{
+    switch (ddsKtxFormat)
+    {
+    case DDSKTX_FORMAT_R8:      
+        return rhi::Format::R8_UNORM;
+    case DDSKTX_FORMAT_RGBA8:   
+        return rhi::Format::R8G8B8A8_UNORM;
+    case DDSKTX_FORMAT_RGBA8S:  
+        return rhi::Format::R8G8B8A8_SINT;
+    case DDSKTX_FORMAT_RG16:    
+        return rhi::Format::R16G16_UINT;
+    case DDSKTX_FORMAT_RGB8:    
+        return rhi::Format::R8G8B8A8_UINT;
+    case DDSKTX_FORMAT_R16:     
+        return rhi::Format::R16_UINT;
+    case DDSKTX_FORMAT_R32F:    
+        return rhi::Format::R32_SFLOAT;
+    case DDSKTX_FORMAT_R16F:    
+        return rhi::Format::R16_SFLOAT;
+    case DDSKTX_FORMAT_RG16F:   
+        return rhi::Format::R16G16_SFLOAT;
+    case DDSKTX_FORMAT_RG16S:   
+        return rhi::Format::R16G16_SINT;
+    case DDSKTX_FORMAT_RGBA16F: 
+        return rhi::Format::R16G16B16A16_SFLOAT;
+    case DDSKTX_FORMAT_RGBA16:  
+        return rhi::Format::R16G16B16A16_UNORM;
+    case DDSKTX_FORMAT_RG8:     
+        return rhi::Format::R8G8_UNORM;
+    case DDSKTX_FORMAT_RG8S:    
+        return rhi::Format::R8G8_SINT;
+    case DDSKTX_FORMAT_BGRA8:   
+        return rhi::Format::B8G8R8A8_UNORM;
+    case DDSKTX_FORMAT_BC1:     
+        return rhi::Format::BC1_RGBA_UNORM;
+    case DDSKTX_FORMAT_BC2:     
+        return rhi::Format::BC2_UNORM;
+    case DDSKTX_FORMAT_BC3:     
+        return rhi::Format::BC3_UNORM;
+    case DDSKTX_FORMAT_BC4:     
+        return rhi::Format::BC4_UNORM;
+    case DDSKTX_FORMAT_BC5:     
+        return rhi::Format::BC5_UNORM;
+    case DDSKTX_FORMAT_BC7:     
+        return rhi::Format::BC7_UNORM;
+    default:
+        FE_CHECK(0);
+        return rhi::Format::UNDEFINED;
+    }
+}
+
+rhi::Buffer* TextureBridge::create_upload_buffer(uint32 bufferSize)
+{
+    rhi::BufferInfo bufferInfo;
+    bufferInfo.bufferUsage = rhi::ResourceUsage::TRANSFER_SRC;
+    bufferInfo.memoryUsage = rhi::MemoryUsage::CPU;
+    bufferInfo.size = bufferSize;
+    rhi::Buffer* buffer;
+    rhi::create_buffer(&buffer, &bufferInfo);
+
+    return buffer;
 }
 
 }

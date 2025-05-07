@@ -117,6 +117,18 @@ struct alignas(64) Texture
 
 FE_COMPILE_CHECK(sizeof(Texture) == sizeof(uint64) * 8);
 
+struct MipMap
+{
+    uint32 offset = 0;
+    uint32 layer = 0;
+};
+
+struct TextureInitInfo
+{
+    rhi::Buffer* buffer;
+    std::vector<MipMap> mipMaps;
+};
+
 struct TextureViewInfo
 {
     uint32 baseMipLevel = 0;

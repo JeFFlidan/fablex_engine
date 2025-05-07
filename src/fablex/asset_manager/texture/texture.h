@@ -3,7 +3,8 @@
 #include "asset_manager/asset.h"
 #include "asset_manager/common.h"
 #include "core/json_serialization.h"
-#include "rhi/enums.h"
+#include "rhi/resources.h"
+#include "core/events/event.h"
 
 namespace fe::asset
 {
@@ -167,6 +168,24 @@ struct TextureProxy
 };
 
 #endif // FE_TEXTURE_PROXY
+
+struct CopyTextureIntoGPURequest : public IEvent
+{
+public:
+    FE_DECLARE_EVENT(CopyTextureIntoGPURequest);
+
+    CopyTextureIntoGPURequest(UUID textureAssetUUID, const rhi::TextureInitInfo& info)
+        : m_textureUUID(textureAssetUUID), m_initInfo(info) { }
+
+    const rhi::TextureInitInfo& get_texture_init_info() const  
+    { 
+        return m_initInfo; 
+    } 
+
+private:
+    UUID m_textureUUID;
+    rhi::TextureInitInfo m_initInfo;
+};
 
 }
 
