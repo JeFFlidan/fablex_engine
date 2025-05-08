@@ -8,6 +8,7 @@ namespace fe::renderer
 {
 
 class RenderContext;
+class RenderGraphMetadata;
 
 struct RenderPassInfo
 {
@@ -40,9 +41,6 @@ protected:
     const RenderContext* m_renderContext = nullptr;
 
     virtual void schedule_resources_internal() { }
-
-    uint32 get_input_texture_descriptor(uint64 pushConstantsOffset, rhi::ViewType viewType, uint32 mipLevel = 0) const;
-    uint32 get_output_storage_texture_descriptor(uint64 pushConstantOffset, uint32 mipLevel = 0) const;
     
     void create_compute_pipeline();
     
@@ -64,10 +62,25 @@ protected:
     void set_viewport_and_scissor_by_window(rhi::CommandBuffer* cmd) const;
     void fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const;
 
+    template<typename T>
+    void fill_push_constants(T& pushConstants)
+    {
+        fill_push_constants(T::TypeName, &pushConstants);
+    }
+
 private:
+    // Resource names for corss frame read
+    using ResourceNamesXFR = std::pair<ResourceName, ResourceName>;
+
+    const RenderGraphMetadata& get_render_graph_metadata() const;
     const PipelineMetadata& get_pipeline_metadata() const;
     const TextureMetadata& get_texture_metadata(ResourceName textureName) const;
     void fill_texture_info(const TextureMetadata& inMetadata, rhi::TextureInfo& outInfo) const;
+    ResourceNamesXFR get_resource_names_xfr(ResourceName baseName) const;
+    ResourceName get_prev_frame_resource_name(ResourceName baseName) const;
+    ResourceName get_curr_frame_resource_name(ResourceName baseName) const;
+
+    void fill_push_constants(PushConstantsName pushConstantsName, void* data) const;
 };
 
 }

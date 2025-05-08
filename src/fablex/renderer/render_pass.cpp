@@ -4,6 +4,7 @@
 #include "render_graph.h"
 #include "render_graph_resource_manager.h"
 #include "resource_scheduler.h"
+#include "globals.h"
 #include "rhi/utils.h"
 
 namespace fe::renderer
@@ -33,10 +34,31 @@ void RenderPass::schedule_resources()
             rhi::TextureInfo info;
             fill_texture_info(textureMetadata, info);
             
-            if (rhi::is_depth_stencil_format(textureMetadata.format))
-                ResourceScheduler::create_depth_stencil(get_name(), textureMetadata.textureName);
+            if (textureMetadata.crossFrameRead)
+            {
+                auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.textureName);
+                if (rhi::is_depth_stencil_format(textureMetadata.format))
+                {
+                    ResourceScheduler::create_depth_stencil(get_name(), prevFrameName, &info);
+                    ResourceScheduler::create_depth_stencil(get_name(), curFrameName, &info);
+                }
+                else
+                {
+                    ResourceScheduler::create_render_target(get_name(), prevFrameName, &info);
+                    ResourceScheduler::create_render_target(get_name(), curFrameName, &info);
+                }
+            }
             else
-                ResourceScheduler::create_render_target(get_name(), textureMetadata.textureName, &info);
+            {
+                if (rhi::is_depth_stencil_format(textureMetadata.format))
+                {
+                    ResourceScheduler::create_depth_stencil(get_name(), textureMetadata.textureName, &info);
+                }
+                else
+                {
+                    ResourceScheduler::create_render_target(get_name(), textureMetadata.textureName, &info);
+                }
+            }
         }
         else
         {
@@ -49,7 +71,17 @@ void RenderPass::schedule_resources()
         const TextureMetadata& textureMetadata = get_texture_metadata(textureName);
         rhi::TextureInfo info;
         fill_texture_info(textureMetadata, info);
-        ResourceScheduler::create_storage_texture(get_name(), textureName, &info);
+
+        if (textureMetadata.crossFrameRead)
+        {
+            auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureName);
+            ResourceScheduler::create_storage_texture(get_name(), prevFrameName, &info);
+            ResourceScheduler::create_storage_texture(get_name(), curFrameName, &info);
+        }
+        else
+        {
+            ResourceScheduler::create_storage_texture(get_name(), textureName, &info);
+        }
     }
 
     schedule_resources_internal();
@@ -101,38 +133,6 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
         break;
     }
     }
-}
-
-uint32 RenderPass::get_input_texture_descriptor(uint64 pushConstantsOffset, rhi::ViewType viewType, uint32 mipLevel) const
-{
-    ResourceName textureName = m_metadata->inputTextureNames.at(pushConstantsOffset / 4);
-    RenderPassName renderPassName = m_metadata->renderPassName;
-    RenderGraphResourceManager* resourceManager = m_renderContext->get_render_graph_resource_manager();
-
-    switch (viewType)
-    {
-    case rhi::ViewType::DSV:
-        return resourceManager->get_dsv_desciptor(renderPassName, textureName);
-    case rhi::ViewType::RTV:
-        return resourceManager->get_rtv_descriptor(renderPassName, textureName, mipLevel);
-    case rhi::ViewType::SRV:
-        return resourceManager->get_texture_srv_descriptor(renderPassName, textureName, mipLevel);
-    case rhi::ViewType::UAV:
-        return resourceManager->get_texture_uav_descriptor(renderPassName, textureName, mipLevel);
-    default:
-        FE_CHECK(0);
-        return 0;
-    }
-}
-
-uint32 RenderPass::get_output_storage_texture_descriptor(uint64 pushConstantOffset, uint32 mipLevel) const
-{
-    uint64 index = (pushConstantOffset / 4) - m_metadata->inputTextureNames.size();
-    ResourceName textureName = m_metadata->outputStorageTextureNames.at(index);
-    RenderPassName renderPassName = m_metadata->renderPassName;
-    RenderGraphResourceManager* resourceManager = m_renderContext->get_render_graph_resource_manager();
-
-    return resourceManager->get_texture_uav_descriptor(renderPassName, textureName, mipLevel);
 }
 
 void RenderPass::create_compute_pipeline()
@@ -187,6 +187,11 @@ void RenderPass::fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const
     m_renderContext->get_pipeline_manager()->fill_dispatch_rays_info(m_metadata->pipelineName, outInfo);
 }
 
+const RenderGraphMetadata& RenderPass::get_render_graph_metadata() const
+{
+    return *m_renderContext->get_render_graph()->get_metadata();
+}
+
 const PipelineMetadata& RenderPass::get_pipeline_metadata() const
 {
     const RenderGraphMetadata* renderGraphMetadata = m_renderContext->get_render_graph()->get_metadata();
@@ -221,6 +226,62 @@ void RenderPass::fill_texture_info(const TextureMetadata& inMetadata, rhi::Textu
 
     if (inMetadata.isTransferDst)
         outInfo.textureUsage |= rhi::ResourceUsage::TRANSFER_DST;
+}
+
+RenderPass::ResourceNamesXFR RenderPass::get_resource_names_xfr(ResourceName baseName) const
+{
+    return ResourceNamesXFR{
+        get_prev_frame_resource_name(baseName),
+        get_curr_frame_resource_name(baseName)
+    };
+}
+
+ResourceName RenderPass::get_prev_frame_resource_name(ResourceName baseName) const
+{
+    uint64 prevFrameIndex = (g_frameNumber % 2) - 1;
+    return ResourceName(baseName.to_string() + std::to_string(prevFrameIndex));
+}
+
+ResourceName RenderPass::get_curr_frame_resource_name(ResourceName baseName) const
+{
+    uint64 currFrameIndex = g_frameIndex % 2;
+    return ResourceName(baseName.to_string() + std::to_string(currFrameIndex));
+}
+
+void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* data) const
+{
+    const RenderGraphMetadata& renderGraphMetadata = get_render_graph_metadata();
+    const PushConstantsMetadata* pushConstantsMetadata = renderGraphMetadata.get_push_constants_metadata(pushConstantsName);
+    FE_CHECK(pushConstantsMetadata);
+
+    uint8* typedData = static_cast<uint8*>(data);
+    uint64 offset = 0;
+
+    RenderGraphResourceManager* resourceManager = m_renderContext->get_render_graph_resource_manager();
+
+    for (const auto& resourceMetadata : pushConstantsMetadata->resourcesMetadata)
+    {
+        const TextureMetadata* textureMetadata = renderGraphMetadata.get_texture_metadata(resourceMetadata.name);
+        ResourceName resourceName = resourceMetadata.name;
+
+        if (textureMetadata->crossFrameRead)
+        {
+            if (resourceMetadata.previousFrame)
+                resourceName = get_prev_frame_resource_name(resourceName);
+            else
+                resourceName = get_curr_frame_resource_name(resourceName);
+        }
+
+        uint32 descriptor = ~0u;
+
+        if (resourceMetadata.isStorage)
+            descriptor = resourceManager->get_texture_uav_descriptor(get_name(), resourceName);
+        else
+            descriptor = resourceManager->get_texture_srv_descriptor(get_name(), resourceName);
+
+        memcpy(typedData + offset, &descriptor, sizeof(uint32));
+        offset += sizeof(uint32);
+    }
 }
 
 }

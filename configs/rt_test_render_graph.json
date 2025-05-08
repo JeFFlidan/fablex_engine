@@ -58,5 +58,24 @@
             "Name": "RTColorOutput",
             "Format": "R8G8B8A8_UNORM"
         }
+    ],
+    "PushConstants": [
+        {
+            "Name": "RayTracingPushConstants",
+            "Resources": [
+                {
+                    "Name": "RTColorOutput",
+                    "IsStorage": true
+                }
+            ]
+        },
+        {
+            "Name": "SwapChainPushConstants",
+            "Resources": [
+                {
+                    "Name": "RTColorOutput"
+                }
+            ]
+        }
     ]
 }

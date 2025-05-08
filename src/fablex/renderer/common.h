@@ -27,6 +27,7 @@ struct TextureMetadata
     rhi::Format format = rhi::Format::UNDEFINED;
     bool useMips = false;
     bool isTransferDst = false;
+    bool crossFrameRead = false;
 };
 
 struct RenderTargetMetadata
@@ -99,14 +100,15 @@ enum class PushConstantType
 
 struct PushConstantsMetadata
 {
-    struct FieldMetadata
+    struct ResourceMetadata
     {
-        FieldName name;
-        PushConstantType type;
+        ResourceName name;
+        bool previousFrame = false;
+        bool isStorage = false;
     };
 
     PushConstantsName name;
-    std::vector<FieldMetadata> fieldsMetadata;
+    std::vector<ResourceMetadata> resourcesMetadata;
 };
 
 }

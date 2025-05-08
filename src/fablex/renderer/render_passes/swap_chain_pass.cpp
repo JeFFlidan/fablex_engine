@@ -20,16 +20,11 @@ void SwapChainPass::create_pipeline()
 void SwapChainPass::execute(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
-
-    const RenderSurface& renderSurface = m_renderContext->get_render_surface();
     
     set_viewport_and_scissor_by_window(cmd);
 
-    TriangleSwapChainPushConstants pushConstants;
-    pushConstants.triangleTextureIndex = get_input_texture_descriptor(
-        offsetof(TriangleSwapChainPushConstants, triangleTextureIndex), 
-        rhi::ViewType::SRV
-    );
+    SwapChainPushConstants pushConstants;
+    fill_push_constants(pushConstants);
 
     bind_pipeline(cmd);
     push_constants(cmd, &pushConstants);

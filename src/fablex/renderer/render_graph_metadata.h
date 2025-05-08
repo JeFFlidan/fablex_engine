@@ -15,6 +15,7 @@ public:
     using TextureMetadataMap = std::unordered_map<ResourceName, TextureMetadata>;
     using RenderPassMetadataMap = std::unordered_map<RenderPassName, RenderPassMetadata>;
     using PipelineMetadataMap = std::unordered_map<PipelineName, PipelineMetadata>;
+    using PushConstantsMetadataMap = std::unordered_map<PushConstantsName, PushConstantsMetadata>;
 
     RenderGraphMetadata(const RenderContext* renderContext);
 
@@ -23,6 +24,7 @@ public:
     const TextureMetadata* get_texture_metadata(ResourceName textureName) const;
     const RenderPassMetadata* get_render_pass_metadata(RenderPassName renderPassName) const;
     const PipelineMetadata* get_pipeline_metadata(PipelineName pipelineName) const;
+    const PushConstantsMetadata* get_push_constants_metadata(PushConstantsName pushConstantsName) const;
 
     const RenderPassMetadataMap& get_render_pass_metadata_map() const { return m_renderPassMetadataByName; }
 
@@ -30,6 +32,7 @@ private:
     TextureMetadataMap m_renderTextureMetadataByName;
     RenderPassMetadataMap m_renderPassMetadataByName;
     PipelineMetadataMap m_pipelineMetadataByName;
+    PushConstantsMetadataMap m_pushConstantsMetadataByName;
 
     ShaderManager* m_shaderManager = nullptr;
 };

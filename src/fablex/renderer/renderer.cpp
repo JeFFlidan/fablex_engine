@@ -43,6 +43,8 @@ void Renderer::draw()
     if (m_renderGraph->get_nodes().empty())
         return;
 
+    ++g_frameNumber;
+
     acquire_next_image();
     begin_frame();
     schedule_frame();

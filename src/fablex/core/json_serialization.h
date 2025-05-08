@@ -7,7 +7,9 @@
 namespace fe
 {
 
-constexpr const char* g_nameKey = "Name";
+using JSON = nlohmann::json;
+
+constexpr const char* NAME_KEY = "Name";
 
 inline void to_json(nlohmann::json& j, const Name& name)
 {

@@ -22,9 +22,7 @@ void RTTestPass::execute(rhi::CommandBuffer* cmd)
     bind_pipeline(cmd);
 
     RayTracingPushConstants pushConstants;
-    pushConstants.outputTargetIndex = get_output_storage_texture_descriptor(
-        offsetof(RayTracingPushConstants, outputTargetIndex)
-    );
+    fill_push_constants(pushConstants);
     pushConstants.tlasIndex = m_renderContext->get_scene_manager()->get_scene_TLAS()->descriptorIndex;
 
     push_constants(cmd, &pushConstants);

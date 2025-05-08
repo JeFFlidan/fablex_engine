@@ -646,6 +646,7 @@ struct DepthReduceData
 };
 
 static const uint DEPTH_REDUCE_GROUP_SIZE = 32;
+static const uint RNG_SEED_GENERATION_GROUP_SIZE = 8;
 
 // ============= PUSH CONSTANTS =============
 
@@ -653,14 +654,24 @@ static const uint DEPTH_REDUCE_GROUP_SIZE = 32;
 // This is necessary to automatically fill some fields of push constants.
 // Not best approach, but I will use it for now not to think about more robust way to fill push constants.
 
-struct TriangleSwapChainPushConstants
+#ifdef __cplusplus
+#define DEFINE_PUSH_CONSTANTS(Type) static constexpr const char* TypeName = #Type;
+#else
+#define DEFINE_PUSH_CONSTANTS(Type)
+#endif	// __cplusplus
+
+struct SwapChainPushConstants
 {
-	uint triangleTextureIndex;
+	DEFINE_PUSH_CONSTANTS(SwapChainPushConstants);
+
+	uint resultTextureIndex;
 	float3 alignment;
 };
 
 struct ObjectPushConstants
 {
+	DEFINE_PUSH_CONSTANTS(ObjectPushConstants);
+
 	uint modelIndex;
 	uint instanceOffset;
 	uint2 padding;
@@ -668,6 +679,8 @@ struct ObjectPushConstants
 
 struct RayTracingPushConstants
 {
+	DEFINE_PUSH_CONSTANTS(RayTracingPushConstants);
+
 	uint outputTargetIndex;
 	uint tlasIndex;
 	uint2 padding;
