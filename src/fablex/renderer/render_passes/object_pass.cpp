@@ -21,7 +21,7 @@ void ObjectPass::execute(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
 
-    SceneManager* sceneManager = m_renderContext->get_scene_manager();
+    SceneManager* sceneManager = m_renderContext->scene_manager();
 
     set_default_viewport_and_scissor(cmd);
 
@@ -36,11 +36,11 @@ void ObjectPass::execute(rhi::CommandBuffer* cmd)
         pushConstants.instanceOffset = instanceOffset;
         push_constants(cmd, &pushConstants);
     
-        uint32 instanceCount = gpuModel.get_instance_count();
+        uint32 instanceCount = gpuModel.instance_count();
         instanceOffset += instanceCount;
     
-        rhi::bind_index_buffer(cmd, gpuModel.get_buffer(), gpuModel.get_index_offset());
-        rhi::draw_indexed(cmd, gpuModel.get_index_count(), instanceCount, 0, 0, 0);
+        rhi::bind_index_buffer(cmd, gpuModel.general_buffer(), gpuModel.index_offset());
+        rhi::draw_indexed(cmd, gpuModel.index_count(), instanceCount, 0, 0, 0);
     });
 }
 

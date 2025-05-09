@@ -104,7 +104,7 @@ struct PushConstantsMetadata
     {
         ResourceName name;
         bool previousFrame = false;
-        bool isStorage = false;
+        bool write = false;
     };
 
     PushConstantsName name;

@@ -116,7 +116,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
                 TaskComposer::execute(taskGroup, [this, gpuModel](TaskExecutionInfo execInfo)
                 {
-                    gpuModel->build(this, get_cmd_recorder(rhi::QueueType::GRAPHICS));
+                    gpuModel->build(this, cmd_recorder(rhi::QueueType::GRAPHICS));
                 });
             }
         }
@@ -135,7 +135,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
                 TaskComposer::execute(taskGroup, [this, gpuMaterial](TaskExecutionInfo execInfo)
                 {
-                    gpuMaterial->build(this, get_cmd_recorder(rhi::QueueType::GRAPHICS));
+                    gpuMaterial->build(this, cmd_recorder(rhi::QueueType::GRAPHICS));
                 });
             }
         }
@@ -165,7 +165,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     {
         for (auto& [texture, initInfo] : m_pendingTextures)
         {
-            texture->build(get_cmd_recorder(rhi::QueueType::GRAPHICS), initInfo);
+            texture->build(cmd_recorder(rhi::QueueType::GRAPHICS), initInfo);
         }
     });
 
@@ -192,7 +192,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         for (const GPUModelHandle& gpuModel : m_gpuModels)
         {
             gpuModel->fill_shader_model_instances(this, shaderModelInstances, offset);
-            offset += gpuModel->get_instance_count();
+            offset += gpuModel->instance_count();
         }
     });
 
@@ -240,7 +240,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         rhi::Buffer* buffer = initInfo.buffer;
         add_delete_handler([buffer](){ rhi::destroy_buffer(buffer); });
 
-        UUID textureUUID = texture->get_texture_asset()->get_uuid();
+        UUID textureUUID = texture->texture_asset()->get_uuid();
         uint64 index = m_gpuTextures.size();
         m_gpuTextures.push_back(std::move(texture));
         
@@ -257,7 +257,7 @@ void SceneManager::build_bvh(rhi::CommandBuffer* cmd)
     set_cmd(cmd);
 
     for (GPUModelHandle& gpuModel : m_gpuModels)
-        gpuModel->build_blas(get_cmd_recorder(rhi::QueueType::COMPUTE));
+        gpuModel->build_blas(cmd_recorder(rhi::QueueType::COMPUTE));
 
     fill_tlas(cmd);
 }
@@ -286,16 +286,16 @@ bool SceneManager::has_gpu_resource(UUID resourceUUID) const
     return false;
 }
 
-int32 SceneManager::get_descriptor(asset::Texture* texture) const
+int32 SceneManager::descriptor(asset::Texture* texture) const
 {
     if (GPUTexture* gpuTexture = get_gpu_texture(texture->get_uuid()))
-        return gpuTexture->get_texture_view()->descriptorIndex;
+        return gpuTexture->texture_view()->descriptorIndex;
     if (GPUTexture* gpuTexture = get_gpu_pending_texture(texture->get_uuid()))
-        return gpuTexture->get_texture_view()->descriptorIndex;
+        return gpuTexture->texture_view()->descriptorIndex;
     return -1;
 }
 
-int32 SceneManager::get_sampler_descriptor(ResourceName samplerName) const
+int32 SceneManager::sampler_descriptor(ResourceName samplerName) const
 {
     auto it = m_samplerByName.find(samplerName);
     if (it == m_samplerByName.end())
@@ -303,7 +303,7 @@ int32 SceneManager::get_sampler_descriptor(ResourceName samplerName) const
     return it->second->descriptorIndex;
 }
 
-const GPUTexture& SceneManager::get_blue_noise_texture() const
+const GPUTexture& SceneManager::blue_noise_texture() const
 {
     GPUTexture* gpuTexture = get_gpu_texture(m_blueNoiseTextureUUID);
     FE_CHECK(gpuTexture);
@@ -320,12 +320,12 @@ void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
     });
 }
 
-const CommandRecorder& SceneManager::get_cmd_recorder(rhi::QueueType queueType) const
+const CommandRecorder& SceneManager::cmd_recorder(rhi::QueueType queueType) const
 {
     return *m_cmdRecorderPerQueue.at(rhi::get_queue_index(queueType));
 }
 
-uint32 SceneManager::get_resource_index(UUID resourceUUID) const
+uint32 SceneManager::resource_index(UUID resourceUUID) const
 {
     auto it = m_gpuResourcesLookup.find(resourceUUID);
     if (it == m_gpuResourcesLookup.end())
@@ -448,7 +448,7 @@ GPUTexture* SceneManager::get_gpu_pending_texture(UUID textureUUID) const
 {
     for (const GPUPendingTexture& pendingTexture : m_pendingTextures)
     {
-        asset::Texture* textureAsset = pendingTexture.gpuTexture->get_texture_asset();
+        asset::Texture* textureAsset = pendingTexture.gpuTexture->texture_asset();
         if (textureAsset->get_uuid() == textureUUID)
             return pendingTexture.gpuTexture.get();
     }
@@ -468,7 +468,7 @@ void SceneManager::set_cmd(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
     
-    get_cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
+    cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
 }
 
 void SceneManager::allocate_storage_buffers()
@@ -688,7 +688,7 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
             rhi::TLAS::Instance instance;
             instance.instanceID = instanceCount;
 
-            instance.blas = gpuModel->get_BLASes().at(0);
+            instance.blas = gpuModel->blases().at(0);
             instance.instanceMask = 1 << 0; // TEMP
             instance.instanceContributionToHitGroupIndex = 0;
             instance.flags = rhi::TLAS::Instance::Flags::TRIANGLE_CULL_DISABLE;

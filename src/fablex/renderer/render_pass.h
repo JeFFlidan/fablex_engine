@@ -8,7 +8,9 @@ namespace fe::renderer
 {
 
 class RenderContext;
+class SceneManager;
 class RenderGraphMetadata;
+struct RenderSurface;
 
 struct RenderPassInfo
 {
@@ -16,6 +18,8 @@ struct RenderPassInfo
     PipelineName pipelineName;
     RenderPassType type;
 };
+
+using DispatchSizes = std::array<uint32, 3>;
 
 class RenderPass : public Object
 {
@@ -25,7 +29,7 @@ public:
     virtual ~RenderPass() = default;
 
     void init(const RenderPassMetadata& metadata, const RenderContext* renderContext);
-    void schedule_resources();
+    virtual void schedule_resources();
 
     virtual void create_pipeline() { }
     virtual void execute(rhi::CommandBuffer* cmd) { }
@@ -40,8 +44,6 @@ protected:
     const RenderPassMetadata* m_metadata;
     const RenderContext* m_renderContext = nullptr;
 
-    virtual void schedule_resources_internal() { }
-    
     void create_compute_pipeline();
     
     // Creates default graphics pipeline
@@ -56,11 +58,14 @@ protected:
     // Create ray tracing pipeline that will be configured by callback
     void create_ray_tracing_pipeline(const PipelineManager::RayTracingPipelineConfigurator& configurator);
 
+    SceneManager* scene_manager() const;
+
     void bind_pipeline(rhi::CommandBuffer* cmd);
     void push_constants(rhi::CommandBuffer* cmd, void* data);
     void set_default_viewport_and_scissor(rhi::CommandBuffer* cmd) const;
     void set_viewport_and_scissor_by_window(rhi::CommandBuffer* cmd) const;
     void fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const;
+    void dispatch(rhi::CommandBuffer* cmd, const RenderSurface& surface, const DispatchSizes& groupSizes);
 
     template<typename T>
     void fill_push_constants(T& pushConstants)

@@ -113,7 +113,7 @@ void RenderGraph::build_adjacency_lists()
                 if (node.m_queueIndex != otherNode.m_queueIndex)
                 {
                     node.m_syncSignalRequired = true;
-                    otherNode.m_nodesToSyncWith.push_back(&otherNode);
+                    otherNode.m_nodesToSyncWith.push_back(&node);
                 }
 
                 return true;
@@ -320,8 +320,8 @@ void RenderGraph::remove_redundant_syncs()
             std::vector<SyncCoverage> syncCoverages;
             std::vector<const Node*> optimalNodesToSyncWith;
 
-            for (const Node* node : node->m_nodesToSyncWith)
-                queuesToSyncWith.insert(node->m_queueIndex);
+            for (const Node* nodeToSync : node->m_nodesToSyncWith)
+                queuesToSyncWith.insert(nodeToSync->m_queueIndex);
 
             while (!queuesToSyncWith.empty())
             {
@@ -369,7 +369,7 @@ void RenderGraph::remove_redundant_syncs()
                 }
 
                 for (auto syncCoverageIt = syncCoverages.rbegin(); syncCoverageIt != syncCoverages.rend(); ++syncCoverageIt)
-                    node->m_nodesToSyncWith.erase(node->m_nodesToSyncWith.begin() + syncCoverageIt->nodeToSyncWithIdx);                    
+                    node->m_nodesToSyncWith.erase(node->m_nodesToSyncWith.begin() + syncCoverageIt->nodeToSyncWithIdx);
             }
 
             node->m_nodesToSyncWith = optimalNodesToSyncWith;

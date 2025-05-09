@@ -48,6 +48,7 @@ private:
         rhi::Semaphore* signalSemaphore;
         std::vector<rhi::Semaphore*> waitSemaphores; 
         std::vector<DependencyLevelCommandContext> depencyLevelCommandContexts;
+        rhi::QueueType queueType = rhi::QueueType::GRAPHICS;
     };
 
     using SubmitContextArray = std::vector<SubmitContext>;
@@ -79,7 +80,7 @@ private:
 
     const RenderGraph::Node* m_backBufferNode = nullptr;
 
-    std::vector<SubmitContextArray> m_submitContextsPerQueue;
+    SubmitContextArray m_submitContexts;
     std::unordered_map<RenderPassName, PipelineBarrierArray> m_pipelineBarriersByPassName;
 
     TaskGroup m_commandRecordingTaskGroup;
@@ -102,6 +103,7 @@ private:
 
     void record_upload_cmd();
     void record_bvh_build_cmd();
+    void record_predraw_cmds();
     void record_worker_cmds();
     void submit();
 

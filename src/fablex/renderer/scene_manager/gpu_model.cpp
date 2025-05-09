@@ -36,7 +36,7 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
     const float targetPrecision = 1.0f / 1000.0f;
     m_positionFormat = VertexPositionWind16Bit::FORMAT;
 
-    const AABB& aabb = get_aabb();
+    const AABB& aabb = this->aabb();
 
     for (uint32 i = 0; i != m_model->vertex_positions().size(); ++i)
     {
@@ -536,18 +536,18 @@ void GPUModel::add_instance(engine::Entity* entity)
 
 void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
 {
-    outShaderModel.indexBuffer = get_srv_indices();
-    outShaderModel.vertexBufferPosWind = get_srv_positions_winds();
-    outShaderModel.vertexBufferMeshlets = get_srv_meshlets();
-    outShaderModel.vertexBufferMeshletBounds = get_srv_meshlet_bounds();
-    outShaderModel.vertexBufferNormals = get_srv_normals();
-    outShaderModel.vertexBufferTangents = get_srv_tangents();
-    outShaderModel.vertexBufferUVs = get_srv_uvs();
-    outShaderModel.vertexBufferAtlas = get_srv_atlas();
-    outShaderModel.vertexBufferColors = get_srv_colors();
+    outShaderModel.indexBuffer = srv_indices();
+    outShaderModel.vertexBufferPosWind = srv_positions_winds();
+    outShaderModel.vertexBufferMeshlets = srv_meshlets();
+    outShaderModel.vertexBufferMeshletBounds = srv_meshlet_bounds();
+    outShaderModel.vertexBufferNormals = srv_normals();
+    outShaderModel.vertexBufferTangents = srv_tangents();
+    outShaderModel.vertexBufferUVs = srv_uvs();
+    outShaderModel.vertexBufferAtlas = srv_atlas();
+    outShaderModel.vertexBufferColors = srv_colors();
 
-    outShaderModel.aabbMin = get_aabb().minPoint;
-    outShaderModel.aabbMax = get_aabb().maxPoint;
+    outShaderModel.aabbMin = aabb().minPoint;
+    outShaderModel.aabbMax = aabb().maxPoint;
 
     outShaderModel.uvRangeMin = m_uvRangeMin;
     outShaderModel.uvRangeMax = m_uvRangeMax;
@@ -568,62 +568,62 @@ void GPUModel::fill_shader_model_instances(
     }
 }
 
-const AABB& GPUModel::get_aabb() const
+const AABB& GPUModel::aabb() const
 {
     return m_model->aabb();
 }
 
-uint32 GPUModel::get_thread_group_count_x() const
+uint32 GPUModel::thread_group_count_x() const
 {
     return static_cast<uint32>(m_meshletCount / 32 + 1);
 }
 
-uint64 GPUModel::get_index_count() const
+uint64 GPUModel::index_count() const
 {
     return m_model->indices().size();
 }
 
-int32 GPUModel::get_srv_indices() const
+int32 GPUModel::srv_indices() const
 {
     return m_indices.srv ? m_indices.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_positions_winds() const
+int32 GPUModel::srv_positions_winds() const
 {
     return m_vertexPositionsWinds.srv ? m_vertexPositionsWinds.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_meshlets() const
+int32 GPUModel::srv_meshlets() const
 {
     return m_meshlets.srv ? m_meshlets.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_meshlet_bounds() const
+int32 GPUModel::srv_meshlet_bounds() const
 {
     return m_meshletBounds.srv ? m_meshletBounds.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_normals() const
+int32 GPUModel::srv_normals() const
 {
     return m_vertexNormals.srv ? m_vertexNormals.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_tangents() const
+int32 GPUModel::srv_tangents() const
 {
     return m_vertexTangents.srv ? m_vertexTangents.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_uvs() const
+int32 GPUModel::srv_uvs() const
 {
     return m_vertexUVs.srv ? m_vertexUVs.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_atlas() const
+int32 GPUModel::srv_atlas() const
 {
     return m_vertexAtlas.srv ? m_vertexAtlas.srv->descriptorIndex : -1;
 }
 
-int32 GPUModel::get_srv_colors() const
+int32 GPUModel::srv_colors() const
 {
     return m_vertexColors.srv ? m_vertexColors.srv->descriptorIndex : -1;
 }

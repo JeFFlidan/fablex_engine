@@ -686,4 +686,14 @@ struct RayTracingPushConstants
 	uint2 padding;
 };
 
+struct RNGSeedGenerationPushConstants
+{
+	DEFINE_PUSH_CONSTANTS(RNGSeedGenerationPushConstants);
+
+	uint rngSeedTextureIndex;
+	uint frameNumber;
+	uint blueNoiseTextureSize;
+	uint blueNoiseTextureDepth;
+};
+
 #endif // SHADER_INTEROP_RENDERER

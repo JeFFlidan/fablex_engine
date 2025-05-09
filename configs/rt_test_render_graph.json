@@ -31,6 +31,9 @@
             "OutputStorageTextures": [
                 "RTColorOutput"
             ],
+            "InputTextures": [
+                "RNGSeed"
+            ],
             "Pipeline": {
                 "Name": "RTTestPipeline",
                 "Shaders": [
@@ -51,12 +54,33 @@
                     }
                 ]
             }
+        },
+        {
+            "Name": "RNGSeedGenerationPass",
+            "Type": "ASYNC_COMPUTE",
+            "OutputStorageTextures": [
+                "RNGSeed"
+            ],
+            "Pipeline": {
+                "Name": "RNGSeedGenerationPipeline",
+                "Shaders": [
+                    {
+                        "Path": "rng_seed_generation_cs.hlsl",
+                        "Type": "COMPUTE"
+                    }
+                ]
+            }
         }
     ],
     "RenderTextures": [
         {
             "Name": "RTColorOutput",
             "Format": "R8G8B8A8_UNORM"
+        },
+        {
+            "Name": "RNGSeed",
+            "Format": "R8G8B8A8_UINT",
+            "CrossFrameRead": true
         }
     ],
     "PushConstants": [
@@ -65,7 +89,7 @@
             "Resources": [
                 {
                     "Name": "RTColorOutput",
-                    "IsStorage": true
+                    "Write": true
                 }
             ]
         },
@@ -74,6 +98,15 @@
             "Resources": [
                 {
                     "Name": "RTColorOutput"
+                }
+            ]
+        },
+        {
+            "Name": "RNGSeedGenerationPushConstants",
+            "Resources": [
+                {
+                    "Name": "RNGSeed",
+                    "Write": true
                 }
             ]
         }

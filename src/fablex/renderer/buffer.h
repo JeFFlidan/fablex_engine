@@ -15,7 +15,7 @@ public:
     ~Buffer();
 
     rhi::BufferHandle get_handle() const { return m_handle; }
-    uint32 get_descriptor() const { return m_handle->descriptorIndex; }
+    uint32 descriptor() const { return m_handle->descriptorIndex; }
 
 private:
     Name m_name;

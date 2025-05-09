@@ -14,7 +14,7 @@ constexpr const char* RENDER_TEXTURES_KEY = "RenderTextures";
 constexpr const char* PUSH_CONSTANTS_KEY = "PushConstants";
 constexpr const char* RESOURCES_KEY = "Resources";
 constexpr const char* PREVIOUS_FRAME_KEY = "PreviousFrame";
-constexpr const char* IS_STORAGE_KEY = "IsStorage";
+constexpr const char* WRITE_KEY = "Write";
 constexpr const char* RENDER_PASSES_KEY = "RenderPasses";
 constexpr const char* FORMAT_KEY = "Format";
 constexpr const char* IS_TRANSFER_DST_KEY = "IsTransferDst";
@@ -40,7 +40,7 @@ constexpr const char* PATH_KEY = "Path";
 RenderGraphMetadata::RenderGraphMetadata(const RenderContext* renderContext)
 {
     FE_CHECK(renderContext);
-    m_shaderManager = renderContext->get_shader_manager();
+    m_shaderManager = renderContext->shader_manager();
     FE_CHECK(m_shaderManager);
 }
 
@@ -124,8 +124,8 @@ void RenderGraphMetadata::deserialize(const std::string& path)
                     if (resourceMetadataJson.contains(PREVIOUS_FRAME_KEY))
                         resourceMetadata.previousFrame = resourceMetadataJson[PREVIOUS_FRAME_KEY];
 
-                    if (resourceMetadataJson.contains(IS_STORAGE_KEY))
-                        resourceMetadata.isStorage = resourceMetadataJson[IS_STORAGE_KEY];
+                    if (resourceMetadataJson.contains(WRITE_KEY))
+                        resourceMetadata.write = resourceMetadataJson[WRITE_KEY];
                 }
             }
         }

@@ -21,7 +21,7 @@ void ObjectMeshTestPass::execute(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
 
-    SceneManager* sceneManager = m_renderContext->get_scene_manager();
+    SceneManager* sceneManager = m_renderContext->scene_manager();
 
     set_default_viewport_and_scissor(cmd);
 
@@ -36,12 +36,12 @@ void ObjectMeshTestPass::execute(rhi::CommandBuffer* cmd)
         pushConstants.instanceOffset = instanceOffset;
         push_constants(cmd, &pushConstants);
     
-        uint32 instanceCount = gpuModel.get_instance_count();
+        uint32 instanceCount = gpuModel.instance_count();
         instanceOffset += instanceCount;
     
         rhi::dispatch_mesh(
             cmd, 
-            gpuModel.get_thread_group_count_x(), 
+            gpuModel.thread_group_count_x(), 
             instanceCount, 
             1
         );

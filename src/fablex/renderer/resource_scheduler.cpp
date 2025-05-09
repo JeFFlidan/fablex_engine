@@ -18,16 +18,16 @@ void ResourceScheduler::create_render_target(
 )
 {
     rhi::TextureInfo newTextureInfo;
-    newTextureInfo.format = s_renderContext->get_render_surface().renderTargetFormat;
+    newTextureInfo.format = s_renderContext->render_surface().renderTargetFormat;
     newTextureInfo.textureUsage = rhi::ResourceUsage::COLOR_ATTACHMENT | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
-    newTextureInfo.width = s_renderContext->get_render_surface().width;
-    newTextureInfo.height = s_renderContext->get_render_surface().height;
+    newTextureInfo.width = s_renderContext->render_surface().width;
+    newTextureInfo.height = s_renderContext->render_surface().height;
     newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
     newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
 
     fill_info_from_base(newTextureInfo, textureInfo);
 
-    s_renderContext->get_render_graph_resource_manager()->queue_resource_allocation(
+    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
         renderPassName,
         resourceName, 
         newTextureInfo, 
@@ -49,16 +49,16 @@ void ResourceScheduler::create_depth_stencil(
 )
 {
     rhi::TextureInfo newTextureInfo;
-    newTextureInfo.format = s_renderContext->get_render_surface().depthStencilFormat;
+    newTextureInfo.format = s_renderContext->render_surface().depthStencilFormat;
     newTextureInfo.textureUsage = rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
-    newTextureInfo.width = s_renderContext->get_render_surface().width;
-    newTextureInfo.height = s_renderContext->get_render_surface().height;
+    newTextureInfo.width = s_renderContext->render_surface().width;
+    newTextureInfo.height = s_renderContext->render_surface().height;
     newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
     newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
 
     fill_info_from_base(newTextureInfo, textureInfo);
 
-    s_renderContext->get_render_graph_resource_manager()->queue_resource_allocation(
+    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
         renderPassName, 
         resourceName, 
         newTextureInfo,
@@ -82,14 +82,14 @@ void ResourceScheduler::create_storage_texture(
     rhi::TextureInfo newTextureInfo;
     newTextureInfo.format = rhi::Format::R32_SFLOAT;
     newTextureInfo.textureUsage = rhi::ResourceUsage::STORAGE_TEXTURE | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
-    newTextureInfo.width = s_renderContext->get_render_surface().width;
-    newTextureInfo.height = s_renderContext->get_render_surface().height;
+    newTextureInfo.width = s_renderContext->render_surface().width;
+    newTextureInfo.height = s_renderContext->render_surface().height;
     newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
     newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
 
     fill_info_from_base(newTextureInfo, textureInfo);
 
-    s_renderContext->get_render_graph_resource_manager()->queue_resource_allocation(
+    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
         renderPassName, 
         resourceName, 
         newTextureInfo,
@@ -106,7 +106,7 @@ void ResourceScheduler::create_storage_texture(
 
 void ResourceScheduler::read_texture(RenderPassName renderPassName, ResourceName resourceName)
 {
-    s_renderContext->get_render_graph_resource_manager()->queue_resource_usage(
+    s_renderContext->render_graph_resource_manager()->queue_resource_usage(
         renderPassName, 
         resourceName,
         [
@@ -122,7 +122,7 @@ void ResourceScheduler::read_texture(RenderPassName renderPassName, ResourceName
 
 void ResourceScheduler::write_to_back_buffer(RenderPassName renderPassName)
 {
-    RenderGraph::Node* node = s_renderContext->get_render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
     FE_CHECK(node);
 
     node->add_write_dependency(BACK_BUFFER_NAME, 1);
@@ -130,7 +130,7 @@ void ResourceScheduler::write_to_back_buffer(RenderPassName renderPassName)
 
 void ResourceScheduler::use_ray_tracing(RenderPassName renderPassName)
 {
-    RenderGraph::Node* node = s_renderContext->get_render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
     FE_CHECK(node);
     
     node->useRayTracing = true;
@@ -142,7 +142,7 @@ void ResourceScheduler::add_render_graph_read_dependency(
     uint32 mipCount
 )
 {
-    RenderGraph::Node* node = s_renderContext->get_render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
     FE_CHECK(node);
 
     node->add_read_dependency(resourceName, mipCount);
@@ -154,7 +154,7 @@ void ResourceScheduler::add_render_graph_write_dependency(
     uint32 mipCount
 )
 {
-    RenderGraph::Node* node = s_renderContext->get_render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
     FE_CHECK(node);
 
     node->add_write_dependency(resourceName, mipCount);

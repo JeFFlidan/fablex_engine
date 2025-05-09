@@ -41,13 +41,13 @@ public:
     bool has_gpu_resource(UUID resourceUUID) const;
 
     void add_staging_buffer(rhi::Buffer* buffer);
-    const CommandRecorder& get_cmd_recorder(rhi::QueueType queueType) const;
-    uint32 get_resource_index(UUID resourceUUID) const;
-    int32 get_descriptor(asset::Texture* texture) const;
-    int32 get_sampler_descriptor(ResourceName samplerName) const;
-    const GPUTexture& get_blue_noise_texture() const;
+    const CommandRecorder& cmd_recorder(rhi::QueueType queueType) const;
+    uint32 resource_index(UUID resourceUUID) const;
+    int32 descriptor(asset::Texture* texture) const;
+    int32 sampler_descriptor(ResourceName samplerName) const;
+    const GPUTexture& blue_noise_texture() const;
 
-    rhi::AccelerationStructure* get_scene_TLAS() const { return m_TLAS; }
+    rhi::AccelerationStructure* scene_tlas() const { return m_TLAS; }
 
 private:
     using ShaderCameraArray = std::array<ShaderCamera, MAX_CAMERA_COUNT>;

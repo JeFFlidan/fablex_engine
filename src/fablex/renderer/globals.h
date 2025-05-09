@@ -18,7 +18,7 @@ constexpr const char* SAMPLER_NEAREST_MIRROR = "SamplerNearestMirror";
 constexpr const char* SAMPLER_MINIMUM_NEAREST_CLAMP = "SamplerMinimumNearestClamp";
 
 // Must only be used for render graph cross frame resources 
-inline uint64 get_cur_frame_index()
+inline uint64 get_curr_frame_index()
 {
     return g_frameNumber % 2;
 }
@@ -26,7 +26,7 @@ inline uint64 get_cur_frame_index()
 // Must only be used for render graph cross frame resources
 inline uint64 get_prev_frame_index()
 {
-    return (g_frameNumber % 2) + 1;
+    return (g_frameNumber - 1) % 2;
 }
 
 }

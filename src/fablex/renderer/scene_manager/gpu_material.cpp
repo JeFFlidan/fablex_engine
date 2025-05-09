@@ -53,10 +53,10 @@ void GPUMaterial::fill_shader_material(const SceneManager* sceneManager, ShaderM
         shaderMaterial.textures[textureSlot].init();
 
         if (texture)
-            shaderMaterial.textures[textureSlot].textureIndex = sceneManager->get_descriptor(texture);
+            shaderMaterial.textures[textureSlot].textureIndex = sceneManager->descriptor(texture);
     };
 
-    shaderMaterial.set_sampler_index(sceneManager->get_sampler_descriptor(SAMPLER_LINEAR_REPEAT));
+    shaderMaterial.set_sampler_index(sceneManager->sampler_descriptor(SAMPLER_LINEAR_REPEAT));
 
     switch (m_material->get_material_type())
     {

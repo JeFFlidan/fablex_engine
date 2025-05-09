@@ -43,28 +43,28 @@ public:
         uint64 modelInstanceArrayOffset
     );
 
-    asset::Model* get_model() const { return m_model; }
-    const AABB& get_aabb() const;
-    rhi::Format get_position_format() const { return m_positionFormat; }
-    rhi::Format get_uv_format() const { return m_uvFormat; }
-    uint64 get_meshlet_count() const { return m_meshletCount; }
-    uint32 get_thread_group_count_x() const;
-    rhi::Buffer* get_buffer() const { return m_generalBuffer; }
-    uint64 get_index_offset() const { return m_indices.offset; }
-    uint64 get_index_count() const; 
-    const std::vector<rhi::AccelerationStructure*>& get_BLASes() const { return m_BLASes; }
-    const std::vector<GPUModelInstance>& get_instances() const { return m_instances; }
-    uint32 get_instance_count() const { return m_instances.size(); }
+    asset::Model* model_asset() const { return m_model; }
+    const AABB& aabb() const;
+    rhi::Format position_format() const { return m_positionFormat; }
+    rhi::Format uv_format() const { return m_uvFormat; }
+    uint64 meshlet_count() const { return m_meshletCount; }
+    uint32 thread_group_count_x() const;
+    rhi::Buffer* general_buffer() const { return m_generalBuffer; }
+    uint64 index_offset() const { return m_indices.offset; }
+    uint64 index_count() const; 
+    const std::vector<rhi::AccelerationStructure*>& blases() const { return m_BLASes; }
+    const std::vector<GPUModelInstance>& instances() const { return m_instances; }
+    uint32 instance_count() const { return m_instances.size(); }
 
-    int32 get_srv_indices() const;
-    int32 get_srv_positions_winds() const;
-    int32 get_srv_meshlets() const;
-    int32 get_srv_meshlet_bounds() const;
-    int32 get_srv_normals() const;
-    int32 get_srv_tangents() const;
-    int32 get_srv_uvs() const;
-    int32 get_srv_atlas() const;
-    int32 get_srv_colors() const;
+    int32 srv_indices() const;
+    int32 srv_positions_winds() const;
+    int32 srv_meshlets() const;
+    int32 srv_meshlet_bounds() const;
+    int32 srv_normals() const;
+    int32 srv_tangents() const;
+    int32 srv_uvs() const;
+    int32 srv_atlas() const;
+    int32 srv_colors() const;
 
 private:
     struct BufferView

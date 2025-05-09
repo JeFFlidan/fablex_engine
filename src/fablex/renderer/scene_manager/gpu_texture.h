@@ -17,9 +17,10 @@ public:
     void create(uint32 mipLevels);
     void build(const CommandRecorder& cmdRecorder, const rhi::TextureInitInfo& initInfo);
 
-    asset::Texture* get_texture_asset() const { return m_textureAsset; }
-    rhi::Texture* get_texture() const { return m_texture; }
-    rhi::TextureView* get_texture_view() const { return m_textureView; }
+    asset::Texture* texture_asset() const { return m_textureAsset; }
+    rhi::Texture* texture() const { return m_texture; }
+    rhi::TextureView* texture_view() const { return m_textureView; }
+    uint32 descriptor() const { return m_textureView->descriptorIndex; }
 
 private:
     asset::Texture* m_textureAsset = nullptr;

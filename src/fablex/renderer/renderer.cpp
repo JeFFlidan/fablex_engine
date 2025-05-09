@@ -146,9 +146,10 @@ void Renderer::begin_frame()
 
     m_bvhBuildSemaphore = nullptr;
     m_uploadSemaphore = nullptr;
-    m_submitContextsPerQueue.clear();
-    m_submitContextsPerQueue.resize(rhi::g_queueCount);
+    m_submitContexts.clear();
     m_pipelineBarriersByPassName.clear();
+
+    record_predraw_cmds();    
 }
 
 void Renderer::end_frame()
@@ -189,9 +190,6 @@ void Renderer::prepare_render_graph_execution()
 
 void Renderer::execute_render_graph()
 {
-    record_upload_cmd();
-    record_bvh_build_cmd();
-    TaskComposer::wait(m_commandRecordingTaskGroup);
     record_worker_cmds();
     submit();
 }
@@ -209,6 +207,7 @@ void Renderer::configure_submit_contexts()
 {
     std::vector<SubmitContext*> lastSubmitContextPerQueue(m_renderGraph->get_detected_queue_count(), nullptr);
     std::unordered_map<const RenderGraph::Node*, rhi::Semaphore*> signalSemaphoreByNode;
+    bool requiresWaitingBVH = true;
 
     for (const RenderGraph::Node* node : m_renderGraph->get_nodes_in_global_exec_order())
     {
@@ -220,12 +219,13 @@ void Renderer::configure_submit_contexts()
         if (!lastSubmitContext
             || node->is_sync_signal_required()
             || !node->get_nodes_to_sync_with().empty()
-            || (node->useRayTracing && m_bvhBuildSemaphore)
+            || (node->useRayTracing && m_bvhBuildSemaphore && requiresWaitingBVH)
         )
         {
             // Invalidate the last submit context if a signal or wait semaphore needed to force the allocation of a new submit context
-            lastSubmitContext = &m_submitContextsPerQueue.at(nodeQueueIdx).emplace_back();
-            lastSubmitContextPerQueue[nodeQueueIdx] = lastSubmitContext;    
+            lastSubmitContext = &m_submitContexts.emplace_back();
+            lastSubmitContextPerQueue[nodeQueueIdx] = lastSubmitContext;
+            lastSubmitContext->queueType = (rhi::QueueType)nodeQueueIdx;
         }
 
         if (node->is_sync_signal_required())
@@ -242,8 +242,11 @@ void Renderer::configure_submit_contexts()
             }
         }
 
-        if (node->useRayTracing && m_bvhBuildSemaphore)
+        if (node->useRayTracing && m_bvhBuildSemaphore && requiresWaitingBVH)
+        {
             lastSubmitContext->waitSemaphores.push_back(m_bvhBuildSemaphore);
+            requiresWaitingBVH = false;
+        }
 
         if (lastSubmitContext->depencyLevelCommandContexts.empty() ||
             lastSubmitContext->depencyLevelCommandContexts.back().dependencyLevelIndex != nodeDependencyLevelIdx)
@@ -322,9 +325,6 @@ void Renderer::configure_pipeline_barriers()
 
 void Renderer::record_upload_cmd()
 {
-    m_uploadSemaphore = m_syncManager->get_semaphore();
-    rhi::set_name(m_uploadSemaphore, "UploadSemaphore" + std::to_string(g_frameIndex));
-
     rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
     rhi::begin_command_buffer(cmd);
     m_sceneManager->upload(cmd);
@@ -338,94 +338,99 @@ void Renderer::record_upload_cmd()
 
 void Renderer::record_bvh_build_cmd()
 {
-    m_bvhBuildSemaphore = m_syncManager->get_semaphore();
-    rhi::set_name(m_bvhBuildSemaphore, "BVHBuildSemaphore" + std::to_string(g_frameIndex));
     m_bvhBuildSubmitInfo.queueType = rhi::QueueType::COMPUTE;
 
-    TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo execInfo)
-    {
-        rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
-        rhi::begin_command_buffer(cmd);
-        m_sceneManager->build_bvh(cmd);
-        rhi::end_command_buffer(cmd);
+    rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
+    rhi::begin_command_buffer(cmd);
+    m_sceneManager->build_bvh(cmd);
+    rhi::end_command_buffer(cmd);
 
-        m_bvhBuildSubmitInfo.clear();
-        m_bvhBuildSubmitInfo.cmdBuffers.push_back(cmd);
-        m_bvhBuildSubmitInfo.signalSemaphores.push_back(m_bvhBuildSemaphore);
-        m_bvhBuildSubmitInfo.waitSemaphores.push_back(m_uploadSemaphore);
+    m_bvhBuildSubmitInfo.clear();
+    m_bvhBuildSubmitInfo.cmdBuffers.push_back(cmd);
+    m_bvhBuildSubmitInfo.signalSemaphores.push_back(m_bvhBuildSemaphore);
+    m_bvhBuildSubmitInfo.waitSemaphores.push_back(m_uploadSemaphore);
+}
+
+void Renderer::record_predraw_cmds()
+{
+    m_bvhBuildSemaphore = m_syncManager->get_semaphore();
+    rhi::set_name(m_bvhBuildSemaphore, "BVHBuildSemaphore" + std::to_string(g_frameIndex));
+
+    m_uploadSemaphore = m_syncManager->get_semaphore();
+    rhi::set_name(m_uploadSemaphore, "UploadSemaphore" + std::to_string(g_frameIndex));
+    
+    TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo)
+    {
+        record_upload_cmd();
+        record_bvh_build_cmd();
     });
 }
 
 void Renderer::record_worker_cmds()
 {
-    uint32 queueIndex = 0;
-    rhi::QueueType queueType = (rhi::QueueType)queueIndex;
-    for (SubmitContextArray& submitContexts : m_submitContextsPerQueue)
+    TaskComposer::wait(m_commandRecordingTaskGroup);
+
+    for (SubmitContext& submitContext : m_submitContexts)
     {
-        for (SubmitContext& submitContext : submitContexts)
+        for (DependencyLevelCommandContext& dependencyLevelContext : submitContext.depencyLevelCommandContexts)
         {
-            for (DependencyLevelCommandContext& dependencyLevelContext : submitContext.depencyLevelCommandContexts)
+            TaskComposer::execute(m_commandRecordingTaskGroup, 
+                [
+                    this,
+                    &dependencyLevelContext,
+                    &submitContext
+                ]
+                (TaskExecutionInfo execInfo)
             {
-                TaskComposer::execute(m_commandRecordingTaskGroup, 
-                    [
-                        this,
-                        queueType,
-                        &dependencyLevelContext,
-                        &submitContext
-                    ]
-                    (TaskExecutionInfo execInfo)
+                rhi::QueueType queueType = submitContext.queueType;
+
+                dependencyLevelContext.workerCmd = m_commandManager->get_cmd(queueType);
+                rhi::CommandBuffer* cmd = dependencyLevelContext.workerCmd;
+                rhi::begin_command_buffer(cmd);
+
+                for (const RenderGraph::Node* node : dependencyLevelContext.nodesToRecord)
                 {
-                    dependencyLevelContext.workerCmd = m_commandManager->get_cmd(queueType);
-                    rhi::CommandBuffer* cmd = dependencyLevelContext.workerCmd;
-                    rhi::begin_command_buffer(cmd);
+                    RenderPass* renderPass = m_renderPassContainer->get_render_pass(node->get_info().renderPassName);
+                    FE_CHECK(renderPass);
 
-                    for (const RenderGraph::Node* node : dependencyLevelContext.nodesToRecord)
+                    const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->get_name()];
+                    rhi::add_pipeline_barriers(cmd, barriers);
+                    rhi::SwapChain* usedSwapChain = nullptr;
+                    bool requiresBeginRendering = queueType == rhi::QueueType::GRAPHICS && !node->useRayTracing;
+
+                    if (requiresBeginRendering)
                     {
-                        RenderPass* renderPass = m_renderPassContainer->get_render_pass(node->get_info().renderPassName);
-                        FE_CHECK(renderPass);
+                        rhi::RenderingBeginInfo::Type type = m_backBufferNode == node 
+                            ? rhi::RenderingBeginInfo::SWAP_CHAIN_PASS : rhi::RenderingBeginInfo::OFFSCREEN_PASS;
+                        rhi::RenderingBeginInfo renderingBeginInfo(type);
 
-                        const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->get_name()];
-                        rhi::add_pipeline_barriers(cmd, barriers);
-                        rhi::SwapChain* usedSwapChain = nullptr;
-                        bool requiresBeginRendering = queueType == rhi::QueueType::GRAPHICS && !node->useRayTracing;
+                        renderPass->fill_rendering_begin_info(renderingBeginInfo);
 
-                        if (requiresBeginRendering)
+                        if (type == rhi::RenderingBeginInfo::SWAP_CHAIN_PASS)
                         {
-                            rhi::RenderingBeginInfo::Type type = m_backBufferNode == node 
-                                ? rhi::RenderingBeginInfo::SWAP_CHAIN_PASS : rhi::RenderingBeginInfo::OFFSCREEN_PASS;
-                            rhi::RenderingBeginInfo renderingBeginInfo(type);
-
-                            renderPass->fill_rendering_begin_info(renderingBeginInfo);
-
-                            if (type == rhi::RenderingBeginInfo::SWAP_CHAIN_PASS)
-                            {
-                                renderingBeginInfo.swapChainPass.swapChain = m_mainSwapChain;
-                                usedSwapChain = m_mainSwapChain;
-                            }
-
-                            rhi::begin_rendering(cmd, &renderingBeginInfo);
-
-                            if (m_backBufferNode == node)
-                            {
-                                submitContext.signalSemaphore = m_syncManager->get_semaphore();
-                                m_backBufferSemaphore = submitContext.signalSemaphore;
-                            }
+                            renderingBeginInfo.swapChainPass.swapChain = m_mainSwapChain;
+                            usedSwapChain = m_mainSwapChain;
                         }
 
-                        renderPass->execute(cmd);
+                        rhi::begin_rendering(cmd, &renderingBeginInfo);
 
-                        if (requiresBeginRendering)
-                            rhi::end_rendering(cmd, usedSwapChain);
-
+                        if (m_backBufferNode == node)
+                        {
+                            submitContext.signalSemaphore = m_syncManager->get_semaphore();
+                            m_backBufferSemaphore = submitContext.signalSemaphore;
+                        }
                     }
 
-                    rhi::end_command_buffer(cmd);
-                });
-            }
-        }
+                    renderPass->execute(cmd);
 
-        ++queueIndex;
-        queueType = (rhi::QueueType)queueIndex;
+                    if (requiresBeginRendering)
+                        rhi::end_rendering(cmd, usedSwapChain);
+
+                }
+
+                rhi::end_command_buffer(cmd);
+            });
+        }
     }
 }
 
@@ -433,48 +438,24 @@ void Renderer::submit()
 {
     TaskComposer::wait(m_commandRecordingTaskGroup);
 
-    // TODO: TEMP!!!!
-    if (m_bvhBuildSemaphore)
-    {
-        std::vector<SubmitContext>& submitContexts = m_submitContextsPerQueue.at(uint64(rhi::QueueType::GRAPHICS));
-        submitContexts.at(0).waitSemaphores.push_back(m_bvhBuildSemaphore);
-    }
-
     if (is_upload_cmd_submit_required())
-        rhi::submit({ m_uploadSubmitInfo}, m_syncManager->get_fence());
+        rhi::submit(&m_uploadSubmitInfo, m_syncManager->get_fence());
 
     if (is_bvh_build_cmd_submit_required())
-        rhi::submit({ m_bvhBuildSubmitInfo }, m_syncManager->get_fence());
-
-    uint32 queueIndex = 0;
-    rhi::QueueType queueType = (rhi::QueueType)queueIndex;
-
-    std::vector<SubmitInfoArray> submitInfosPerQueue;
-    submitInfosPerQueue.resize(rhi::g_queueCount);
-
-    for (const SubmitContextArray& submitContexts : m_submitContextsPerQueue)
+        rhi::submit(&m_bvhBuildSubmitInfo, m_syncManager->get_fence());
+    
+    for (const SubmitContext& submitContext : m_submitContexts)
     {
-        if (submitContexts.empty())
-            continue;
+        rhi::SubmitInfo submitInfo;
+        submitInfo.queueType = submitContext.queueType;
 
-        SubmitInfoArray& submitInfos = submitInfosPerQueue.at(queueIndex);
+        for (const DependencyLevelCommandContext& dependencyLevelContext : submitContext.depencyLevelCommandContexts)
+            submitInfo.cmdBuffers.push_back(dependencyLevelContext.workerCmd);
 
-        for (const SubmitContext& submitContext : submitContexts)
-        {
-            rhi::SubmitInfo& submitInfo = submitInfos.emplace_back();
-            submitInfo.queueType = queueType;
+        submitInfo.signalSemaphores.push_back(submitContext.signalSemaphore);
+        submitInfo.waitSemaphores = submitContext.waitSemaphores;
 
-            for (const DependencyLevelCommandContext& dependencyLevelContext : submitContext.depencyLevelCommandContexts)
-                submitInfo.cmdBuffers.push_back(dependencyLevelContext.workerCmd);
-
-            submitInfo.signalSemaphores.push_back(submitContext.signalSemaphore);
-            submitInfo.waitSemaphores = submitContext.waitSemaphores;
-        }
-
-        rhi::submit(submitInfos, m_syncManager->get_fence());
-
-        ++queueIndex;
-        queueType = (rhi::QueueType)queueIndex;
+        rhi::submit(&submitInfo, m_syncManager->get_fence());
     }
 }
 

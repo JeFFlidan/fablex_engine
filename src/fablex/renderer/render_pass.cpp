@@ -6,6 +6,7 @@
 #include "resource_scheduler.h"
 #include "globals.h"
 #include "rhi/utils.h"
+#include "rhi/rhi.h"
 
 namespace fe::renderer
 {
@@ -24,7 +25,20 @@ void RenderPass::schedule_resources()
     FE_CHECK(m_metadata);
 
     for (ResourceName textureName : m_metadata->inputTextureNames)
-        ResourceScheduler::read_texture(get_name(), textureName);
+    {
+        const TextureMetadata& textureMetadata = get_texture_metadata(textureName);
+
+        if (textureMetadata.crossFrameRead)
+        {
+            auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.textureName);
+            ResourceScheduler::read_texture(get_name(), prevFrameName);
+            ResourceScheduler::read_texture(get_name(), curFrameName);
+        }
+        else
+        {
+            ResourceScheduler::read_texture(get_name(), textureName);
+        }
+    }
 
     for (const RenderTargetMetadata& renderTargetMetadata : m_metadata->renderTargetsMetadata)
     {
@@ -83,8 +97,6 @@ void RenderPass::schedule_resources()
             ResourceScheduler::create_storage_texture(get_name(), textureName, &info);
         }
     }
-
-    schedule_resources_internal();
 }
 
 RenderPassInfo RenderPass::get_info() const
@@ -98,7 +110,7 @@ RenderPassInfo RenderPass::get_info() const
 
 void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo) const
 {
-    RenderGraphResourceManager* resourceManager = m_renderContext->get_render_graph_resource_manager();
+    RenderGraphResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
 
     switch (outBeginInfo.type)
     {
@@ -137,64 +149,84 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
 
 void RenderPass::create_compute_pipeline()
 {
-    m_renderContext->get_pipeline_manager()->create_compute_pipeline(get_pipeline_metadata());
+    m_renderContext->pipeline_manager()->create_compute_pipeline(get_pipeline_metadata());
 }
     
 void RenderPass::create_graphics_pipeline()
 {
-    m_renderContext->get_pipeline_manager()->create_graphics_pipeline(get_pipeline_metadata());
+    m_renderContext->pipeline_manager()->create_graphics_pipeline(get_pipeline_metadata());
 }
 
 void RenderPass::create_graphics_pipeline(const PipelineManager::GraphicsPipelineConfigurator& configurator)
 {
-    m_renderContext->get_pipeline_manager()->create_graphics_pipeline(get_pipeline_metadata(), configurator);
+    m_renderContext->pipeline_manager()->create_graphics_pipeline(get_pipeline_metadata(), configurator);
 }
 
 void RenderPass::create_ray_tracing_pipeline()
 {
-    m_renderContext->get_pipeline_manager()->create_ray_tracing_pipeline(get_pipeline_metadata());
+    m_renderContext->pipeline_manager()->create_ray_tracing_pipeline(get_pipeline_metadata());
 }
 
 void RenderPass::create_ray_tracing_pipeline(const PipelineManager::RayTracingPipelineConfigurator& configurator)
 {
-    m_renderContext->get_pipeline_manager()->create_ray_tracing_pipeline(get_pipeline_metadata(), configurator);
+    m_renderContext->pipeline_manager()->create_ray_tracing_pipeline(get_pipeline_metadata(), configurator);
+}
+
+SceneManager* RenderPass::scene_manager() const
+{
+    return m_renderContext->scene_manager();
 }
 
 void RenderPass::bind_pipeline(rhi::CommandBuffer* cmd)
 {
-    m_renderContext->get_pipeline_manager()->bind_pipeline(cmd, m_metadata->pipelineName);
+    m_renderContext->pipeline_manager()->bind_pipeline(cmd, m_metadata->pipelineName);
 }
 
 void RenderPass::push_constants(rhi::CommandBuffer* cmd, void* data)
 {
-    m_renderContext->get_pipeline_manager()->push_constants(cmd, m_metadata->pipelineName, data);
+    m_renderContext->pipeline_manager()->push_constants(cmd, m_metadata->pipelineName, data);
 }
 
 void RenderPass::set_default_viewport_and_scissor(rhi::CommandBuffer* cmd) const
 {
-    m_renderContext->get_render_surface().set_default_viewport(cmd);
-    m_renderContext->get_render_surface().set_default_scissor(cmd);
+    m_renderContext->render_surface().set_default_viewport(cmd);
+    m_renderContext->render_surface().set_default_scissor(cmd);
 }
 
 void RenderPass::set_viewport_and_scissor_by_window(rhi::CommandBuffer* cmd) const
 {
-    m_renderContext->get_render_surface().set_viewport_by_window(cmd);
-    m_renderContext->get_render_surface().set_scissor_by_window(cmd);
+    m_renderContext->render_surface().set_viewport_by_window(cmd);
+    m_renderContext->render_surface().set_scissor_by_window(cmd);
 }
 
 void RenderPass::fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const
 {
-    m_renderContext->get_pipeline_manager()->fill_dispatch_rays_info(m_metadata->pipelineName, outInfo);
+    m_renderContext->pipeline_manager()->fill_dispatch_rays_info(m_metadata->pipelineName, outInfo);
+}
+
+DispatchSizes dispatch_group_count(const DispatchSizes& threadCounts, const DispatchSizes& groupSizes)
+{
+    uint32 x = std::max(ceilf((float)threadCounts[0] / groupSizes[0]), 1.0f);
+    uint32 y = std::max(ceilf((float)threadCounts[1] / groupSizes[1]), 1.0f);
+    uint32 z = std::max(ceilf((float)threadCounts[2] / groupSizes[2]), 1.0f);
+
+    return {x, y, z};
+}
+
+void RenderPass::dispatch(rhi::CommandBuffer* cmd, const RenderSurface& surface, const DispatchSizes& groupSizes)
+{
+    DispatchSizes groupCount = dispatch_group_count({surface.width, surface.height, 1}, groupSizes);
+    rhi::dispatch(cmd, groupCount[0], groupCount[1], groupCount[2]);
 }
 
 const RenderGraphMetadata& RenderPass::get_render_graph_metadata() const
 {
-    return *m_renderContext->get_render_graph()->get_metadata();
+    return *m_renderContext->render_graph()->get_metadata();
 }
 
 const PipelineMetadata& RenderPass::get_pipeline_metadata() const
 {
-    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->get_render_graph()->get_metadata();
+    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->get_metadata();
     const PipelineMetadata* pipelineMetadata = renderGraphMetadata->get_pipeline_metadata(m_metadata->pipelineName);
     if (!pipelineMetadata)
         FE_LOG(LogRenderer, FATAL, "No pipeline metadata for name {}", m_metadata->pipelineName);
@@ -205,7 +237,7 @@ const TextureMetadata& RenderPass::get_texture_metadata(ResourceName textureName
 {
     FE_CHECK(textureName.is_valid());
 
-    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->get_render_graph()->get_metadata();
+    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->get_metadata();
     const TextureMetadata* textureMetadata = renderGraphMetadata->get_texture_metadata(textureName);
     if (!textureMetadata)
         FE_LOG(LogRenderer, FATAL, "No metadata for resource with name {}", textureName);
@@ -238,14 +270,12 @@ RenderPass::ResourceNamesXFR RenderPass::get_resource_names_xfr(ResourceName bas
 
 ResourceName RenderPass::get_prev_frame_resource_name(ResourceName baseName) const
 {
-    uint64 prevFrameIndex = (g_frameNumber % 2) - 1;
-    return ResourceName(baseName.to_string() + std::to_string(prevFrameIndex));
+    return ResourceName(baseName.to_string() + std::to_string(get_prev_frame_index()));
 }
 
 ResourceName RenderPass::get_curr_frame_resource_name(ResourceName baseName) const
 {
-    uint64 currFrameIndex = g_frameIndex % 2;
-    return ResourceName(baseName.to_string() + std::to_string(currFrameIndex));
+    return ResourceName(baseName.to_string() + std::to_string(get_curr_frame_index()));
 }
 
 void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* data) const
@@ -254,12 +284,15 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
     const PushConstantsMetadata* pushConstantsMetadata = renderGraphMetadata.get_push_constants_metadata(pushConstantsName);
 
     if (!pushConstantsMetadata)
-        FE_LOG(LogRenderer, FATAL, "No push constants metadata with name {}", pushConstantsName);
+    {
+        FE_LOG(LogRenderer, WARNING, "No push constants metadata with name {}", pushConstantsName);
+        return;
+    }
 
     uint8* typedData = static_cast<uint8*>(data);
     uint64 offset = 0;
 
-    RenderGraphResourceManager* resourceManager = m_renderContext->get_render_graph_resource_manager();
+    RenderGraphResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
 
     for (const auto& resourceMetadata : pushConstantsMetadata->resourcesMetadata)
     {
@@ -279,7 +312,7 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
 
         uint32 descriptor = ~0u;
 
-        if (resourceMetadata.isStorage)
+        if (resourceMetadata.write)
             descriptor = resourceManager->get_texture_uav_descriptor(get_name(), resourceName);
         else
             descriptor = resourceManager->get_texture_srv_descriptor(get_name(), resourceName);

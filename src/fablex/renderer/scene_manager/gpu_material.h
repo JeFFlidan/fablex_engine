@@ -17,7 +17,7 @@ public:
     void build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder);
     void fill_shader_material(const SceneManager* sceneManager, ShaderMaterial& shaderMaterial) const;
 
-    asset::Material* get_material() const { return m_material; }
+    asset::Material* material_asset() const { return m_material; }
 
 private:
     asset::Material* m_material;
