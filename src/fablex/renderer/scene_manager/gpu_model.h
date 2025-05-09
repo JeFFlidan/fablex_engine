@@ -1,10 +1,13 @@
 #pragma once
 
+#include "gpu_model_instance.h"
 #include "rhi/resources.h"
 #include "asset_manager/fwd.h"
+#include "engine/entity/fwd.h"
 #include "core/primitives/aabb.h"
 
 struct ShaderModel;
+struct ShaderModelInstance;
 
 namespace fe::renderer
 {
@@ -23,14 +26,22 @@ class GPUModel
 {
 public:
     GPUModel(asset::Model* model);
-    ~GPUModel();
+    GPUModel(engine::ModelComponent* modelComponent);
+    virtual ~GPUModel();
 
     void build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder);
     void build_blas(const CommandRecorder& cmdRecorder);
     void destroy_buffer_views();
     void destroy_BLASes();
 
+    void add_instance(engine::Entity* entity);
+
     void fill_shader_model(ShaderModel& outShaderModel) const;
+    void fill_shader_model_instances(
+        SceneManager* sceneManager,
+        ShaderModelInstance* modelInstanceArray,
+        uint64 modelInstanceArrayOffset
+    );
 
     asset::Model* get_model() const { return m_model; }
     const AABB& get_aabb() const;
@@ -42,6 +53,8 @@ public:
     uint64 get_index_offset() const { return m_indices.offset; }
     uint64 get_index_count() const; 
     const std::vector<rhi::AccelerationStructure*>& get_BLASes() const { return m_BLASes; }
+    const std::vector<GPUModelInstance>& get_instances() const { return m_instances; }
+    uint32 get_instance_count() const { return m_instances.size(); }
 
     int32 get_srv_indices() const;
     int32 get_srv_positions_winds() const;
@@ -87,6 +100,8 @@ private:
 
     BLASState m_BLASState = BLASState::REQUIRES_REBUILD;
     std::vector<rhi::AccelerationStructure*> m_BLASes;
+
+    std::vector<GPUModelInstance> m_instances;
 
     void configure_buffer_view(BufferView& bufferView, rhi::Format format, std::string debugName, bool requireUAV = false);
 };

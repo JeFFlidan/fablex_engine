@@ -12,6 +12,7 @@
 
 #include <array>
 #include <memory>
+#include <functional>
 
 namespace fe::renderer
 {
@@ -24,6 +25,8 @@ class CommandRecorder;
 class SceneManager
 {
 public:
+    using ForEachModelHandler = std::function<void(const GPUModel& gpuModel, uint32 modelIndex)>;
+
     SceneManager();
     ~SceneManager();
 
@@ -33,15 +36,17 @@ public:
     bool is_texture_loaded_into_gpu(UUID textureUUID) const;
     void load_texture_into_gpu(UUID textureUUID) const;
 
+    void for_each_model(const ForEachModelHandler& handler);
+
+    bool has_gpu_resource(UUID resourceUUID) const;
+
     void add_staging_buffer(rhi::Buffer* buffer);
     const CommandRecorder& get_cmd_recorder(rhi::QueueType queueType) const;
-    uint32 get_model_index(const GPUModel& gpuModel) const;
-    uint32 get_instance_count(const GPUModel& gpuModel) const;
+    uint32 get_resource_index(UUID resourceUUID) const;
     int32 get_descriptor(asset::Texture* texture) const;
     int32 get_sampler_descriptor(ResourceName samplerName) const;
     const GPUTexture& get_blue_noise_texture() const;
 
-    const std::vector<GPUModel>& get_gpu_models() const { return m_gpuModels; }
     rhi::AccelerationStructure* get_scene_TLAS() const { return m_TLAS; }
 
 private:
@@ -51,21 +56,14 @@ private:
     using DeleteHandler = std::function<void()>;
     using DeleteHandlerArray = std::vector<DeleteHandler>;
     using CommandRecorderPtr = std::unique_ptr<CommandRecorder>;
+    using GPUResourceIndex = uint32;
+    using GPUModelHandle = std::unique_ptr<GPUModel>;
+    using GPUTextureHandle = std::unique_ptr<GPUTexture>;
+    using GPUMaterialHandle = std::unique_ptr<GPUMaterial>;
 
-    struct GPUModelInfo
+    struct GPUPendingTexture
     {
-        uint32 index = 0;
-        uint32 instanceCount = 0;
-    };
-
-    struct GPUMaterialInfo
-    {
-        uint32 index = 0;
-    };
-
-    struct GPUTextureCreateInfo
-    {
-        asset::Texture* textureAsset;
+        std::unique_ptr<GPUTexture> gpuTexture;
         rhi::TextureInitInfo initInfo;
     };
 
@@ -73,10 +71,9 @@ private:
 
     EntityArray m_pendingEntities;
     
-    std::vector<GPUTextureCreateInfo> m_pendingTextureCreateInfos;
+    std::mutex m_gpuPendingTexturesMutex;
+    std::vector<GPUPendingTexture> m_pendingTextures;
 
-    std::vector<engine::ModelComponent*> m_modelComponents;
-    std::vector<engine::MaterialComponent*> m_materialComponents; 
     std::vector<engine::ShaderEntityComponent*> m_shaderEntityComponents;
 
     uint64 m_lightComponentCount = 0;
@@ -87,14 +84,13 @@ private:
     std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
     UUID m_blueNoiseTextureUUID = UUID::INVALID;
 
-    std::vector<GPUModel> m_gpuModels;
-    std::unordered_map<UUID, GPUModelInfo> m_gpuModelInfoByUUID;
+    std::unordered_map<UUID, GPUResourceIndex> m_gpuResourcesLookup;
+    
+    std::vector<GPUModelHandle> m_gpuModels;
+    std::vector<GPUTextureHandle> m_gpuTextures;
+    std::vector<GPUMaterialHandle> m_gpuMaterials;
 
-    std::mutex m_textureMutex;
-    std::unordered_map<UUID, std::unique_ptr<GPUTexture>> m_gpuTextureByUUID;
-
-    std::vector<GPUMaterial> m_gpuMaterials;
-    std::unordered_map<UUID, GPUMaterialInfo> m_gpuMaterialInfoByUUID;
+    uint64 m_modelInstanceCount = 0;
 
     BufferArray m_modelBuffers;
     BufferArray m_modelInstanceBuffers;
@@ -115,6 +111,11 @@ private:
     void init_callbacks();
     void load_resources();
     void create_samplers();
+
+    GPUModel* get_gpu_model(UUID modelUUID) const;
+    GPUTexture* get_gpu_texture(UUID textureUUID) const;
+    GPUTexture* get_gpu_pending_texture(UUID textureUUID) const;
+    GPUMaterial* get_gpu_material(UUID materialUUID) const;
 
     void set_cmd(rhi::CommandBuffer* cmd);
     void allocate_storage_buffers();

@@ -62,5 +62,15 @@
             "Name": "ObjectDepthOutput",
             "Format": "D32_SFLOAT"
         }
+    ],
+    "PushConstants": [
+        {
+            "Name": "SwapChainPushConstants",
+            "Resources": [
+                {
+                    "Name": "ObjectColorOutput"
+                }
+            ]
+        }
     ]
 }

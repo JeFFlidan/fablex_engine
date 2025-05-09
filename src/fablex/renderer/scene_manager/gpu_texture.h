@@ -18,8 +18,8 @@ public:
     void build(const CommandRecorder& cmdRecorder, const rhi::TextureInitInfo& initInfo);
 
     asset::Texture* get_texture_asset() const { return m_textureAsset; }
-    rhi::Texture* get_gpu_texture() const { return m_texture; }
-    rhi::TextureView* get_gpu_texture_view() const { return m_textureView; }
+    rhi::Texture* get_texture() const { return m_texture; }
+    rhi::TextureView* get_texture_view() const { return m_textureView; }
 
 private:
     asset::Texture* m_textureAsset = nullptr;

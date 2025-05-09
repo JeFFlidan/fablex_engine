@@ -4,6 +4,7 @@
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
 #include "asset_manager/model/model.h"
+#include "engine/components/model_component.h"
 #include "core/primitives/aabb.h"
 #include "shaders/shader_interop_renderer.h"
 #include "meshoptimizer.h"
@@ -14,6 +15,12 @@ namespace fe::renderer
 GPUModel::GPUModel(asset::Model* model) : m_model(model)
 {
     FE_CHECK(m_model);
+}
+
+GPUModel::GPUModel(engine::ModelComponent* modelComponent)
+    : GPUModel(modelComponent->get_model())
+{
+
 }
 
 GPUModel::~GPUModel()
@@ -521,6 +528,12 @@ void GPUModel::destroy_BLASes()
     m_BLASState = BLASState::REQUIRES_REBUILD;
 }
 
+void GPUModel::add_instance(engine::Entity* entity)
+{
+    FE_CHECK(entity);
+    m_instances.push_back(entity);
+}
+
 void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
 {
     outShaderModel.indexBuffer = get_srv_indices();
@@ -538,6 +551,21 @@ void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
 
     outShaderModel.uvRangeMin = m_uvRangeMin;
     outShaderModel.uvRangeMax = m_uvRangeMax;
+}
+
+void GPUModel::fill_shader_model_instances(
+    SceneManager* sceneManager,
+    ShaderModelInstance* modelInstanceArray,
+    uint64 modelInstanceArrayOffset
+)
+{
+    uint64 index = 0;
+    for (const GPUModelInstance& instance : m_instances)
+    {
+        ShaderModelInstance& shaderModelInstance = modelInstanceArray[modelInstanceArrayOffset + index];
+        instance.fill_shader_model_instance(sceneManager, shaderModelInstance);
+        ++index;
+    }
 }
 
 const AABB& GPUModel::get_aabb() const

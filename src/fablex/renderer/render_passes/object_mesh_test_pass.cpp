@@ -28,25 +28,24 @@ void ObjectMeshTestPass::execute(rhi::CommandBuffer* cmd)
     bind_pipeline(cmd);
 
     uint instanceOffset = 0;
-    
-    // TEST
-    for (const GPUModel& gpuModel : sceneManager->get_gpu_models())
+
+    sceneManager->for_each_model([&](const GPUModel& gpuModel, uint32 modelIndex)
     {
         ObjectPushConstants pushConstants;
-        pushConstants.modelIndex = sceneManager->get_model_index(gpuModel);
+        pushConstants.modelIndex = modelIndex;
         pushConstants.instanceOffset = instanceOffset;
         push_constants(cmd, &pushConstants);
-
-        uint32 instanceCount = sceneManager->get_instance_count(gpuModel);
+    
+        uint32 instanceCount = gpuModel.get_instance_count();
         instanceOffset += instanceCount;
-
+    
         rhi::dispatch_mesh(
             cmd, 
             gpuModel.get_thread_group_count_x(), 
-            sceneManager->get_instance_count(gpuModel), 
+            instanceCount, 
             1
         );
-    }
+    });
 }
 
 

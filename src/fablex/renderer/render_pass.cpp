@@ -252,7 +252,9 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
 {
     const RenderGraphMetadata& renderGraphMetadata = get_render_graph_metadata();
     const PushConstantsMetadata* pushConstantsMetadata = renderGraphMetadata.get_push_constants_metadata(pushConstantsName);
-    FE_CHECK(pushConstantsMetadata);
+
+    if (!pushConstantsMetadata)
+        FE_LOG(LogRenderer, FATAL, "No push constants metadata with name {}", pushConstantsName);
 
     uint8* typedData = static_cast<uint8*>(data);
     uint64 offset = 0;
@@ -262,6 +264,9 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
     for (const auto& resourceMetadata : pushConstantsMetadata->resourcesMetadata)
     {
         const TextureMetadata* textureMetadata = renderGraphMetadata.get_texture_metadata(resourceMetadata.name);
+        if (!textureMetadata)
+            FE_LOG(LogRenderer, FATAL, "No texture metadata with name {}", resourceMetadata.name);
+
         ResourceName resourceName = resourceMetadata.name;
 
         if (textureMetadata->crossFrameRead)
