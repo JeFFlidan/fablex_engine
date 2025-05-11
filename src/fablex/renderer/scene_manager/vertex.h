@@ -45,27 +45,6 @@ struct VertexPositionWind16Bit
     }
 };
 
-struct VertexPosition32Bit
-{
-    static constexpr rhi::Format FORMAT = rhi::Format::R32G32B32_SFLOAT;
-
-    float x = 0.0f;
-    float y = 0.0f;
-    float z = 0.0f;
-
-    void from_full(const Float3& position)
-    {
-        x = position.x;
-        y = position.y;
-        z = position.z;
-    }
-
-    Float3 get_position() const
-    {
-        return Float3(x, y, z);
-    }
-};
-
 struct VertexPositionWind32Bit
 {
     static constexpr rhi::Format FORMAT = rhi::Format::R32G32B32A32_SFLOAT;

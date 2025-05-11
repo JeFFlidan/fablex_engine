@@ -57,7 +57,7 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
             continue;
         }
 
-        m_positionFormat = m_model->vertex_wind_weights().empty() ? VertexPosition32Bit::FORMAT : VertexPositionWind32Bit::FORMAT;
+        m_positionFormat = VertexPositionWind32Bit::FORMAT;
     }
 
     const uint32 positionFormatStride = rhi::get_format_stride(m_positionFormat);
@@ -243,24 +243,6 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
 
         break;
     }
-    case VertexPosition32Bit::FORMAT:
-    {
-        m_vertexPositionsWinds.offset = bufferOffset;
-        m_vertexPositionsWinds.size = sizeof(VertexPosition32Bit) * m_model->vertex_positions().size();
-        
-        VertexPosition32Bit* vertices = reinterpret_cast<VertexPosition32Bit*>(bufferData + bufferOffset);
-        bufferOffset += rhi::align_to(m_vertexPositionsWinds.size, alignment);
-
-        for (uint64 i = 0; i != m_model->vertex_positions().size(); ++i)
-        {
-            const Float3& position = m_model->vertex_positions()[i];
-            VertexPosition32Bit vertex;
-            vertex.from_full(position);
-            memcpy(vertices + i, &vertex, sizeof(VertexPosition32Bit));
-        }
-
-        break;
-    }
     case VertexPositionWind32Bit::FORMAT:
     {
         m_vertexPositionsWinds.offset = bufferOffset;
@@ -272,7 +254,7 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
         for (uint64 i = 0; i != m_model->vertex_positions().size(); ++i)
         {
             const Float3& position = m_model->vertex_positions()[i];
-            uint8 wind = m_model->vertex_wind_weights()[i];
+            uint8 wind = m_model->vertex_wind_weights().empty() ? 0 : m_model->vertex_wind_weights()[i];
             VertexPositionWind32Bit vertex;
             vertex.from_full(position, wind);
             memcpy(vertices + i, &vertex, sizeof(VertexPositionWind32Bit));
@@ -463,7 +445,7 @@ void GPUModel::build_blas(const CommandRecorder& cmdRecorder)
         geometry.triangles.vertexBuffer = m_generalBuffer;
         geometry.triangles.vertexOffset = m_vertexPositionsWinds.offset;
         geometry.triangles.vertexCount = m_model->vertex_count();
-        geometry.triangles.vertexFormat = m_positionFormat == VertexPosition32Bit::FORMAT ? rhi::Format::R32G32B32_SFLOAT : m_positionFormat;
+        geometry.triangles.vertexFormat = m_positionFormat == rhi::Format::R32G32B32A32_SFLOAT ? rhi::Format::R32G32B32_SFLOAT : m_positionFormat;
         geometry.triangles.vertexStride = rhi::get_format_stride(m_positionFormat);
         geometry.triangles.indexBuffer = m_generalBuffer;
         geometry.triangles.indexCount = m_model->index_count();

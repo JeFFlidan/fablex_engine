@@ -28,6 +28,8 @@ public:
     virtual void on_entity_remove() { m_entity = nullptr; }
     virtual void on_world_remove() { m_world = nullptr; }
 
+    virtual void fill_shader_data(ShaderEntity& outShaderEntity) const { }
+
     Entity* get_entity() const { return m_entity; }
     World* get_world() const { return m_world; }
 

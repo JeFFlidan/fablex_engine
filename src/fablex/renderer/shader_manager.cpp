@@ -126,10 +126,7 @@ public:
         DX_CHECK(dxcResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&dxcErrors), nullptr));
 
         if (dxcErrors && dxcErrors->GetStringLength() != 0)
-        {
             FE_LOG(LogShaderCompiler, ERROR, "DXCompiler::compile(): {}", dxcErrors->GetStringPointer());
-            return;
-        }
 
         ComPtr<IDxcBlob> dxcShaderObject = nullptr;
         DX_CHECK(dxcResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&dxcShaderObject), nullptr));

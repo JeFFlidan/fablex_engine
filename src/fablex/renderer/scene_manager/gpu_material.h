@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/components/material_component.h"
+#include "shaders/shader_interop_renderer.h"
 
 namespace fe::renderer
 {

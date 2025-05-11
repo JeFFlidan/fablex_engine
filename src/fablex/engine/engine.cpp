@@ -91,6 +91,7 @@ void Engine::configure_test_scene()
     float metallicValue = 1.0f;
     const float roughnessValue = 0.1f;
     const float xOffset = -10.0f;
+    const float yOffset = 10.0f;
 
     for (uint32 j = 0; j != sphereRowCount; ++j)
     {
@@ -106,7 +107,7 @@ void Engine::configure_test_scene()
             opaqueMaterial->set_metallic(metallicValue);
 
             float x = xOffset + (-3.0f * i);
-            float y = 3.0f * j;
+            float y = yOffset + 3.0f * j;
             float z = 0.0f;
 
             Entity* modelEntity = m_world->create_entity();
@@ -132,6 +133,28 @@ void Engine::configure_test_scene()
     lightEntity->set_name("Sun");
     lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
     lightEntity->set_rotation(Float3(1, 0, 0), -30);
+
+    importContext.originalFilePath = FileSystem::get_absolute_path("content/plane.glb");
+    importContext.projectDirectory = projectDirectory;
+    importContext.mergeMeshes = true;
+    asset::ModelImportResult importResult4;
+
+    asset::AssetManager::import_model(importContext, importResult4);
+
+    Entity* planeEntity = m_world->create_entity();
+    planeEntity->set_name("plane");
+    modelComponent = planeEntity->create_component<ModelComponent>();
+    modelComponent->set_model_uuid(importResult4.models.at(0)->get_uuid());
+
+    asset::OpaqueMaterial* opaqueMaterial = (asset::OpaqueMaterial*)asset::AssetManager::create_material(
+        {{"Plane Material", projectDirectory}, asset::MaterialType::OPAQUE});
+
+    opaqueMaterial->set_base_color(Float4(0.5, 0.5, 0.5, 1));
+    opaqueMaterial->set_roughness(0.7);
+    opaqueMaterial->set_metallic(0.0);
+    FE_LOG(LogDefault, INFO, "Model: {}", importResult4.models.at(0)->get_name());
+    matComponent = planeEntity->create_component<MaterialComponent>();
+    matComponent->set_material(opaqueMaterial);
 }
 
 }

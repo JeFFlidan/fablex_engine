@@ -210,12 +210,19 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
         {
         case rhi::ShaderHitGroup::TRIANGLES:
         case rhi::ShaderHitGroup::PROCEDURAL:
+        {
             if (hitGroups.back().type == shaderMetadata.hitGroupType)
                 hitGroup = &hitGroups.back();
             else
                 hitGroup = &hitGroups.emplace_back();
+
+            break;
+        }
         case rhi::ShaderHitGroup::GENERAL:
+        {
             hitGroup = &hitGroups.emplace_back();
+            break;
+        }
         }
 
         uint32* hitShaderIndex = nullptr;
@@ -283,7 +290,7 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
     }
 
     outInfo.maxTraceDepthRecursion = 1;
-    outInfo.maxPayloadSizeInBytes = sizeof(Float4);
+    outInfo.maxPayloadSizeInBytes = sizeof(Float4) * 4;
     outInfo.maxAttributeSizeInBytes = sizeof(Float2);
 }
 
