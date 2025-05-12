@@ -802,31 +802,27 @@ struct Scissor
     int32 bottom = 0;
 };
 
-struct ShaderIdentifierBuffer
+struct ShaderIdentifier
 {
-    enum Type
-    {
-        UNDEFINED,
-        RAY_GENERATION,
-        RAY_MISS,
-        RAY_HIT,
-        RAY_CALLABLE
-    };
-
-    Type type = UNDEFINED;
-    std::string name;
-    rhi::Buffer* buffer = nullptr;
     uint64 offset = 0;
     uint64 size = 0;
+};
+
+struct ShaderIdentifierBuffer
+{
+    rhi::Buffer* buffer = nullptr;
     uint64 stride = 0;
+
+    ShaderIdentifier raygenIdentifier;
+    ShaderIdentifier missIdentifier;
+    ShaderIdentifier hitGroupIdentifier;
+    ShaderIdentifier callableIdentifier;
 };
 
 struct DispatchRaysInfo
 {
-    ShaderIdentifierBuffer rayGeneration;
-    ShaderIdentifierBuffer miss;
-    ShaderIdentifierBuffer hitGroup;
-    ShaderIdentifierBuffer callable;
+    ShaderIdentifierBuffer shaderIdentifierBuffer;
+
     uint32 width = 1;
     uint32 height = 1;
     uint32 depth = 1;
@@ -854,6 +850,7 @@ struct GPUProperties
     GPUCapability capabilities = GPUCapability::UNDEFINED;
     GPUType gpuType = GPUType::DISCRETE;
     uint64 shaderIdentifierSize = 0;
+    uint64 shaderIdentifierAlignment = 0;
     uint64 accelerationStructureInstanceSize = 0;
     uint64 timestampFrequency = 0;
     uint32 vendorID = 0;

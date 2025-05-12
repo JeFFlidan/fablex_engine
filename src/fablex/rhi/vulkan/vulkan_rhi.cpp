@@ -1594,6 +1594,7 @@ private:
             FE_LOG(LogVulkanRHI, INFO, "GPU has ray tracing capability");
             gpuProperties.capabilities |= rhi::GPUCapability::RAY_TRACING;
             gpuProperties.shaderIdentifierSize = rayTracingPipelineProperties.shaderGroupHandleSize;
+            gpuProperties.shaderIdentifierAlignment = rayTracingPipelineProperties.shaderGroupBaseAlignment;
             gpuProperties.accelerationStructureInstanceSize = sizeof(VkAccelerationStructureInstanceKHR);
         }
         if (meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE)
@@ -4055,7 +4056,7 @@ void create_ray_tracing_pipeline(Pipeline** pipeline, const RayTracingPipelineIn
 
         FE_CHECK(shaderLibrary.shader);
         shaderPtrs.push_back(shaderLibrary.shader);
-        
+
         VkPipelineShaderStageCreateInfo& shaderStage = pipelineStages.emplace_back();
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.pNext = nullptr;
@@ -5041,27 +5042,30 @@ void dispatch_rays(CommandBuffer* cmd, const DispatchRaysInfo* info)
     FE_CHECK(cmd);
 
     auto fillDeviceAddress = [&](
-        const ShaderIdentifierBuffer& inIdentifier,
+        const ShaderIdentifier& inIdentifier,
+        const ShaderIdentifierBuffer& inIdentifierBuffer,
         VkStridedDeviceAddressRegionKHR& outRegion
     )
-    {
-        outRegion.deviceAddress = inIdentifier.buffer ? inIdentifier.buffer->vk().address : 0;
+    {    
+        outRegion.deviceAddress = inIdentifier.size ? inIdentifierBuffer.buffer->vk().address : 0;
         outRegion.deviceAddress += inIdentifier.offset;
         outRegion.size = inIdentifier.size;
-        outRegion.stride = inIdentifier.stride;
+        outRegion.stride = inIdentifierBuffer.stride;
     };
 
+    const ShaderIdentifierBuffer& identifierBuffer = info->shaderIdentifierBuffer;
+
     VkStridedDeviceAddressRegionKHR raygenDeviceAddress{};
-    fillDeviceAddress(info->rayGeneration, raygenDeviceAddress);
+    fillDeviceAddress(identifierBuffer.raygenIdentifier, identifierBuffer, raygenDeviceAddress);
 
     VkStridedDeviceAddressRegionKHR missDeviceAddress{};
-    fillDeviceAddress(info->miss, missDeviceAddress);
+    fillDeviceAddress(identifierBuffer.missIdentifier, identifierBuffer, missDeviceAddress);
 
     VkStridedDeviceAddressRegionKHR hitGroupDeviceAddress{};
-    fillDeviceAddress(info->hitGroup, hitGroupDeviceAddress);
+    fillDeviceAddress(identifierBuffer.missIdentifier, identifierBuffer, hitGroupDeviceAddress);
 
     VkStridedDeviceAddressRegionKHR callableDeviceAddress{};
-    fillDeviceAddress(info->callable, callableDeviceAddress);
+    fillDeviceAddress(identifierBuffer.callableIdentifier, identifierBuffer, callableDeviceAddress);
 
     vkCmdTraceRaysKHR(
         cmd->vk().cmdBuffer,

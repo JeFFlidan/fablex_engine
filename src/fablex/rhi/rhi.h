@@ -124,6 +124,11 @@ inline uint64 get_shader_identifier_size()
     return get_gpu_properties().shaderIdentifierSize;
 }
 
+inline uint64 get_shader_identifier_alignment()
+{
+    return get_gpu_properties().shaderIdentifierAlignment;
+}
+
 inline uint64 get_acceleration_structure_instance_size()
 {
     return get_gpu_properties().accelerationStructureInstanceSize;

@@ -152,7 +152,7 @@ void Engine::configure_test_scene()
     opaqueMaterial->set_base_color(Float4(0.5, 0.5, 0.5, 1));
     opaqueMaterial->set_roughness(0.7);
     opaqueMaterial->set_metallic(0.0);
-    FE_LOG(LogDefault, INFO, "Model: {}", importResult4.models.at(0)->get_name());
+
     matComponent = planeEntity->create_component<MaterialComponent>();
     matComponent->set_material(opaqueMaterial);
 }

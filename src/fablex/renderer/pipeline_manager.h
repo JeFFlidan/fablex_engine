@@ -42,10 +42,9 @@ public:
 
 private:
     using PipelineInfoVariant = std::variant<rhi::GraphicsPipelineInfo*, rhi::ComputePipelineInfo*, rhi::RayTracingPipelineInfo*>;
-    using ShaderIdentifierArray = std::vector<rhi::ShaderIdentifierBuffer>;
 
     std::unordered_map<PipelineName, rhi::Pipeline*> m_pipelineByName;
-    std::unordered_map<PipelineName, ShaderIdentifierArray> m_shaderIdentifiersByName;  // Only for RT pipelines
+    std::unordered_map<PipelineName, rhi::ShaderIdentifierBuffer> m_shaderIdentifiersByName;  // Only for RT pipelines
     std::mutex m_pipelineMapMutex;
     std::mutex m_shaderIdentifiersMapMutex;
     ShaderManager* m_shaderManager = nullptr;

@@ -6,6 +6,11 @@
 
 PUSH_CONSTANTS(pushConstants, PathTracingPushConstants);
 
+static const uint LIGHT_HIT_GROUP_INDEX = 2;
+static const uint SHADOW_HIT_GROUP_INDEX = 3;
+static const uint LIGHT_MISS_INDEX = 0;
+static const uint SHADOW_MISS_INDEX = 1;
+
 struct [raypayload] PTRayPayload
 {
     uint rng : read(caller, closesthit, miss) : write(caller, closesthit, miss);
@@ -28,6 +33,11 @@ void write_to_output(float4 value)
 float4 read_from_output()
 {
     return bindlessRWTextures2DFloat4[pushConstants.outputTextureIndex][DispatchRaysIndex().xy];
+}
+
+RaytracingAccelerationStructure get_as()
+{
+    return bindlessAccelerationStructures[pushConstants.tlasIndex];
 }
 
 [shader("raygeneration")]
@@ -55,7 +65,7 @@ void raygen()
     for (uint bounce = 0; bounce != 10000; ++bounce)
     {
         payload.rng = (uint)rng;
-        TraceRay(bindlessAccelerationStructures[pushConstants.tlasIndex], 0, ~0, 0, 0, 0, ray, payload);
+        TraceRay(get_as(), 0, ~0, LIGHT_HIT_GROUP_INDEX, 1, LIGHT_MISS_INDEX, ray, payload);
         rng = (RNG)payload.rng;
 
         float3 rayOrigin = payload.rayOrigin;
@@ -126,7 +136,16 @@ void closest_hit(inout PTRayPayload payload, in RayAttributes attr)
     };
 
     PTShadowRayPayload shadowPayload;
-    TraceRay(bindlessAccelerationStructures[pushConstants.tlasIndex], RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, ~0, 1, 0, 1, ray, shadowPayload);
+    TraceRay(
+        get_as(),
+        RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
+        ~0,
+        SHADOW_HIT_GROUP_INDEX,
+        1,
+        SHADOW_MISS_INDEX,
+        ray,
+        shadowPayload
+    );
 
     float shadow = shadowPayload.rayHitT < FLOAT_MAX ? 0 : 1;
 
@@ -160,7 +179,7 @@ void closest_hit_shadow(inout PTShadowRayPayload payload, in RayAttributes attr)
 [shader("miss")]
 void miss(inout PTRayPayload payload)
 {
-    payload.color = float3(0, 0, 0);
+    payload.color = float3(0.4, 0.4, 0.4);
 }
 
 [shader("miss")]
