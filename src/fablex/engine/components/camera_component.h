@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/window.h"
+#include "core/event.h"
 #include "engine/entity/component.h"
 
 namespace fe::engine
@@ -34,6 +35,12 @@ public:
 
     virtual void serialize(Archive& archive) const override;
     virtual void deserialize(Archive& archive) override;
+};
+
+class CameraMovedEvent : public IEvent
+{
+public:
+    FE_DECLARE_EVENT(CameraMovedEvent);
 };
 
 }

@@ -3,6 +3,8 @@
 
 #include "common.hlsli"
 
+static const float MIN_ROUGHNESS = 0.035;
+
 struct Surface
 {
     float3 P;   // World space position
@@ -21,6 +23,7 @@ struct Surface
     float metallic;
     float occlusion;
     float3 F0;  // Fresnel value (specular color)
+    float3 F;
 
     float2 barycentrics;
 

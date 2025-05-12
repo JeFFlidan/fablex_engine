@@ -1,0 +1,170 @@
+#include "common.hlsli"
+#include "rt_hf.hlsli"
+#include "brdf_hf.hlsli"
+#include "lighting_hf.hlsli"
+#include "stochastic_ssr_hf.hlsli"
+
+PUSH_CONSTANTS(pushConstants, PathTracingPushConstants);
+
+struct [raypayload] PTRayPayload
+{
+    uint rng : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    float3 energy : read(caller, closesthit) : write(caller, closesthit);
+    float3 rayDirection : read(caller, closesthit) : write(caller, closesthit);
+    float3 rayOrigin : read(caller, closesthit) : write(caller, closesthit);
+    float3 color : read(caller) : write(closesthit, miss);
+};
+
+struct [raypayload] PTShadowRayPayload
+{
+    float rayHitT : read(caller) : write(miss, closesthit);
+};
+
+void write_to_output(float4 value)
+{
+    bindlessRWTextures2DFloat4[pushConstants.outputTextureIndex][DispatchRaysIndex().xy] = value;
+}
+
+float4 read_from_output()
+{
+    return bindlessRWTextures2DFloat4[pushConstants.outputTextureIndex][DispatchRaysIndex().xy];
+}
+
+[shader("raygeneration")]
+void raygen()
+{
+    uint bounces = pushConstants.bounceCount;
+    float3 result = 0;
+
+    uint2 pixel = DispatchRaysIndex().xy;
+    uint2 dimensions = DispatchRaysDimensions().xy;
+    uint id = pixel.x + dimensions.x * pixel.y;
+
+    RNG rng;
+    rng.compute_rng_seed(id, pushConstants.frameNumber, bounces);
+
+    PTRayPayload payload;
+    payload.energy = 1;
+    payload.rayDirection = 0;
+    payload.rayOrigin = 0;
+
+    float3 energy = 1;
+
+    RayDesc ray = get_camera_ray();
+
+    for (uint bounce = 0; bounce != 10000; ++bounce)
+    {
+        payload.rng = (uint)rng;
+        TraceRay(bindlessAccelerationStructures[pushConstants.tlasIndex], 0, ~0, 0, 0, 0, ray, payload);
+        rng = (RNG)payload.rng;
+
+        float3 rayOrigin = payload.rayOrigin;
+        float3 rayDirection = payload.rayDirection;
+        float3 newEnergy = payload.energy;
+        result += payload.color;
+
+        if (!any(payload.rayDirection) && !any(payload.rayOrigin))
+            break;
+
+        // Russian Roulette, https://computergraphics.stackexchange.com/questions/2316/is-russian-roulette-really-the-answer 
+        const float terminationChance = max3(energy);
+        if (rng.next_float() > terminationChance)
+            break;
+        energy /= terminationChance;
+
+        energy *= newEnergy;
+        payload.energy = energy;
+
+        ray.Origin = payload.rayOrigin;
+        ray.Direction = payload.rayDirection;
+        ray.TMin = 0.001;
+        ray.TMax = FLOAT_MAX;
+
+        payload.rayOrigin = 0;
+        payload.rayDirection = 0;
+    }
+
+    float4 oldValue = read_from_output();
+    write_to_output(lerp(oldValue, float4(result, 1), pushConstants.accumulationFactor));
+}
+
+[shader("closesthit")]
+void closest_hit(inout PTRayPayload payload, in RayAttributes attr)
+{
+    RNG rng = (RNG)payload.rng;
+
+    PrimitiveInfo primitiveInfo;
+    primitiveInfo.primitiveIndex = PrimitiveIndex();
+    primitiveInfo.instanceIndex = InstanceIndex();
+
+    Surface surface;
+    surface.init(primitiveInfo, attr.barycentrics);
+    surface.V = -WorldRayDirection();
+
+    ShaderEntityIterator iter = lights_iter();
+    ShaderEntity light = get_entity(iter.random_item(rng));
+
+    LightingResult lighting;
+    lighting.init(0, 0, 0, 0);
+
+    switch (light.get_type())
+    {
+    case SHADER_ENTITY_TYPE_POINT_LIGHT:
+        break;
+    case SHADER_ENTITY_TYPE_SPOT_LIGHT:
+        break;
+    case SHADER_ENTITY_TYPE_DIRECTIONAL_LIGHT:
+        light_directional(light, surface, lighting);
+        break;
+    }
+
+    RayDesc ray = {
+        surface.P + 0.01f * surface.N,
+        0.001f,
+        -light.get_direction(),
+        FLOAT_MAX
+    };
+
+    PTShadowRayPayload shadowPayload;
+    TraceRay(bindlessAccelerationStructures[pushConstants.tlasIndex], RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, ~0, 1, 0, 1, ray, shadowPayload);
+
+    float shadow = shadowPayload.rayHitT < FLOAT_MAX ? 0 : 1;
+
+    payload.color = payload.energy * shadow * iter.count * mad(surface.baseColor.xyz / PI, lighting.direct.diffuse, lighting.direct.specular);
+
+    const float specularChance = dot(surface.F, 0.333f);
+    if (rng.next_float() < specularChance)
+    {
+        payload.rayDirection = reflection_ggx(surface, rng).xyz;
+        payload.energy = surface.F / max(0.001, specularChance);
+    }
+    else
+    {
+        payload.rayDirection = sample_hemisphere_cos(surface.N, rng);
+        payload.energy = surface.baseColor.xyz * (1 - surface.F) / max(0.01, 1 - specularChance);
+    }
+
+    if (dot(payload.rayDirection, surface.N) <= 0)
+        payload.rayOrigin += surface.N * 0.001;
+
+    payload.rayOrigin = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+    payload.rng = (uint)rng;
+}
+
+[shader("closesthit")]
+void closest_hit_shadow(inout PTShadowRayPayload payload, in RayAttributes attr)
+{
+    payload.rayHitT = RayTCurrent();
+}
+
+[shader("miss")]
+void miss(inout PTRayPayload payload)
+{
+    payload.color = float3(0, 0, 0);
+}
+
+[shader("miss")]
+void miss_shadow(inout PTShadowRayPayload payload)
+{
+    payload.rayHitT = FLOAT_MAX;
+}

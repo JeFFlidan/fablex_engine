@@ -42,6 +42,9 @@ void EditorCameraComponent::read_input(float deltaTime)
     if (Input::is_key_pressed(Key::S))
         move += Vector4::create(0.0f, 0.0f, -1.0f, 0.0f);
 
+    if (!Vector4::near_equal(move, Vector4::create(0.0f)))
+        EventManager::trigger_event(CameraMovedEvent());
+
     float velocity = speed * clampedDeltaTime;
     move *= Vector4::create(velocity);
 
@@ -52,6 +55,8 @@ void EditorCameraComponent::read_input(float deltaTime)
         Vector rotatedMove = Vector3::transform_normal(move, cameraRotation);
         m_entity->translate(rotatedMove);
         m_entity->set_rotation(Float3(yDelta, xDelta, 0.0f), AngleUnit::RADIANS);
+
+        EventManager::trigger_event(CameraMovedEvent());
     }
 }
 

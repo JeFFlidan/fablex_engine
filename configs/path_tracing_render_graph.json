@@ -1,0 +1,91 @@
+{
+    "RenderPasses": [
+        {
+            "Name": "SwapChainPass",
+            "Type": "GRAPHICS",
+            "RenderTargets": [
+                {
+                    "ColorClearValue": [0.1, 0.1, 0.1, 1.0]
+                }
+            ],
+            "InputTextures": [
+                "PathTracingColorOutput"
+            ],
+            "Pipeline": {
+                "Name": "SwapChainPipeline",
+                "Shaders": [
+                    {
+                        "Type": "VERTEX",
+                        "Path": "output_plane_vs.hlsl"
+                    },
+                    {
+                        "Type": "FRAGMENT",
+                        "Path": "output_plane_fs.hlsl"
+                    }
+                ]
+            }
+        },
+        {
+            "Name": "PathTracingPass",
+            "Type": "GRAPHICS",
+            "OutputStorageTextures": [
+                "PathTracingColorOutput"
+            ],
+            "Pipeline": {
+                "Name": "PathTracingPipeline",
+                "Shaders": [
+                    {
+                        "Type": "RAY_GENERATION",
+                        "Path": "path_tracing_lib.hlsl",
+                        "EntryPoint": "raygen"
+                    },
+                    {
+                        "Type": "RAY_MISS",
+                        "Path": "path_tracing_lib.hlsl",
+                        "EntryPoint": "miss"
+                    },
+                    {
+                        "Type": "RAY_MISS",
+                        "Path": "path_tracing_lib.hlsl",
+                        "EntryPoint": "miss_shadow"
+                    },
+                    {
+                        "Type": "RAY_CLOSEST_HIT",
+                        "Path": "path_tracing_lib.hlsl",
+                        "EntryPoint": "closest_hit"
+                    },
+                    {
+                        "Type": "RAY_CLOSEST_HIT",
+                        "Path": "path_tracing_lib.hlsl",
+                        "EntryPoint": "closest_hit_shadow"
+                    }
+                ]
+            }
+        }
+    ],
+    "RenderTextures": [
+        {
+            "Name": "PathTracingColorOutput",
+            "Format": "R8G8B8A8_UNORM"
+        }
+    ],
+    "PushConstants": [
+        {
+            "Name": "PathTracingPushConstants",
+            "Resources": [
+                {
+                    "Name": "PathTracingColorOutput",
+                    "Write": true
+                }
+            ]
+        },
+        {
+            "Name": "SwapChainPushConstants",
+            "Resources": [
+                {
+                    "Name": "PathTracingColorOutput"
+                }
+            ]
+        }
+    ]
+}

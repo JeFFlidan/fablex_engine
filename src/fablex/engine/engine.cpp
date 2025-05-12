@@ -39,8 +39,8 @@ void Engine::configure_test_scene()
         {{"Opaque1", projectDirectory}, asset::MaterialType::OPAQUE});
 
     opaqueMaterial1->set_base_color(Float4(0.5, 0.8, 0.1, 1));
-    opaqueMaterial1->set_roughness(0.5f);
-    opaqueMaterial1->set_metallic(1.0f);
+    opaqueMaterial1->set_roughness(0.42f);
+    opaqueMaterial1->set_metallic(0.0f);
 
     importContext.originalFilePath = FileSystem::get_absolute_path("content/boulder.glb");
     importContext.projectDirectory = projectDirectory;
@@ -91,7 +91,7 @@ void Engine::configure_test_scene()
     float metallicValue = 1.0f;
     const float roughnessValue = 0.1f;
     const float xOffset = -10.0f;
-    const float yOffset = 10.0f;
+    const float yOffset = 3.0f;
 
     for (uint32 j = 0; j != sphereRowCount; ++j)
     {
@@ -102,7 +102,7 @@ void Engine::configure_test_scene()
             asset::OpaqueMaterial* opaqueMaterial = (asset::OpaqueMaterial*)asset::AssetManager::create_material(
                 {{"Opaque" + postfix, projectDirectory}, asset::MaterialType::OPAQUE});
 
-            opaqueMaterial->set_base_color(Float4(1, 0, 0, 1));
+            opaqueMaterial->set_base_color(Float4(0.8, 0, 0, 1));
             opaqueMaterial->set_roughness(roughnessValue * (i + 1));
             opaqueMaterial->set_metallic(metallicValue);
 
@@ -132,7 +132,7 @@ void Engine::configure_test_scene()
     Entity* lightEntity = m_world->create_entity();
     lightEntity->set_name("Sun");
     lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
-    lightEntity->set_rotation(Float3(1, 0, 0), -30);
+    lightEntity->set_rotation(Float3(1, 0, 0), -50);
 
     importContext.originalFilePath = FileSystem::get_absolute_path("content/plane.glb");
     importContext.projectDirectory = projectDirectory;

@@ -418,6 +418,34 @@ struct ShaderEntity
 #endif	// __cplusplus
 };
 
+class ShaderEntityIterator
+{
+#ifndef __cplusplus
+	uint offset;
+	uint count;
+
+	bool empty()
+	{
+		return count == 0;
+	} 
+
+	uint first_item()
+	{
+		return offset;
+	}
+
+	uint end_item()
+	{
+		return offset + count - 1;
+	}
+
+	uint random_item(inout RNG rng)
+	{
+		return offset + rng.next_uint(count);
+	}
+#endif // __cplusplus
+};
+
 static const uint FRAME_FLAG_TEMPORAL_AA_ENABLED = 1 << 0;
 
 struct alignas(16) FrameUB
@@ -684,6 +712,18 @@ struct RayTracingPushConstants
 	uint outputTargetIndex;
 	uint tlasIndex;
 	uint2 padding;
+};
+
+struct PathTracingPushConstants
+{
+	DEFINE_PUSH_CONSTANTS(PathTracingPushConstants);
+
+	uint outputTextureIndex;
+	uint tlasIndex;
+	uint bounceCount;
+	uint frameNumber;
+	float accumulationFactor;
+	uint3 padding;
 };
 
 struct RNGSeedGenerationPushConstants

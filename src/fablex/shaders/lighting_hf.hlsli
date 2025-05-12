@@ -37,6 +37,16 @@ struct LightingResult
         color.rgb = diffuse;
         color.rgb += specular;
     }
+
+    float4 apply()
+    {
+        float4 color = float4(0, 0, 0, 1);
+        float3 diffuse = direct.diffuse / PI;
+        float3 specular = direct.specular;
+        color.rgb = diffuse;
+        color.rgb += specular;
+        return color;
+    }
 };
 
 inline void light_directional_lambert(in ShaderEntity light, in Surface surface, inout LightingResult result)
@@ -47,7 +57,7 @@ inline void light_directional_lambert(in ShaderEntity light, in Surface surface,
     // result.direct.diffuse = any(result.direct.diffuse) ? result.direct.diffuse : float3(0.1, 0.1, 0.1);
 }
 
-inline void light_directional(in ShaderEntity light, in Surface surface, inout LightingResult result)
+inline void light_directional(in ShaderEntity light, inout Surface surface, inout LightingResult result)
 {
     float3 L = -light.get_direction();
     float3 lightColor = light.get_color().xyz;
@@ -55,6 +65,7 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
     BRDF brdf;
     brdf.init(surface, L);
 
+    surface.F = brdf.F;
     result.direct.diffuse = mad(lightColor, brdf.diffuse(surface), result.direct.diffuse);
     result.direct.specular = mad(lightColor, brdf.specular(surface), result.direct.specular);
 }
