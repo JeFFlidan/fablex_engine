@@ -246,6 +246,7 @@ struct ShaderModelInstance
 {
 	ShaderTransform transform;	// With quantization mapping
 	ShaderTransform rawTransform; // Without quantization mapping
+	ShaderTransform prevTransform;
 	ShaderTransform transformInverseTranspose;	// Without quantization mapping
 	
 	ShaderSphereBounds sphereBounds;
@@ -260,6 +261,7 @@ struct ShaderModelInstance
 		transform.init();
 		transformInverseTranspose.init();
 		rawTransform.init();
+		prevTransform.init();
 		sphereBounds.init();
 
 		materialIndex = 0;
@@ -502,6 +504,7 @@ struct ShaderCamera
 	float4x4 view;
 	float4x4 projection;
 	float4x4 viewProjection;
+	float4x4 prevViewProjection;
 	float4x4 inverseView;
 	float4x4 inverseProjection;
 	float4x4 inverseViewProjection;
@@ -719,6 +722,7 @@ struct PathTracingPushConstants
 	DEFINE_PUSH_CONSTANTS(PathTracingPushConstants);
 
 	uint outputTextureIndex;
+	uint motionVectorTextureIndex;
 	uint tlasIndex;
 	uint bounceCount;
 	uint frameNumber;

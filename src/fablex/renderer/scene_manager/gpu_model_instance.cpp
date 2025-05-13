@@ -34,6 +34,7 @@ void GPUModelInstance::fill_shader_model_instance(SceneManager* sceneManager, Sh
     outModelInstance.scale = m_entity->get_scale();
     outModelInstance.transform.set_transfrom(remapMat * transformMat);
     outModelInstance.rawTransform.set_transfrom(m_entity->get_world_transform());
+    outModelInstance.prevTransform.set_transfrom(remapMat * m_entity->get_prev_world_transform());
     outModelInstance.transformInverseTranspose.set_transfrom(transformMat.transpose().inverse());
 }
 

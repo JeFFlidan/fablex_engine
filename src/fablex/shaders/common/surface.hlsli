@@ -1,5 +1,5 @@
-#ifndef SURFACE_HF
-#define SURFACE_HF
+#ifndef SURFACE
+#define SURFACE
 
 #include "common.hlsli"
 
@@ -8,6 +8,7 @@ static const float MIN_ROUGHNESS = 0.035;
 struct Surface
 {
     float3 P;   // World space position
+    float3 prevP;
     float3 N;   // World space normal
     float3 V;   // World space view vec
 
@@ -45,6 +46,7 @@ struct Surface
             barycentrics
         );
 
+        prevP = mul(instance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
         P = mul(instance.transform.get_matrix(), float4(P, 1.0)).xyz;
 
         init_internal();
@@ -98,6 +100,17 @@ struct Surface
 
         // TODO: UV
     }
+
+    float2 get_motion_vector(in ShaderCamera camera)
+    {
+        float4 currClip = mul(camera.viewProjection, float4(P, 1));
+        float2 currUV = currClip.xy / currClip.w * 0.5 + 0.5;
+
+        float4 prevClip = mul(camera.prevViewProjection, float4(prevP, 1));
+        float2 prevUV = prevClip.xy / prevClip.w * 0.5 + 0.5;
+
+        return currUV - prevUV;
+    }
 };
 
-#endif // SURFACE_HF
+#endif // SURFACE

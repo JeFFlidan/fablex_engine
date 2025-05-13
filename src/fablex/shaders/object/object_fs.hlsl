@@ -1,7 +1,7 @@
 #define OBJECT_SHADER_BASE_MODEL_LAYOUT
-#include "object_hf.hlsli"
-#include "surface_hf.hlsli"
-#include "lighting_hf.hlsli"
+#include "object/object.hlsli"
+#include "common/surface.hlsli"
+#include "common/lighting.hlsli"
 
 float4 main(PixelInput input) : SV_TARGET
 {

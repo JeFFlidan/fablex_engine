@@ -1,7 +1,7 @@
-#ifndef BRDF_HF
-#define BRDF_HF
+#ifndef BRDF_D
+#define BRDF_D
 
-#include "surface_hf.hlsli"
+#include "common/surface.hlsli"
 
 // BRDF functions source: https://google.github.io/filament/Filament.md.html#materialsystem/standardmodel
 // For now no optimizations using half instead of float
@@ -66,4 +66,4 @@ struct BRDF
     }
 };
 
-#endif // BRDF_HF
+#endif // BRDF_D

@@ -26,6 +26,7 @@ public:
     Float4x4 view;
     Float4x4 projection;
     Float4x4 viewProjection;
+    Float4x4 prevViewProjection;
     Float4x4 inverseView;
     Float4x4 inverseProjection;
     Float4x4 inverseViewProjection;

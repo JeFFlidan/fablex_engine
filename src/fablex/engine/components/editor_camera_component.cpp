@@ -62,6 +62,8 @@ void EditorCameraComponent::read_input(float deltaTime)
 
 void EditorCameraComponent::update_matrices()
 {
+    prevViewProjection = viewProjection;
+
     Vector eyeBase = Vector4::create(0.0f, 0.0f, 0.0f, 1.0f);
     Vector atBase = Vector4::create(0.0f, 0.0f, 1.0f, 0.0f);
     Vector upBase = Vector4::create(0.0f, 1.0f, 0.0f, 0.0f);

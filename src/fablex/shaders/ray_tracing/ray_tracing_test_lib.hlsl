@@ -1,4 +1,4 @@
-#include "rt_hf.hlsli"
+#include "ray_tracing/ray_tracing.hlsli"
 
 PUSH_CONSTANTS(pushConstants, RayTracingPushConstants);
 

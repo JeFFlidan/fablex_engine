@@ -1,5 +1,5 @@
-#ifndef OBJECT_HF
-#define OBJECT_HF
+#ifndef OBJECT
+#define OBJECT
 
 #include "common.hlsli"
 
@@ -154,4 +154,4 @@ PixelInput main(VertexInput vertInput)
 }
 #endif // OBJECT_SHADER_COMPILE_VS
 
-#endif // OBJECT_HF
+#endif // OBJECT

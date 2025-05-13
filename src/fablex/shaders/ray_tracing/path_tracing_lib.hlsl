@@ -1,8 +1,9 @@
+#include "ray_tracing/ray_tracing.hlsli"
+#include "ray_tracing/stochastic_ssr.hlsli"
+
 #include "common.hlsli"
-#include "rt_hf.hlsli"
-#include "brdf_hf.hlsli"
-#include "lighting_hf.hlsli"
-#include "stochastic_ssr_hf.hlsli"
+#include "common/brdf.hlsli"
+#include "common/lighting.hlsli"
 
 PUSH_CONSTANTS(pushConstants, PathTracingPushConstants);
 
@@ -18,6 +19,7 @@ struct [raypayload] PTRayPayload
     float3 rayDirection : read(caller, closesthit) : write(caller, closesthit);
     float3 rayOrigin : read(caller, closesthit) : write(caller, closesthit);
     float3 color : read(caller) : write(closesthit, miss);
+    bool isPrimaryHit : read(closesthit, miss) : write(caller);
 };
 
 struct [raypayload] PTShadowRayPayload
@@ -25,14 +27,24 @@ struct [raypayload] PTShadowRayPayload
     float rayHitT : read(caller) : write(miss, closesthit);
 };
 
-void write_to_output(float4 value)
+void write_to_color(float4 value)
 {
     bindlessRWTextures2DFloat4[pushConstants.outputTextureIndex][DispatchRaysIndex().xy] = value;
 }
 
-float4 read_from_output()
+float4 read_from_color()
 {
     return bindlessRWTextures2DFloat4[pushConstants.outputTextureIndex][DispatchRaysIndex().xy];
+}
+
+void write_to_motion_vector(float2 value)
+{
+    bindlessRWTextures2DFloat2[pushConstants.motionVectorTextureIndex][DispatchRaysIndex().xy] = value;
+}
+
+float2 read_from_motion_vector()
+{
+    return bindlessRWTextures2DFloat2[pushConstants.motionVectorTextureIndex][DispatchRaysIndex().xy];   
 }
 
 RaytracingAccelerationStructure get_as()
@@ -57,12 +69,13 @@ void raygen()
     payload.energy = 1;
     payload.rayDirection = 0;
     payload.rayOrigin = 0;
+    payload.isPrimaryHit = true;
 
     float3 energy = 1;
 
     RayDesc ray = get_camera_ray();
 
-    for (uint bounce = 0; bounce != 10000; ++bounce)
+    for (uint bounce = 0; bounce != bounces; ++bounce)
     {
         payload.rng = (uint)rng;
         TraceRay(get_as(), 0, ~0, LIGHT_HIT_GROUP_INDEX, 1, LIGHT_MISS_INDEX, ray, payload);
@@ -71,10 +84,16 @@ void raygen()
         float3 rayOrigin = payload.rayOrigin;
         float3 rayDirection = payload.rayDirection;
         float3 newEnergy = payload.energy;
-        result += payload.color;
+        float3 color = payload.color;
 
-        if (!any(payload.rayDirection) && !any(payload.rayOrigin))
+        if (!any(rayDirection) && !any(rayOrigin))
+        {
+            if (bounce == 0)
+                result = color;
             break;
+        }
+
+        result += color;
 
         // Russian Roulette, https://computergraphics.stackexchange.com/questions/2316/is-russian-roulette-really-the-answer 
         const float terminationChance = max3(energy);
@@ -92,10 +111,11 @@ void raygen()
 
         payload.rayOrigin = 0;
         payload.rayDirection = 0;
+        payload.isPrimaryHit = false;
     }
 
-    float4 oldValue = read_from_output();
-    write_to_output(lerp(oldValue, float4(result, 1), pushConstants.accumulationFactor));
+    float4 oldValue = read_from_color();
+    write_to_color(lerp(oldValue, float4(result, 1), pushConstants.accumulationFactor));
 }
 
 [shader("closesthit")]
@@ -168,6 +188,11 @@ void closest_hit(inout PTRayPayload payload, in RayAttributes attr)
 
     payload.rayOrigin = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
     payload.rng = (uint)rng;
+
+    if (!payload.isPrimaryHit)
+        return;
+
+    write_to_motion_vector(surface.get_motion_vector(get_camera()));
 }
 
 [shader("closesthit")]
@@ -180,6 +205,11 @@ void closest_hit_shadow(inout PTShadowRayPayload payload, in RayAttributes attr)
 void miss(inout PTRayPayload payload)
 {
     payload.color = float3(0.4, 0.4, 0.4);
+
+    if (!payload.isPrimaryHit)
+        return;
+
+    write_to_motion_vector(0);
 }
 
 [shader("miss")]

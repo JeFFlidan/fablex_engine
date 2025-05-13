@@ -1,5 +1,5 @@
-#ifndef RNG_HF
-#define RNG_HF
+#ifndef RNG_D
+#define RNG_D
 
 static const float PNG_01_CONVERT = (1.0f / 4294967296.0f);
 
@@ -52,4 +52,4 @@ struct RNG
     }
 };
 
-#endif // RNG_HF
+#endif // RNG_D

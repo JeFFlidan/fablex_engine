@@ -1,5 +1,5 @@
-#ifndef OBJECT_MESH_HF
-#define OBJECT_MESH_HF
+#ifndef OBJECT_MESH
+#define OBJECT_MESH
 
 #ifdef OBJECT_MESH_SHADER_DEBUG
 #define OBJECT_MESH_SHADER_USE_MESHLET_COLORS
@@ -9,7 +9,7 @@
 #define OBJECT_SHADER_USE_COLOR
 #endif // OBJECT_MESH_SHADER_USE_MESHLET_COLORS
 
-#include "object_hf.hlsli"
+#include "object/object.hlsli"
 
 static const uint TS_GROUP_SIZE = 32;
 static const uint MS_GROUP_SIZE = 128;
@@ -101,4 +101,4 @@ void main(
 
 #endif // OBJECT_MESH_SHADER_COMPILE_MS
 
-#endif // OBJECT_MESH_HF
+#endif // OBJECT_MESH

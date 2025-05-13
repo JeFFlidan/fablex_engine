@@ -1,5 +1,5 @@
 #define OBJECT_SHADER_USE_COLOR
-#include "object_hf.hlsli"
+#include "object/object.hlsli"
 
 float4 main(PixelInput input) : SV_TARGET
 {

@@ -65,7 +65,8 @@ public:
 
     Float3 get_world_position() const;
     Float4x4 get_local_transform() const;
-    Float4x4 get_world_transform() const { return m_worldTransform; }
+    const Float4x4& get_world_transform() const { return m_worldTransform; }
+    const Float4x4& get_prev_world_transform() const { return m_prevWorldTransform; }
 
     void translate(const Float3& deltaPosition);
     void set_position(const Float3& position) { m_position = position; }
@@ -103,6 +104,7 @@ private:
     Entity* m_rootEntity = nullptr;
     
     Float4x4 m_worldTransform;
+    Float4x4 m_prevWorldTransform;
 
     Float3 m_position;
     Quat m_rotation;

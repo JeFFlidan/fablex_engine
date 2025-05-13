@@ -1,5 +1,5 @@
-#ifndef RT_HF
-#define RT_HF
+#ifndef RT
+#define RT
 
 #include "common.hlsli"
 #include "shader_interop_renderer.h"
@@ -43,4 +43,4 @@ RayDesc get_camera_ray()
     return ray;
 }
 
-#endif // RT_HF
+#endif // RT

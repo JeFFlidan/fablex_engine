@@ -1,8 +1,8 @@
-#ifndef STOCHASTIC_SSR_HF
-#define STOCHASTIC_SSR_HF
+#ifndef STOCHASTIC_SSR
+#define STOCHASTIC_SSR
 
-#include "rng_hf.hlsli"
-#include "surface_hf.hlsli"
+#include "common/surface.hlsli"
+#include "utils/rng.hlsli"
 
 static const float GGX_IMPORTANCE_SAMPLE_BIAS = 0.1;
 
@@ -95,4 +95,4 @@ float4 reflection_ggx(in Surface surface, inout RNG rng)
     return float4(L, PDF);
 }
 
-#endif // STOCHASTIC_SSR_HF
+#endif // STOCHASTIC_SSR

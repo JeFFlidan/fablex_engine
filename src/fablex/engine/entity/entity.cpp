@@ -18,6 +18,7 @@ FE_END_PROPERTY_REGISTER(Entity)
 
 Entity::Entity()
     : m_worldTransform(IDENTITY_MATRIX),
+    m_prevWorldTransform(IDENTITY_MATRIX),
     m_position(0, 0, 0),
     m_rotation(Quat::identity()),
     m_scale(1, 1, 1)
@@ -77,6 +78,8 @@ Component* Entity::get_component(const TypeInfo* typeInfo) const
 
 void Entity::update_world_transform()
 {
+    m_prevWorldTransform = m_worldTransform;
+
     Matrix worldTransformMat = Matrix::scaling(m_scale) * Matrix::rotation(m_rotation) * Matrix::translation(m_position);
 
     if (m_rootEntity)

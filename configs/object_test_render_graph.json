@@ -43,11 +43,11 @@
                 "Shaders": [
                     {
                         "Type": "VERTEX",
-                        "Path": "object_vs.hlsl"
+                        "Path": "object/object_vs.hlsl"
                     },
                     {
                         "Type": "FRAGMENT",
-                        "Path": "object_fs.hlsl"
+                        "Path": "object/object_fs.hlsl"
                     }
                 ]
             }

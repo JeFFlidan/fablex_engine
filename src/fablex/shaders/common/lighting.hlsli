@@ -1,9 +1,9 @@
-#ifndef LIGHTING_HF
-#define LIGHTING_HF
+#ifndef LIGHTING
+#define LIGHTING
 
 #include "common.hlsli"
-#include "surface_hf.hlsli"
-#include "brdf_hf.hlsli"
+#include "common/surface.hlsli"
+#include "common/brdf.hlsli"
 
 struct LightingInfo
 {
@@ -70,4 +70,4 @@ inline void light_directional(in ShaderEntity light, inout Surface surface, inou
     result.direct.specular = mad(lightColor, brdf.specular(surface), result.direct.specular);
 }
 
-#endif
+#endif // LIGHTING

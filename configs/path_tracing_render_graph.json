@@ -9,7 +9,8 @@
                 }
             ],
             "InputTextures": [
-                "PathTracingColorOutput"
+                "PathTracingColor",
+                "MotionVector"
             ],
             "Pipeline": {
                 "Name": "SwapChainPipeline",
@@ -29,34 +30,35 @@
             "Name": "PathTracingPass",
             "Type": "GRAPHICS",
             "OutputStorageTextures": [
-                "PathTracingColorOutput"
+                "PathTracingColor",
+                "MotionVector"
             ],
             "Pipeline": {
                 "Name": "PathTracingPipeline",
                 "Shaders": [
                     {
                         "Type": "RAY_GENERATION",
-                        "Path": "path_tracing_lib.hlsl",
+                        "Path": "ray_tracing/path_tracing_lib.hlsl",
                         "EntryPoint": "raygen"
                     },
                     {
                         "Type": "RAY_MISS",
-                        "Path": "path_tracing_lib.hlsl",
+                        "Path": "ray_tracing/path_tracing_lib.hlsl",
                         "EntryPoint": "miss"
                     },
                     {
                         "Type": "RAY_MISS",
-                        "Path": "path_tracing_lib.hlsl",
+                        "Path": "ray_tracing/path_tracing_lib.hlsl",
                         "EntryPoint": "miss_shadow"
                     },
                     {
                         "Type": "RAY_CLOSEST_HIT",
-                        "Path": "path_tracing_lib.hlsl",
+                        "Path": "ray_tracing/path_tracing_lib.hlsl",
                         "EntryPoint": "closest_hit"
                     },
                     {
                         "Type": "RAY_CLOSEST_HIT",
-                        "Path": "path_tracing_lib.hlsl",
+                        "Path": "ray_tracing/path_tracing_lib.hlsl",
                         "EntryPoint": "closest_hit_shadow"
                     }
                 ]
@@ -65,8 +67,12 @@
     ],
     "RenderTextures": [
         {
-            "Name": "PathTracingColorOutput",
+            "Name": "PathTracingColor",
             "Format": "R8G8B8A8_UNORM"
+        },
+        {
+            "Name": "MotionVector",
+            "Format": "R16G16_SFLOAT"
         }
     ],
     "PushConstants": [
@@ -74,7 +80,11 @@
             "Name": "PathTracingPushConstants",
             "Resources": [
                 {
-                    "Name": "PathTracingColorOutput",
+                    "Name": "PathTracingColor",
+                    "Write": true
+                },
+                {
+                    "Name": "MotionVector",
                     "Write": true
                 }
             ]
@@ -83,7 +93,7 @@
             "Name": "SwapChainPushConstants",
             "Resources": [
                 {
-                    "Name": "PathTracingColorOutput"
+                    "Name": "PathTracingColor"
                 }
             ]
         }

@@ -43,15 +43,15 @@
                 "Shaders": [
                     {
                         "Type": "TASK",
-                        "Path": "object_ts_test.hlsl"
+                        "Path": "object/object_test_ts.hlsl"
                     },
                     {
                         "Type": "MESH",
-                        "Path": "object_ms_test.hlsl"
+                        "Path": "object/object_test_ms.hlsl"
                     },
                     {
                         "Type": "FRAGMENT",
-                        "Path": "object_fs_debug.hlsl"
+                        "Path": "object/object_debug_fs.hlsl"
                     }
                 ]
             }

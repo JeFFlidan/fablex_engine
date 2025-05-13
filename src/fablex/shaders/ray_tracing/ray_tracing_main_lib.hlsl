@@ -1,5 +1,5 @@
-#include "rt_hf.hlsli"
-#include "lighting_hf.hlsli"
+#include "ray_tracing/ray_tracing.hlsli"
+#include "common/lighting.hlsli"
 
 PUSH_CONSTANTS(pushConstants, RayTracingPushConstants);
 

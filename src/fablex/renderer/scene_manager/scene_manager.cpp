@@ -578,6 +578,7 @@ void SceneManager::fill_camera_buffers()
     m_cameras[0].view = camera->view;
     m_cameras[0].projection = camera->projection;
     m_cameras[0].viewProjection = camera->viewProjection;
+    m_cameras[0].prevViewProjection = camera->prevViewProjection;
     m_cameras[0].inverseView = camera->inverseView;
     m_cameras[0].inverseProjection = camera->inverseProjection;
     m_cameras[0].inverseViewProjection = camera->inverseViewProjection;
