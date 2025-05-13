@@ -6,7 +6,6 @@
 #include "asset_registry.h"
 #include "model/model.h"
 #include "texture/texture.h"
-#include "material/opaque_material.h"
 #include "core/pool_allocator.h"
 #include "core/file_system/archive.h"
 

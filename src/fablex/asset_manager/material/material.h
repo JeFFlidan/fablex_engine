@@ -2,22 +2,12 @@
 
 #include "asset_manager/common.h"
 #include "asset_manager/asset.h"
+#include "material_settings.h"
 
 namespace fe::asset
 {
 
 class Texture;
-
-enum class MaterialType
-{
-    UNDEFINED,
-    OPAQUE,
-};
-
-struct MaterialCreateInfo : public CreateInfo
-{
-    MaterialType type;
-};
 
 // This material implementation is temp
 class Material : public Asset
@@ -38,12 +28,33 @@ public:
     // ========== Begin Asset interface ==========
 
     virtual Type get_type() const override { return Type::MATERIAL; }
-    MaterialType get_material_type() const { return m_materialType; } 
-
+    
     // ========== End Asset interface ==========
 
+    MaterialType material_type() const 
+    { 
+        return m_materialSettings->material_type(); 
+    }
+    
+    void fill_shader_material(ShaderMaterial& shaderMaterial) 
+    {
+        FE_CHECK(m_materialSettings);
+        m_materialSettings->fill_shader_material(shaderMaterial); 
+    }
+
+    MaterialSettings& material_settings() { return *m_materialSettings; }
+    const MaterialSettings& material_settings() const { return *m_materialSettings; }
+
+    template<typename T>
+    T* material_settings() const
+    {
+        return static_cast<T*>(m_materialSettings.get());
+    }
+    
 protected:
-    MaterialType m_materialType;
+    MaterialSettingsHandle m_materialSettings = nullptr;
 };
+
+FE_DEFINE_ASSET_POOL_SIZE(Material, 256);
 
 }

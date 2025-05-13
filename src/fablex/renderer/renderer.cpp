@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "globals.h"
+#include "utils.h"
 #include "resource_scheduler.h"
 #include "rhi/utils.h"
 #include "core/task_composer.h"
@@ -106,6 +107,7 @@ void Renderer::init_render_context()
     m_renderPassContainer = std::make_unique<RenderPassContainer>(m_renderContext.get());
 
     ResourceScheduler::init(m_renderContext.get());
+    Utils::init(m_renderContext.get());
 
     FE_LOG(LogRenderer, INFO, "Render context initialization completed.");
 }

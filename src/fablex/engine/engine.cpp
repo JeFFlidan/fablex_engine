@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "asset_manager/asset_manager.h"
+#include "asset_manager/material/opaque_material_settings.h"
 #include "core/file_system/file_system.h"
 #include "components/model_component.h"
 #include "components/editor_camera_component.h"
@@ -35,12 +36,17 @@ void Engine::configure_test_scene()
     asset::ModelImportResult importResult;
 
     asset::AssetManager::import_model(importContext, importResult);
-    asset::OpaqueMaterial* opaqueMaterial1 = (asset::OpaqueMaterial*)asset::AssetManager::create_material(
-        {{"Opaque1", projectDirectory}, asset::MaterialType::OPAQUE});
 
-    opaqueMaterial1->set_base_color(Float4(0.5, 0.8, 0.1, 1));
-    opaqueMaterial1->set_roughness(0.42f);
-    opaqueMaterial1->set_metallic(0.0f);
+    asset::OpaqueMaterialCreateInfo opaqueMaterialCreateInfo;
+    opaqueMaterialCreateInfo.name = "Opaque1";
+    opaqueMaterialCreateInfo.projectDirectory = projectDirectory;
+
+    asset::Material* opaqueMaterial1 = asset::AssetManager::create_material(opaqueMaterialCreateInfo);
+    auto opaqueMaterialSettings = opaqueMaterial1->material_settings<asset::OpaqueMaterialSettings>();
+
+    opaqueMaterialSettings->set_base_color(Float4(0.5, 0.8, 0.1, 1));
+    opaqueMaterialSettings->set_roughness(0.42f);
+    opaqueMaterialSettings->set_metallic(0.0f);
 
     importContext.originalFilePath = FileSystem::get_absolute_path("content/boulder.glb");
     importContext.projectDirectory = projectDirectory;
@@ -99,12 +105,16 @@ void Engine::configure_test_scene()
         {
             std::string postfix = std::to_string(i) + "_" + std::to_string(j);
 
-            asset::OpaqueMaterial* opaqueMaterial = (asset::OpaqueMaterial*)asset::AssetManager::create_material(
-                {{"Opaque" + postfix, projectDirectory}, asset::MaterialType::OPAQUE});
+            asset::OpaqueMaterialCreateInfo opaqueMaterialCreateInfo;
+            opaqueMaterialCreateInfo.name = "Opaque" + postfix;
+            opaqueMaterialCreateInfo.projectDirectory = projectDirectory;
 
-            opaqueMaterial->set_base_color(Float4(0.8, 0, 0, 1));
-            opaqueMaterial->set_roughness(roughnessValue * (i + 1));
-            opaqueMaterial->set_metallic(metallicValue);
+            asset::Material* opaqueMaterial = asset::AssetManager::create_material(opaqueMaterialCreateInfo);
+            auto opaqueMaterialSettings = opaqueMaterial->material_settings<asset::OpaqueMaterialSettings>();
+
+            opaqueMaterialSettings->set_base_color(Float4(0.8, 0, 0, 1));
+            opaqueMaterialSettings->set_roughness(roughnessValue * (i + 1));
+            opaqueMaterialSettings->set_metallic(metallicValue);
 
             float x = xOffset + (-3.0f * i);
             float y = yOffset + 3.0f * j;
@@ -146,15 +156,18 @@ void Engine::configure_test_scene()
     modelComponent = planeEntity->create_component<ModelComponent>();
     modelComponent->set_model_uuid(importResult4.models.at(0)->get_uuid());
 
-    asset::OpaqueMaterial* opaqueMaterial = (asset::OpaqueMaterial*)asset::AssetManager::create_material(
-        {{"Plane Material", projectDirectory}, asset::MaterialType::OPAQUE});
+    opaqueMaterialCreateInfo.name = "Plane Material";
+    opaqueMaterialCreateInfo.projectDirectory = projectDirectory;
 
-    opaqueMaterial->set_base_color(Float4(0.5, 0.5, 0.5, 1));
-    opaqueMaterial->set_roughness(0.7);
-    opaqueMaterial->set_metallic(0.0);
+    asset::Material* opaqueMaterial2 = asset::AssetManager::create_material(opaqueMaterialCreateInfo);
+    opaqueMaterialSettings = opaqueMaterial2->material_settings<asset::OpaqueMaterialSettings>();
+
+    opaqueMaterialSettings->set_base_color(Float4(0.5, 0.5, 0.5, 1));
+    opaqueMaterialSettings->set_roughness(0.7);
+    opaqueMaterialSettings->set_metallic(0.0);
 
     matComponent = planeEntity->create_component<MaterialComponent>();
-    matComponent->set_material(opaqueMaterial);
+    matComponent->set_material(opaqueMaterial2);
 }
 
 }

@@ -55,18 +55,10 @@ Texture* AssetManager::create_texture(const TextureCreateInfo& createInfo)
 
 Material* AssetManager::create_material(const MaterialCreateInfo& createInfo)
 {
-    Material* material = nullptr;
-    switch (createInfo.type)
-    {
-    case MaterialType::OPAQUE:
-        material = allocate<OpaqueMaterial>();
-        break;
-    default:
-        FE_CHECK(0);
-    }
+    Material* material = allocate<Material>();
+    material->m_materialSettings = createInfo.initHandler();
 
     material->m_name = createInfo.name;
-    material->m_materialType = createInfo.type;
     material->make_dirty();
 
     configure_created_asset(material, createInfo);
@@ -118,7 +110,7 @@ Texture* AssetManager::get_texture(UUID uuid)
 
 Material* AssetManager::get_material(UUID uuid)
 {
-    return get_asset<OpaqueMaterial>(uuid); // TEMP, NEED TO THINK HOW TO IMPLEMENT IT BETTER
+    return get_asset<Material>(uuid);
 }
 
 bool AssetManager::is_asset_loaded(UUID assetUUID)

@@ -1,22 +1,30 @@
 #pragma once
 
-#include "material.h"
+#include "material_settings.h"
 
 namespace fe::asset
 {
 
-class OpaqueMaterial : public Material
+class Texture;
+struct OpaqueMaterialCreateInfo;
+
+class OpaqueMaterialSettings : public MaterialSettings
 {
-    FE_DECLARE_OBJECT(OpaqueMaterial);
-    FE_DECLARE_PROPERTY_REGISTER(OpaqueMaterial);
+    FE_DECLARE_OBJECT(OpaqueMaterialSettings);
+    FE_DECLARE_PROPERTY_REGISTER(OpaqueMaterialSettings);
 
 public:
+    virtual void fill_shader_material(ShaderMaterial& outShaderMaterial) override;
+    virtual MaterialType material_type() const override { return MaterialType::OPAQUE; }
+
     // ========== Begin Object interface ==========
 
     virtual void serialize(Archive& archive) const override;
     virtual void deserialize(Archive& archive) override;
 
     // ========== End Object interface ==========
+
+    void init(const OpaqueMaterialCreateInfo& info);
 
     void set_base_color_texture(Texture* baseColorTexture);
     void set_normal_texture(Texture* normalMapTexture);
@@ -50,7 +58,7 @@ public:
     float roughness() const { return m_roughness; }
     float metallic() const { return m_metallic; }
 
-protected:
+private:
     UUID m_baseColorTextureUUID = UUID::INVALID;
     UUID m_normalTextureUUID = UUID::INVALID;
     UUID m_roughnessTextureUUID = UUID::INVALID;
@@ -62,6 +70,28 @@ protected:
     float m_metallic = 0.0f;
 };
 
-FE_DEFINE_ASSET_POOL_SIZE(OpaqueMaterial, 256);
+struct OpaqueMaterialCreateInfo : MaterialCreateInfo
+{
+    OpaqueMaterialCreateInfo() 
+    { 
+        type = MaterialType::OPAQUE;
+        initHandler = [&]()
+        {
+            auto settings = std::make_unique<OpaqueMaterialSettings>();
+            settings->init(*this);
+            return std::move(settings);
+        };
+    }
+
+    Texture* baseColorTexture = nullptr;
+    Texture* normalTexture = nullptr;
+    Texture* roughnessTexture = nullptr;
+    Texture* metallicTexture = nullptr;
+    Texture* ambientOcclusionTexture = nullptr;
+
+    Float4 baseColor = Float4(0.8f, 0.8f, 0.8f, 1.0f);
+    float roughness = 0.3f;
+    float metallic = 0.0f;
+};
 
 }

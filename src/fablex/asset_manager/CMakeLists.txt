@@ -13,6 +13,7 @@ target_link_libraries(asset_manager
     core
     rhi
     stb
+    renderer
     basisu
     tinygltf
     ddsktx
