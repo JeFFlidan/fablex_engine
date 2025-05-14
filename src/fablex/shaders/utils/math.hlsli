@@ -59,4 +59,37 @@ float min3(T v)
     return min(min(v.x, v.y), v.z);
 }
 
+/* 
+ * Octahedral remapping
+ * Survey of Efficient Representations for Independent Unit Vectors: https://jcgt.org/published/0003/02/01/
+ */
+
+float2 oct_wrap(float2 v)
+{
+    return (1.0 - abs(v.yx)) * float2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
+}
+
+float2 ndir_to_oct_snorm(float3 v)
+{
+    float2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
+    return v.z <= 0 ? oct_wrap(p) : p;
+}
+
+float2 ndir_to_oct_unorm(float3 v)
+{
+    return ndir_to_oct_snorm(v) * 0.5 + 0.5;
+}
+
+float3 oct_to_ndir_snorm(float2 e)
+{
+    float3 v = float3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+    if (v.z < 0) v.xy = oct_wrap(v.xy);
+    return normalize(v);
+}
+
+float3 oct_to_ndir_unorm(float2 e)
+{
+    return oct_to_ndir_snorm(e * 2.0 - 1.0);
+}
+
 #endif // MATH

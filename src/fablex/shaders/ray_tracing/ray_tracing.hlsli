@@ -9,6 +9,21 @@ struct [raypayload] RayPayload
     float4 color : read(caller) : write(closesthit, miss);
 };
 
+struct [raypayload] PTRayPayload
+{
+    uint rng : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    float3 energy : read(caller, closesthit) : write(caller, closesthit);
+    float3 rayDirection : read(caller, closesthit) : write(caller, closesthit);
+    float3 rayOrigin : read(caller, closesthit) : write(caller, closesthit);
+    float3 color : read(caller) : write(closesthit, miss);
+    bool isPrimaryHit : read(closesthit, miss) : write(caller);
+};
+
+struct [raypayload] PTShadowRayPayload
+{
+    float rayHitT : read(caller) : write(miss, closesthit);
+};
+
 typedef BuiltInTriangleIntersectionAttributes RayAttributes;
 
 bool is_inside_viewport(float2 p, Viewport viewport)

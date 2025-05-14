@@ -12,7 +12,7 @@ void raygen()
     RayPayload payload;
 
     TraceRay(
-        bindlessAccelerationStructures[pushConstants.tlasIndex],
+        bindlessAccelerationStructures[pushConstants.tlas],
         0,
         ~0,
         0,

@@ -29,7 +29,7 @@ void RTTestPass::execute(rhi::CommandBuffer* cmd)
 
     RayTracingPushConstants pushConstants;
     fill_push_constants(pushConstants);
-    pushConstants.tlasIndex = m_renderContext->scene_manager()->scene_tlas()->descriptorIndex;
+    pushConstants.tlas = m_renderContext->scene_manager()->scene_tlas()->descriptorIndex;
 
     push_constants(cmd, &pushConstants);
 

@@ -46,7 +46,7 @@ void PathTracingPass::execute(rhi::CommandBuffer* cmd)
     PathTracingPushConstants pushConstants;
     fill_push_constants(pushConstants);
 
-    pushConstants.tlasIndex = m_renderContext->scene_manager()->scene_tlas()->descriptorIndex;
+    pushConstants.tlas = m_renderContext->scene_manager()->scene_tlas()->descriptorIndex;
     pushConstants.bounceCount = 10;
     pushConstants.frameNumber = g_frameNumber;
     pushConstants.accumulationFactor = 1.0f / (m_accumulationFactor + 1.0f);

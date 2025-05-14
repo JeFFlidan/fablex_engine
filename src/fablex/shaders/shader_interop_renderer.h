@@ -2,6 +2,7 @@
 #define SHADER_INTEROP_RENDERER
 
 #include "shader_interop_base.h"
+#include "shader_interop_descriptor.h"
 
 static const uint SHADER_MATERIAL_FLAG_TRANSPARENT = 1 << 0;
 static const uint SHADER_MATERIAL_FLAG_UNLIT = 1 << 1;
@@ -695,7 +696,7 @@ struct SwapChainPushConstants
 {
 	DEFINE_PUSH_CONSTANTS(SwapChainPushConstants);
 
-	uint resultTextureIndex;
+	Texture2D_Descriptor<float4> resultTexture;
 	float3 alignment;
 };
 
@@ -713,7 +714,7 @@ struct RayTracingPushConstants
 	DEFINE_PUSH_CONSTANTS(RayTracingPushConstants);
 
 	uint outputTargetIndex;
-	uint tlasIndex;
+	uint tlas;
 	uint2 padding;
 };
 
@@ -721,9 +722,11 @@ struct PathTracingPushConstants
 {
 	DEFINE_PUSH_CONSTANTS(PathTracingPushConstants);
 
-	uint outputTextureIndex;
-	uint motionVectorTextureIndex;
-	uint tlasIndex;
+	RWTexture2D_Descriptor<float4> outputTexture;
+	RWTexture2D_Descriptor<float2> motionVectorTexture;
+
+	AccelerationStructure_Descriptor tlas;
+	
 	uint bounceCount;
 	uint frameNumber;
 	float accumulationFactor;

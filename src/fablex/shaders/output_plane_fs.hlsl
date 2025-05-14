@@ -1,6 +1,6 @@
 #include "common.hlsli"
 
-PUSH_CONSTANTS(pushConstants, SwapChainPushConstants)
+PUSH_CONSTANTS(cb, SwapChainPushConstants)
 
 struct PixelInput
 {
@@ -11,5 +11,5 @@ struct PixelInput
 float4 main(PixelInput input) : SV_TARGET
 {
     SamplerState sampler = bindlessSamplers[SAMPLER_LINEAR_CLAMP];
-	return bindlessTextures2D[NonUniformResourceIndex(pushConstants.resultTextureIndex)].Sample(sampler, input.texCoords);
+	return cb.resultTexture.get().Sample(sampler, input.texCoords);
 }

@@ -5,57 +5,17 @@
 #include "common/brdf.hlsli"
 #include "common/lighting.hlsli"
 
-PUSH_CONSTANTS(pushConstants, PathTracingPushConstants);
+PUSH_CONSTANTS(cb, PathTracingPushConstants);
 
 static const uint LIGHT_HIT_GROUP_INDEX = 2;
 static const uint SHADOW_HIT_GROUP_INDEX = 3;
 static const uint LIGHT_MISS_INDEX = 0;
 static const uint SHADOW_MISS_INDEX = 1;
 
-struct [raypayload] PTRayPayload
-{
-    uint rng : read(caller, closesthit, miss) : write(caller, closesthit, miss);
-    float3 energy : read(caller, closesthit) : write(caller, closesthit);
-    float3 rayDirection : read(caller, closesthit) : write(caller, closesthit);
-    float3 rayOrigin : read(caller, closesthit) : write(caller, closesthit);
-    float3 color : read(caller) : write(closesthit, miss);
-    bool isPrimaryHit : read(closesthit, miss) : write(caller);
-};
-
-struct [raypayload] PTShadowRayPayload
-{
-    float rayHitT : read(caller) : write(miss, closesthit);
-};
-
-void write_to_color(float4 value)
-{
-    bindlessRWTextures2DFloat4[pushConstants.outputTextureIndex][DispatchRaysIndex().xy] = value;
-}
-
-float4 read_from_color()
-{
-    return bindlessRWTextures2DFloat4[pushConstants.outputTextureIndex][DispatchRaysIndex().xy];
-}
-
-void write_to_motion_vector(float2 value)
-{
-    bindlessRWTextures2DFloat2[pushConstants.motionVectorTextureIndex][DispatchRaysIndex().xy] = value;
-}
-
-float2 read_from_motion_vector()
-{
-    return bindlessRWTextures2DFloat2[pushConstants.motionVectorTextureIndex][DispatchRaysIndex().xy];   
-}
-
-RaytracingAccelerationStructure get_as()
-{
-    return bindlessAccelerationStructures[pushConstants.tlasIndex];
-}
-
 [shader("raygeneration")]
 void raygen()
 {
-    uint bounces = pushConstants.bounceCount;
+    uint bounces = cb.bounceCount;
     float3 result = 0;
 
     uint2 pixel = DispatchRaysIndex().xy;
@@ -63,7 +23,7 @@ void raygen()
     uint id = pixel.x + dimensions.x * pixel.y;
 
     RNG rng;
-    rng.compute_rng_seed(id, pushConstants.frameNumber, bounces);
+    rng.compute_rng_seed(id, cb.frameNumber, bounces);
 
     PTRayPayload payload;
     payload.energy = 1;
@@ -78,7 +38,7 @@ void raygen()
     for (uint bounce = 0; bounce != bounces; ++bounce)
     {
         payload.rng = (uint)rng;
-        TraceRay(get_as(), 0, ~0, LIGHT_HIT_GROUP_INDEX, 1, LIGHT_MISS_INDEX, ray, payload);
+        TraceRay(cb.tlas.get(), 0, ~0, LIGHT_HIT_GROUP_INDEX, 1, LIGHT_MISS_INDEX, ray, payload);
         rng = (RNG)payload.rng;
 
         float3 rayOrigin = payload.rayOrigin;
@@ -114,8 +74,8 @@ void raygen()
         payload.isPrimaryHit = false;
     }
 
-    float4 oldValue = read_from_color();
-    write_to_color(lerp(oldValue, float4(result, 1), pushConstants.accumulationFactor));
+    float4 oldValue = cb.outputTexture.read(pixel);
+    cb.outputTexture.write(pixel, lerp(oldValue, float4(result, 1), cb.accumulationFactor));
 }
 
 [shader("closesthit")]
@@ -157,7 +117,7 @@ void closest_hit(inout PTRayPayload payload, in RayAttributes attr)
 
     PTShadowRayPayload shadowPayload;
     TraceRay(
-        get_as(),
+        cb.tlas.get(),
         RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
         ~0,
         SHADOW_HIT_GROUP_INDEX,
@@ -192,7 +152,7 @@ void closest_hit(inout PTRayPayload payload, in RayAttributes attr)
     if (!payload.isPrimaryHit)
         return;
 
-    write_to_motion_vector(surface.get_motion_vector(get_camera()));
+    cb.motionVectorTexture.write(DispatchRaysIndex().xy, surface.get_motion_vector(get_camera()));
 }
 
 [shader("closesthit")]
@@ -209,7 +169,7 @@ void miss(inout PTRayPayload payload)
     if (!payload.isPrimaryHit)
         return;
 
-    write_to_motion_vector(0);
+    cb.motionVectorTexture.write(DispatchRaysIndex().xy, 0);
 }
 
 [shader("miss")]
