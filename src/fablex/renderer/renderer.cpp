@@ -176,9 +176,7 @@ void Renderer::schedule_frame()
 
     for (auto& [renderPasName, renderPass] : m_renderPassContainer->get_render_passes())
         renderPass->schedule_resources();
-
     m_resourceManager->end_resource_scheduling();
-
     m_renderGraph->build();
     m_resourceManager->allocate_scheduled_resources();
 }
@@ -233,6 +231,7 @@ void Renderer::configure_submit_contexts()
         if (node->is_sync_signal_required())
         {            
             lastSubmitContext->signalSemaphore = m_syncManager->get_semaphore();
+            rhi::set_name(lastSubmitContext->signalSemaphore, node->name().to_string());
             signalSemaphoreByNode[node] = lastSubmitContext->signalSemaphore;
         }
 
@@ -445,7 +444,7 @@ void Renderer::submit()
 
     if (is_bvh_build_cmd_submit_required())
         rhi::submit(&m_bvhBuildSubmitInfo, m_syncManager->get_fence());
-    
+
     for (const SubmitContext& submitContext : m_submitContexts)
     {
         rhi::SubmitInfo submitInfo;
@@ -454,7 +453,9 @@ void Renderer::submit()
         for (const DependencyLevelCommandContext& dependencyLevelContext : submitContext.depencyLevelCommandContexts)
             submitInfo.cmdBuffers.push_back(dependencyLevelContext.workerCmd);
 
-        submitInfo.signalSemaphores.push_back(submitContext.signalSemaphore);
+        if (submitContext.signalSemaphore)
+            submitInfo.signalSemaphores.push_back(submitContext.signalSemaphore);
+        
         submitInfo.waitSemaphores = submitContext.waitSemaphores;
 
         rhi::submit(&submitInfo, m_syncManager->get_fence());

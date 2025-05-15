@@ -51,6 +51,7 @@ public:
         const NodePtrArray& get_nodes_to_sync_with() const { return m_nodesToSyncWith; }
         uint32 get_dependency_level_index() const { return m_dependencyLevelIndex; }
         uint32 get_queue_index() const { return m_queueIndex; }
+        RenderPassName name() const { return m_renderPassInfo.renderPassName; }
 
     private:
         using SyncIndexArray = std::vector<uint32>;

@@ -679,6 +679,7 @@ struct DepthReduceData
 
 static const uint DEPTH_REDUCE_GROUP_SIZE = 32;
 static const uint RNG_SEED_GENERATION_GROUP_SIZE = 8;
+static const uint SVGF_GROUP_SIZE = 8;
 
 // ============= PUSH CONSTANTS =============
 
@@ -722,8 +723,15 @@ struct PathTracingPushConstants
 {
 	DEFINE_PUSH_CONSTANTS(PathTracingPushConstants);
 
-	RWTexture2D_Descriptor<float4> outputTexture;
-	RWTexture2D_Descriptor<float2> motionVectorTexture;
+	RWTexture2D_Descriptor<float2> outMotionVector;
+	RWTexture2D_Descriptor<float4> outAlbedo;
+	RWTexture2D_Descriptor<float4> outEmission;
+	RWTexture2D_Descriptor<float4> outDepthNormal;
+	Texture2D_Descriptor<float4> inPrevDepthNormal;
+	RWTexture2D_Descriptor<float4> outIllumination;
+	RWTexture2D_Descriptor<float2> outMoments;
+	RWTexture2D_Descriptor<float> outHistoryLength;
+	Texture2D_Descriptor<float> inPrevHistoryLength;
 
 	AccelerationStructure_Descriptor tlas;
 	
@@ -731,6 +739,45 @@ struct PathTracingPushConstants
 	uint frameNumber;
 	float accumulationFactor;
 	uint3 padding;
+};
+
+struct SVGFFilterMomentsPushConstants
+{
+	DEFINE_PUSH_CONSTANTS(SVGFFilterMomentsPushConstants);
+
+	RWTexture2D_Descriptor<float4> outFilteredIllumination;
+	Texture2D_Descriptor<float4> inIllumination;
+	Texture2D_Descriptor<float2> inMoments;
+	Texture2D_Descriptor<float> inHistoryLength;
+	Texture2D_Descriptor<float4> inDepthNormal;
+
+	float phiColor;
+	float phiNormal;
+};
+
+struct SVGFAtrousPushConstants
+{
+	DEFINE_PUSH_CONSTANTS(SVGFAtrousPushConstants);
+
+	RWTexture2D_Descriptor<float4> outFinalIllumination;
+	Texture2D_Descriptor<float4> inAlbedo;
+	Texture2D_Descriptor<float4> inIllumination;
+	Texture2D_Descriptor<float> inHistoryLength;
+	Texture2D_Descriptor<float4> inDepthNormal;
+
+	int stepSize;
+	float phiColor;
+	float phiNormal;
+};
+
+struct SVGFFinalModulatePushConstants
+{
+	DEFINE_PUSH_CONSTANTS(SVGFFinalModulatePushConstants);
+
+	RWTexture2D_Descriptor<float4> outColor;
+	Texture2D_Descriptor<float4> inIllumination;
+	Texture2D_Descriptor<float4> inAlbedo;
+	Texture2D_Descriptor<float4> inEmission;
 };
 
 struct RNGSeedGenerationPushConstants

@@ -14,18 +14,6 @@ inline float3x3 adjoint(in float4x4 mat)
     );
 }
 
-template<typename T>
-inline T barycentric_interpolation(in T v0, in T v1, in T v2, in float2 barycentric)
-{
-    return mad(v0, 1 - barycentric.x - barycentric.y, mad(v1, barycentric.x, v2 * barycentric.y));
-}
-
-template<typename T>
-inline T barycentric_interpolation(in T v0, in T v1, in T v2, in half2 barycentric)
-{
-    return mad(v0, 1 - barycentric.x - barycentric.y, mad(v1, barycentric.x, v2 * barycentric.y));
-}
-
 inline float3x3 get_tangent_space(in float3 normal)
 {
     float3 helper = abs(normal.x) > 0.99 ? float3(0, 0, 1) : float3(1, 0, 0);
@@ -57,6 +45,36 @@ template<typename T>
 float min3(T v)
 {
     return min(min(v.x, v.y), v.z);
+}
+
+/*
+ * Barycentrics functions. Source: https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/shaders/globals.hlsli
+ */
+
+template<typename T>
+inline T barycentric_interpolation(in T v0, in T v1, in T v2, in float2 barycentric)
+{
+    return mad(v0, 1 - barycentric.x - barycentric.y, mad(v1, barycentric.x, v2 * barycentric.y));
+}
+
+template<typename T>
+inline T barycentric_interpolation(in T v0, in T v1, in T v2, in half2 barycentric)
+{
+    return mad(v0, 1 - barycentric.x - barycentric.y, mad(v1, barycentric.x, v2 * barycentric.y));
+}
+
+float2 compute_barycentrics(float3 rayOrigin, float3 rayDirection, float3 a, float3 b, float3 c)
+{
+    float3 v0v1 = b - a;
+    float3 v0v2 = c - a;
+    float3 pvec = cross(rayDirection, v0v2);
+    float det = dot(v0v1, pvec);
+    float det_rcp = rcp(det);
+    float3 tvec = rayOrigin - a;
+    float u = dot(tvec, pvec) * det_rcp;
+    float3 qvec = cross(tvec, v0v1);
+    float v = dot(rayDirection, qvec) * det_rcp;
+    return float2(u, v);
 }
 
 /* 

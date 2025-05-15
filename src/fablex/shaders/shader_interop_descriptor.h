@@ -35,6 +35,10 @@
     template<> void ClassName<ValueType>::write(UVType uv, ValueType value)         \
     {                                                                               \
         BindlessArray[NonUniformResourceIndex(descriptor)][uv] = value;             \
+    }                                                                               \
+    template<> ValueType ClassName<ValueType>::operator[](UVType uv)                \
+    {                                                                               \
+        return BindlessArray[NonUniformResourceIndex(descriptor)][uv];              \
     }
 
 #define DEFINE_RW_TEXTURE_2D_METHODS(BindlessArray, ValueType)          \
@@ -115,6 +119,7 @@ struct RWTexture2D_Descriptor : Descriptor
 #ifndef __cplusplus
     T read(uint2 uv) { return 0; }
     void write(uint2 uv, T value) { }
+    T operator[](uint2 uv) { return 0; }
 #endif // __cplusplus
 };
 
@@ -126,6 +131,7 @@ struct RWTexture2DArray_Descriptor : Descriptor
 #ifndef __cplusplus
     T read(uint3 uv) { return 0; }
     void write(uint3 uv, T value) { }
+    T operator[](uint3 uv) { return 0; }
 #endif // __cplusplus
 };
 
@@ -137,6 +143,7 @@ struct RWTexture3D_Descriptor : Descriptor
 #ifndef __cplusplus
     T read(uint3 uv) { return 0; }
     void write(uint3 uv, T value) { }
+    T operator[](uint3 uv) { return 0; }
 #endif // __cplusplus
 };
 

@@ -9,7 +9,7 @@
                 }
             ],
             "InputTextures": [
-                "PathTracingColor",
+                "ModulatedColor",
                 "MotionVector"
             ],
             "Pipeline": {
@@ -30,8 +30,13 @@
             "Name": "PathTracingPass",
             "Type": "GRAPHICS",
             "OutputStorageTextures": [
-                "PathTracingColor",
-                "MotionVector"
+                "MotionVector",
+                "DepthNormal",
+                "Albedo",
+                "Emission",
+                "ReprojectedIllumination",
+                "Moments",
+                "HistoryLength"
             ],
             "Pipeline": {
                 "Name": "PathTracingPipeline",
@@ -44,7 +49,12 @@
                     {
                         "Type": "RAY_MISS",
                         "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "miss"
+                        "EntryPoint": "miss_primary"
+                    },
+                    {
+                        "Type": "RAY_MISS",
+                        "Path": "ray_tracing/path_tracing_lib.hlsl",
+                        "EntryPoint": "miss_secondary"
                     },
                     {
                         "Type": "RAY_MISS",
@@ -54,7 +64,12 @@
                     {
                         "Type": "RAY_CLOSEST_HIT",
                         "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "closest_hit"
+                        "EntryPoint": "closest_hit_primary"
+                    },
+                    {
+                        "Type": "RAY_CLOSEST_HIT",
+                        "Path": "ray_tracing/path_tracing_lib.hlsl",
+                        "EntryPoint": "closest_hit_secondary"
                     },
                     {
                         "Type": "RAY_CLOSEST_HIT",
@@ -63,16 +78,116 @@
                     }
                 ]
             }
+        },
+        {
+            "Name": "SVGFFilterMomentsPass",
+            "Type": "ASYNC_COMPUTE",
+            "OutputStorageTextures": [
+                "FilteredIllumination"
+            ],
+            "InputTextures": [
+                "ReprojectedIllumination",
+                "Moments",
+                "HistoryLength",
+                "DepthNormal"
+            ],
+            "Pipeline": {
+                "Name": "SVGFFilterPipeline",
+                "Shaders": [
+                    {
+                        "Type": "COMPUTE",
+                        "Path": "ray_tracing/svgf_filter_moments_cs.hlsl"
+                    }
+                ]
+            }
+        },
+        {
+            "Name": "SVGFAtrousPass",
+            "Type": "ASYNC_COMPUTE",
+            "OutputStorageTextures": [
+                "FinalIllumination"
+            ],
+            "InputTextures": [
+                "Albedo",
+                "FilteredIllumination",
+                "HistoryLength",
+                "DepthNormal"
+            ],
+            "Pipeline": {
+                "Name": "SVGFAtrousPipeline",
+                "Shaders": [
+                    {
+                        "Type": "COMPUTE",
+                        "Path": "ray_tracing/svgf_atrous_cs.hlsl"
+                    }
+                ]
+            }
+        },
+        {
+            "Name": "SVGFFinalModulatePass",
+            "Type": "ASYNC_COMPUTE",
+            "OutputStorageTextures": [
+                "ModulatedColor"
+            ],
+            "InputTextures": [
+                "Albedo",
+                "Emission",
+                "FinalIllumination"
+            ],
+            "Pipeline": {
+                "Name": "SVGFFinalModulatePipeline",
+                "Shaders": [
+                    {
+                        "Type": "COMPUTE",
+                        "Path": "ray_tracing/svgf_final_modulate_cs.hlsl"
+                    }
+                ]
+            }
         }
     ],
     "RenderTextures": [
         {
-            "Name": "PathTracingColor",
+            "Name": "MotionVector",
+            "Format": "R16G16_SFLOAT"
+        },
+        {
+            "Name": "Albedo",
             "Format": "R8G8B8A8_UNORM"
         },
         {
-            "Name": "MotionVector",
-            "Format": "R16G16_SFLOAT"
+            "Name": "Emission",
+            "Format": "R16G16B16A16_SFLOAT"
+        },
+        {
+            "Name": "DepthNormal",
+            "Format": "R32G32B32A32_SFLOAT",
+            "CrossFrameRead": true
+        },
+        {
+            "Name": "ReprojectedIllumination",
+            "Format": "R32G32B32A32_SFLOAT"
+        },
+        {
+            "Name": "Moments",
+            "Format": "R32G32_SFLOAT",
+            "CrossFrameRead": true
+        },
+        {
+            "Name": "HistoryLength",
+            "Format": "R32_SFLOAT",
+            "CrossFrameRead": true
+        },
+        {
+            "Name": "FilteredIllumination",
+            "Format": "R32G32B32A32_SFLOAT"
+        },
+        {
+            "Name": "FinalIllumination",
+            "Format": "R32G32B32A32_SFLOAT"
+        },
+        {
+            "Name": "ModulatedColor",
+            "Format": "R32G32B32A32_SFLOAT"
         }
     ],
     "PushConstants": [
@@ -80,12 +195,100 @@
             "Name": "PathTracingPushConstants",
             "Resources": [
                 {
-                    "Name": "PathTracingColor",
+                    "Name": "MotionVector",
                     "Write": true
                 },
                 {
-                    "Name": "MotionVector",
+                    "Name": "Albedo",
                     "Write": true
+                },
+                {
+                    "Name": "Emission",
+                    "Write": true
+                },
+                {
+                    "Name": "DepthNormal",
+                    "Write": true
+                },
+                {
+                    "Name": "DepthNormal",
+                    "PreviousFrame": true
+                },
+                {
+                    "Name": "ReprojectedIllumination",
+                    "Write": true
+                },
+                {
+                    "Name": "Moments",
+                    "Write": true
+                },
+                {
+                    "Name": "HistoryLength",
+                    "Write": true
+                },
+                {
+                    "Name": "HistoryLength",
+                    "PreviousFrame": true
+                }
+            ]
+        },
+        {
+            "Name": "SVGFFilterMomentsPushConstants",
+            "Resources": [
+                {
+                    "Name": "FilteredIllumination",
+                    "Write": true
+                },
+                {
+                    "Name": "ReprojectedIllumination"
+                },
+                {
+                    "Name": "Moments"
+                },
+                {
+                    "Name": "HistoryLength"
+                },
+                {
+                    "Name": "DepthNormal"
+                }
+            ]
+        },
+        {
+            "Name": "SVGFAtrousPushConstants",
+            "Resources": [
+                {
+                    "Name": "FinalIllumination",
+                    "Write": true
+                },
+                {
+                    "Name": "Albedo"
+                },
+                {
+                    "Name": "FilteredIllumination"
+                },
+                {
+                    "Name": "HistoryLength"
+                },
+                {
+                    "Name": "DepthNormal"
+                }
+            ]
+        },
+        {
+            "Name": "SVGFFinalModulatePushConstants",
+            "Resources": [
+                {
+                    "Name": "ModulatedColor",
+                    "Write": true
+                },
+                {
+                    "Name": "FinalIllumination"
+                },
+                {
+                    "Name": "Albedo"
+                },
+                {
+                    "Name": "Emission"
                 }
             ]
         },
@@ -93,7 +296,7 @@
             "Name": "SwapChainPushConstants",
             "Resources": [
                 {
-                    "Name": "PathTracingColor"
+                    "Name": "ModulatedColor"
                 }
             ]
         }

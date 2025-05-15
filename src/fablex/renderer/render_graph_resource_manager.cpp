@@ -1,5 +1,6 @@
 #include "render_graph_resource_manager.h"
 #include "resource_layout_tracker.h"
+#include "globals.h"
 #include "rhi/rhi.h"
 #include "core/logger.h"
 #include "core/utils.h"
@@ -286,8 +287,15 @@ const Texture& RenderGraphResourceManager::get_texture_internal(
         FE_LOG(LogRenderer, FATAL, "Texture {} does not have view for mip level {}", textureName, mipLevel);
 
     if (!has_flag(viewInfo->requestedLayout, mustHaveLayout))
-        FE_LOG(LogRenderer, FATAL, "Texture {} requested layout is not {} for render pass {}", textureName, to_string(mustHaveLayout), renderPassName);
-    
+    {
+        FE_LOG(LogRenderer, FATAL, "Texture {} requested layout is not {} for render pass {}. Current layout is {}", 
+            textureName, 
+            to_string(mustHaveLayout), 
+            renderPassName,
+            to_string(viewInfo->requestedLayout)
+        );
+    }
+
     return texture;
 }
     

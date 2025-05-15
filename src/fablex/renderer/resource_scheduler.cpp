@@ -120,6 +120,36 @@ void ResourceScheduler::read_texture(RenderPassName renderPassName, ResourceName
     );
 }
 
+void ResourceScheduler::read_previous_texture(
+    RenderPassName renderPassName, 
+    ResourceName resourceName,
+    const rhi::TextureInfo* textureInfo
+)
+{
+    rhi::TextureInfo newTextureInfo;
+    newTextureInfo.format = rhi::Format::R32_SFLOAT;
+    newTextureInfo.textureUsage = rhi::ResourceUsage::STORAGE_TEXTURE | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
+    newTextureInfo.width = s_renderContext->render_surface().width;
+    newTextureInfo.height = s_renderContext->render_surface().height;
+    newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
+    newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
+
+    fill_info_from_base(newTextureInfo, textureInfo);
+
+    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
+        renderPassName, 
+        resourceName, 
+        newTextureInfo,
+        [
+            renderPassName,
+            resourceName
+        ](ResourceSchedulingInfo& schedulingInfo)
+        {
+            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::SHADER_READ, 1);
+        }
+    );
+}
+
 void ResourceScheduler::write_to_back_buffer(RenderPassName renderPassName)
 {
     RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);

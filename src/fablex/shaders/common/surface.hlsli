@@ -1,6 +1,10 @@
 #ifndef SURFACE
 #define SURFACE
 
+#if defined(SURFACE_NORMAL_DERIVATIVES) || defined(SURFACE_POSITION_DERIVATIVES)
+#define SURFACE_BARYCENTRICS_QUADS
+#endif
+
 #include "common.hlsli"
 
 static const float MIN_ROUGHNESS = 0.035;
@@ -15,11 +19,12 @@ struct Surface
     uint i0;
     uint i1;
     uint i2;
-    float4 posWind0;
-    float4 posWind1;
-    float4 posWind2;
+    float3 P0;
+    float3 P1;
+    float3 P2;
 
     float4 baseColor;
+    float3 emissionColor;
     float roughness;
     float metallic;
     float occlusion;
@@ -27,6 +32,23 @@ struct Surface
     float3 F;
 
     float2 barycentrics;
+
+#ifdef SURFACE_BARYCENTRICS_QUADS
+    float2 barycentricsQuadX;
+    float2 barycentricsQuadY;
+#endif // SURFACE_BARYCENTRICS_QUADS
+
+#ifdef SURFACE_NORMAL_DERIVATIVES
+    float3 N_dx;
+    float3 N_dy;
+#endif // SURFACE_NORMAL_DERIVATIVES
+
+#ifdef SURFACE_POSITION_DERIVATIVES
+    float3 P_quadX;
+    float3 P_quadY;
+    float3 P_dx;
+    float3 P_dy;
+#endif // SURFACE_POSITION_DERIVATIVES
 
     ShaderModelInstance instance;
     ShaderModel model;
@@ -40,14 +62,44 @@ struct Surface
         barycentrics = inBarycentrics;
 
         P = barycentric_interpolation(
-            posWind0.xyz,
-            posWind1.xyz,
-            posWind2.xyz,
+            P0.xyz,
+            P1.xyz,
+            P2.xyz,
             barycentrics
         );
 
-        prevP = mul(instance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
-        P = mul(instance.transform.get_matrix(), float4(P, 1.0)).xyz;
+        init_internal();
+    }
+
+    void init(
+        in PrimitiveInfo primitiveInfo, 
+        in float2 inBarycentrics,
+        in float3 rayOrigin,
+        in float3 rayDirection
+    )
+    {
+        [branch]
+        if (!load_model_data(primitiveInfo))
+            return;
+
+        barycentrics = inBarycentrics;
+
+#ifdef SURFACE_BARYCENTRICS_QUADS
+        barycentricsQuadX = compute_barycentrics(rayOrigin, QuadReadAcrossX(rayDirection), P0.xyz, P1.xyz, P2.xyz);
+        barycentricsQuadY = compute_barycentrics(rayOrigin, QuadReadAcrossY(rayDirection), P0.xyz, P1.xyz, P2.xyz);
+#endif // SURFACE_BARYCENTRICS_QUADS
+
+        P = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentrics);
+
+#ifdef SURFACE_POSITION_DERIVATIVES
+        P_quadX = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentricsQuadX);
+        P_quadY = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentricsQuadY);
+        P_dx = P - P_quadX;
+        P_dy = P - P_quadY;
+
+        P_quadX = mul(instance.transform.get_matrix(), float4(P_quadX, 1)).xyz;
+        P_quadY = mul(instance.transform.get_matrix(), float4(P_quadY, 1)).xyz;
+#endif
 
         init_internal();
     }
@@ -63,15 +115,18 @@ struct Surface
         i2 = indices.z;
 
         Buffer<float4> posBuffer = bindlessBuffersFloat4[descriptor_index(model.vertexBufferPosWind)];
-        posWind0 = posBuffer[i0];
-        posWind1 = posBuffer[i1];
-        posWind2 = posBuffer[i2];
+        P0 = posBuffer[i0].xyz;
+        P1 = posBuffer[i1].xyz;
+        P2 = posBuffer[i2].xyz;
 
         return true;
     }
 
     void init_internal()
     {
+        prevP = mul(instance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
+        P = mul(instance.transform.get_matrix(), float4(P, 1.0)).xyz;
+
         float3x3 adjointMat = instance.rawTransform.get_matrix_adjoint();
         
         [branch]
@@ -85,9 +140,20 @@ struct Surface
             n1 = any(n1) ? normalize(n1) : 0;
             n2 = any(n2) ? normalize(n2) : 0;
             N = barycentric_interpolation(n0, n1, n2, barycentrics);
-        }
 
-        N = normalize(N);
+            N = normalize(N);
+
+#ifdef SURFACE_NORMAL_DERIVATIVES
+            N_dx = barycentric_interpolation(n0, n1, n2, barycentricsQuadX);
+            N_dy = barycentric_interpolation(n0, n1, n2, barycentricsQuadY);
+
+            N_dx = normalize(N_dx);
+            N_dy = normalize(N_dy);
+
+            N_dx = N - N_dx;
+            N_dy = N - N_dy;
+#endif
+        }
 
         // TODO: Get values from textures
         ShaderMaterial shaderMaterial = get_material(instance.materialIndex);
@@ -95,6 +161,7 @@ struct Surface
         roughness = shaderMaterial.get_roughness();
         roughness *= roughness;
         metallic = shaderMaterial.get_metallic();
+        emissionColor = 0;   // TEMP
         
         F0 = lerp(float3(0.04f, 0.04f, 0.04f), baseColor.xyz, metallic);
 

@@ -145,7 +145,7 @@ void RenderGraph::depth_first_search(uint64 nodeIdx, std::vector<bool>& visited,
         }
 
         if (!visited[neighbor])
-            depth_first_search(nodeIdx, visited, onStack, isCyclic);
+            depth_first_search(neighbor, visited, onStack, isCyclic);
     }
 
     onStack[nodeIdx] = false;

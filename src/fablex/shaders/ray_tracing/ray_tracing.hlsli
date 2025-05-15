@@ -9,14 +9,23 @@ struct [raypayload] RayPayload
     float4 color : read(caller) : write(closesthit, miss);
 };
 
-struct [raypayload] PTRayPayload
+struct [raypayload] PrimaryRayPayload
 {
     uint rng : read(caller, closesthit, miss) : write(caller, closesthit, miss);
     float3 energy : read(caller, closesthit) : write(caller, closesthit);
     float3 rayDirection : read(caller, closesthit) : write(caller, closesthit);
     float3 rayOrigin : read(caller, closesthit) : write(caller, closesthit);
     float3 color : read(caller) : write(closesthit, miss);
-    bool isPrimaryHit : read(closesthit, miss) : write(caller);
+    float normalFWidth : read(caller) : write(closesthit, miss);
+};
+
+struct [raypayload] SecondaryRayPayload
+{
+    uint rng : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    float3 energy : read(caller, closesthit) : write(caller, closesthit);
+    float3 rayDirection : read(caller, closesthit) : write(caller, closesthit);
+    float3 rayOrigin : read(caller, closesthit) : write(caller, closesthit);
+    float3 color : read(caller) : write(closesthit, miss);
 };
 
 struct [raypayload] PTShadowRayPayload

@@ -89,7 +89,7 @@ void RenderPass::schedule_resources()
         if (textureMetadata.crossFrameRead)
         {
             auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureName);
-            ResourceScheduler::create_storage_texture(get_name(), prevFrameName, &info);
+            ResourceScheduler::read_previous_texture(get_name(), prevFrameName, &info);
             ResourceScheduler::create_storage_texture(get_name(), curFrameName, &info);
         }
         else

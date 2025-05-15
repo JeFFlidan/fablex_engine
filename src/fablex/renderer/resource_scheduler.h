@@ -42,6 +42,11 @@ public:
     
     static void write_to_back_buffer(RenderPassName renderPassName);
     static void read_texture(RenderPassName renderPassName, ResourceName resourceName);
+    static void read_previous_texture(
+        RenderPassName renderPassName, 
+        ResourceName resourceName, 
+        const rhi::TextureInfo* textureInfo = nullptr
+    );
 
     static void use_ray_tracing(RenderPassName renderPassName);
 
