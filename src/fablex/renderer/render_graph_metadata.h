@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "resource_metadata.h"
 #include "json.hpp"
 
 namespace fe::renderer
@@ -12,11 +12,6 @@ class ShaderManager;
 class RenderGraphMetadata
 {
 public:
-    using TextureMetadataMap = std::unordered_map<ResourceName, TextureMetadata>;
-    using RenderPassMetadataMap = std::unordered_map<RenderPassName, RenderPassMetadata>;
-    using PipelineMetadataMap = std::unordered_map<PipelineName, PipelineMetadata>;
-    using PushConstantsMetadataMap = std::unordered_map<PushConstantsName, PushConstantsMetadata>;
-
     RenderGraphMetadata(const RenderContext* renderContext);
 
     void deserialize(const std::string& path);
@@ -26,15 +21,22 @@ public:
     const PipelineMetadata* get_pipeline_metadata(PipelineName pipelineName) const;
     const PushConstantsMetadata* get_push_constants_metadata(PushConstantsName pushConstantsName) const;
 
-    const RenderPassMetadataMap& get_render_pass_metadata_map() const { return m_renderPassMetadataByName; }
+    const std::vector<RenderPassMetadata*>& get_render_passes_metadata() const { return m_renderPassesMetadata; }
 
 private:
-    TextureMetadataMap m_renderTextureMetadataByName;
-    RenderPassMetadataMap m_renderPassMetadataByName;
-    PipelineMetadataMap m_pipelineMetadataByName;
-    PushConstantsMetadataMap m_pushConstantsMetadataByName;
+    std::unordered_map<Name, ResourceMetadataHandle> m_resourceMetadataByName;
+    std::vector<RenderPassMetadata*> m_renderPassesMetadata;
 
     ShaderManager* m_shaderManager = nullptr;
+
+    template<typename MetadataType>
+    MetadataType& add_metadata(Name name)
+    {
+        auto it = m_resourceMetadataByName.emplace(name, new MetadataType());
+        return *static_cast<MetadataType*>(it.first->second.get());
+    }
+
+    void parse_flags(const nlohmann::json& metadataJson, ResourceMetadataWithFlags<Name>& metadata);
 };
 
 }

@@ -28,9 +28,9 @@ void RenderPass::schedule_resources()
     {
         const TextureMetadata& textureMetadata = get_texture_metadata(textureName);
 
-        if (textureMetadata.crossFrameRead)
+        if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
         {
-            auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.textureName);
+            auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.name);
             ResourceScheduler::read_texture(get_name(), prevFrameName);
             ResourceScheduler::read_texture(get_name(), curFrameName);
         }
@@ -48,9 +48,9 @@ void RenderPass::schedule_resources()
             rhi::TextureInfo info;
             fill_texture_info(textureMetadata, info);
             
-            if (textureMetadata.crossFrameRead)
+            if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
             {
-                auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.textureName);
+                auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.name);
                 if (rhi::is_depth_stencil_format(textureMetadata.format))
                 {
                     ResourceScheduler::create_depth_stencil(get_name(), prevFrameName, &info);
@@ -66,11 +66,11 @@ void RenderPass::schedule_resources()
             {
                 if (rhi::is_depth_stencil_format(textureMetadata.format))
                 {
-                    ResourceScheduler::create_depth_stencil(get_name(), textureMetadata.textureName, &info);
+                    ResourceScheduler::create_depth_stencil(get_name(), textureMetadata.name, &info);
                 }
                 else
                 {
-                    ResourceScheduler::create_render_target(get_name(), textureMetadata.textureName, &info);
+                    ResourceScheduler::create_render_target(get_name(), textureMetadata.name, &info);
                 }
             }
         }
@@ -86,7 +86,7 @@ void RenderPass::schedule_resources()
         rhi::TextureInfo info;
         fill_texture_info(textureMetadata, info);
 
-        if (textureMetadata.crossFrameRead)
+        if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
         {
             auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureName);
             ResourceScheduler::read_previous_texture(get_name(), prevFrameName, &info);
@@ -102,7 +102,7 @@ void RenderPass::schedule_resources()
 RenderPassInfo RenderPass::get_info() const
 {
     return RenderPassInfo(
-        m_metadata->renderPassName,
+        m_metadata->name,
         m_metadata->pipelineName,
         m_metadata->type
     );
@@ -145,6 +145,11 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
         break;
     }
     }
+}
+
+RenderPassName RenderPass::get_name() const
+{
+    return m_metadata->name;
 }
 
 void RenderPass::create_compute_pipeline()
@@ -251,12 +256,12 @@ void RenderPass::fill_texture_info(const TextureMetadata& inMetadata, rhi::Textu
     outInfo.samplesCount = inMetadata.sampleCount;
     outInfo.format = inMetadata.format;
     
-    if (inMetadata.useMips)
+    if (inMetadata.has_flag(ResourceMetadataFlag::USE_MIPS))
     {
         // TODO: How to request mips creation?
     }
 
-    if (inMetadata.isTransferDst)
+    if (inMetadata.has_flag(ResourceMetadataFlag::TRANSFER_DST))
         outInfo.textureUsage |= rhi::ResourceUsage::TRANSFER_DST;
 }
 
@@ -302,9 +307,9 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
 
         ResourceName resourceName = resourceMetadata.name;
 
-        if (textureMetadata->crossFrameRead)
+        if (textureMetadata->has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
         {
-            if (resourceMetadata.previousFrame)
+            if (resourceMetadata.has_flag(ResourceMetadataFlag::PREVIOUS_FRAME))
                 resourceName = get_prev_frame_resource_name(resourceName);
             else
                 resourceName = get_curr_frame_resource_name(resourceName);
@@ -312,7 +317,7 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
 
         uint32 descriptor = ~0u;
 
-        if (resourceMetadata.write)
+        if (resourceMetadata.has_flag(ResourceMetadataFlag::WRITABLE))
             descriptor = resourceManager->get_texture_uav_descriptor(get_name(), resourceName);
         else
             descriptor = resourceManager->get_texture_srv_descriptor(get_name(), resourceName);

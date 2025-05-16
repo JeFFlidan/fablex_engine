@@ -13,12 +13,11 @@ void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPass
     m_metadata = std::make_unique<RenderGraphMetadata>(renderPassContainer->get_render_context());
     m_metadata->deserialize(metadataPath);
 
-    const RenderGraphMetadata::RenderPassMetadataMap& renderPassMetadataMap = 
-        m_metadata->get_render_pass_metadata_map();
+    const std::vector<RenderPassMetadata*>& renderPassesMetadata = m_metadata->get_render_passes_metadata();
 
-    for (const auto& it : renderPassMetadataMap)
+    for (RenderPassMetadata* metadata : renderPassesMetadata)
     {
-        RenderPass* renderPass = renderPassContainer->add_render_pass(it.second);
+        RenderPass* renderPass = renderPassContainer->add_render_pass(*metadata);
         add_node(renderPass->get_info());
     }
 

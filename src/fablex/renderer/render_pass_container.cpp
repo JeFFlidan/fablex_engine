@@ -1,4 +1,5 @@
 #include "render_pass_container.h"
+#include "resource_metadata.h"
 #include "render_pass.h"
 
 namespace fe::renderer
@@ -12,12 +13,12 @@ RenderPassContainer::RenderPassContainer(const RenderContext* renderContext)
 
 RenderPass* RenderPassContainer::add_render_pass(const RenderPassMetadata& metadata)
 {
-    auto it = m_renderPassByName.find(metadata.renderPassName);
+    auto it = m_renderPassByName.find(metadata.name);
     if (it != m_renderPassByName.end())
         return it->second;
 
     RenderPass* renderPass = create_render_pass(metadata);
-    m_renderPassByName[metadata.renderPassName.to_string()] = renderPass;
+    m_renderPassByName[metadata.name.to_string()] = renderPass;
     return renderPass;
 }
 
@@ -37,7 +38,7 @@ RenderPass* RenderPassContainer::get_render_pass(RenderPassName name) const
 
 RenderPass* RenderPassContainer::create_render_pass(const RenderPassMetadata& metadata)
 {
-    std::string name = metadata.renderPassName.to_string();
+    std::string name = metadata.name.to_string();
     if (name.find("Pass") == std::string::npos)
         name += "Pass";
 

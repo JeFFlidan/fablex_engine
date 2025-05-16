@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common.h"
 #include "rhi/resources.h"
 #include "core/task_types.h"
 
@@ -53,7 +52,7 @@ public:
 
 private:
     std::unique_ptr<IShaderCompiler> m_shaderCompiler = nullptr;
-    std::unordered_map<ShaderMetadata, rhi::Shader*> m_shaderByMetadata{};
+    std::unordered_map<uint64, rhi::Shader*> m_shaderByMetadataHash{};
     TaskGroup* m_taskGroup = nullptr;
     std::mutex m_mutex{};
 
@@ -65,6 +64,8 @@ private:
         rhi::HLSLShaderModel shaderModel = rhi::HLSLShaderModel::SM_6_7,
         const std::vector<std::string>& defines = {}
     );
+
+    uint64 get_hash(const ShaderMetadata& metadata) const;
 };
 
 }

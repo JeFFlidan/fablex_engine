@@ -13,13 +13,8 @@ namespace fe::renderer
 constexpr const char* RENDER_TEXTURES_KEY = "RenderTextures";
 constexpr const char* PUSH_CONSTANTS_KEY = "PushConstants";
 constexpr const char* RESOURCES_KEY = "Resources";
-constexpr const char* PREVIOUS_FRAME_KEY = "PreviousFrame";
-constexpr const char* WRITE_KEY = "Write";
 constexpr const char* RENDER_PASSES_KEY = "RenderPasses";
 constexpr const char* FORMAT_KEY = "Format";
-constexpr const char* IS_TRANSFER_DST_KEY = "IsTransferDst";
-constexpr const char* USE_MIPS_KEY = "UseMips";
-constexpr const char* CROSS_FRAME_READ_KEY = "CrossFrameRead";
 constexpr const char* LAYER_COUNT_KEY = "LayerCount";
 constexpr const char* SAMPLE_COUNT_KEY = "SampleCount";
 constexpr const char* INPUT_TEXTURES_KEY = "InputTextures";
@@ -36,6 +31,7 @@ constexpr const char* HIT_GROUP_TYPE_KEY = "HitGroupType";
 constexpr const char* ENTRY_POINT_KEY = "EntryPoint";
 constexpr const char* TYPE_KEY = "Type";
 constexpr const char* PATH_KEY = "Path";
+constexpr const char* FLAGS_KEY = "Flags";
 
 RenderGraphMetadata::RenderGraphMetadata(const RenderContext* renderContext)
 {
@@ -46,9 +42,8 @@ RenderGraphMetadata::RenderGraphMetadata(const RenderContext* renderContext)
 
 void RenderGraphMetadata::deserialize(const std::string& path)
 {
-    m_renderPassMetadataByName.clear();
-    m_pipelineMetadataByName.clear();
-    m_renderTextureMetadataByName.clear();
+    m_resourceMetadataByName.clear();
+    m_renderPassesMetadata.clear();
 
     FE_LOG(LogRenderer, INFO, "Starting deserializing render graph metadata '{}'", path);
 
@@ -59,25 +54,16 @@ void RenderGraphMetadata::deserialize(const std::string& path)
     if (json.contains(RENDER_TEXTURES_KEY))
     {
         const std::vector<JSON>& renderTextureMetadataJsons = json[RENDER_TEXTURES_KEY];
-        m_renderTextureMetadataByName.reserve(renderTextureMetadataJsons.size());
+        m_resourceMetadataByName.reserve(m_resourceMetadataByName.size() + renderTextureMetadataJsons.size());
 
         for (const nlohmann::json& textureMetadataJson : renderTextureMetadataJsons)
         {
             ResourceName textureName = textureMetadataJson[NAME_KEY];
-            TextureMetadata& textureMetadata = m_renderTextureMetadataByName[textureName];
-            textureMetadata.textureName = textureName;
+            TextureMetadata& textureMetadata = add_metadata<TextureMetadata>(textureName);
+            textureMetadata.name = textureName;
 
             if (textureMetadataJson.contains(FORMAT_KEY))
                 textureMetadata.format = textureMetadataJson[FORMAT_KEY];
-
-            if (textureMetadataJson.contains(IS_TRANSFER_DST_KEY))
-                textureMetadata.isTransferDst = textureMetadataJson[IS_TRANSFER_DST_KEY];
-
-            if (textureMetadataJson.contains(USE_MIPS_KEY))
-                textureMetadata.useMips = textureMetadataJson[USE_MIPS_KEY];
-
-            if (textureMetadataJson.contains(CROSS_FRAME_READ_KEY))
-                textureMetadata.crossFrameRead = textureMetadataJson[CROSS_FRAME_READ_KEY];
 
             if (textureMetadataJson.contains(LAYER_COUNT_KEY))
                 textureMetadata.layerCount = textureMetadataJson[LAYER_COUNT_KEY];
@@ -97,18 +83,20 @@ void RenderGraphMetadata::deserialize(const std::string& path)
                 default: textureMetadata.sampleCount = rhi::SampleCount::UNDEFINED; break;
                 }
             }
+
+            parse_flags(textureMetadataJson, textureMetadata);
         }
     }
 
     if (json.contains(PUSH_CONSTANTS_KEY))
     {
         const std::vector<JSON>& pushConstantsMetadataJsons = json[PUSH_CONSTANTS_KEY];
-        m_pushConstantsMetadataByName.reserve(pushConstantsMetadataJsons.size());
+        m_resourceMetadataByName.reserve(m_resourceMetadataByName.size() + pushConstantsMetadataJsons.size());
 
         for (const nlohmann::json& pushConstantsMetadataJson : pushConstantsMetadataJsons)
         {
             PushConstantsName pushConstantsName = pushConstantsMetadataJson[NAME_KEY];
-            PushConstantsMetadata& pushConstantsMetadata = m_pushConstantsMetadataByName[pushConstantsName];
+            PushConstantsMetadata& pushConstantsMetadata = add_metadata<PushConstantsMetadata>(pushConstantsName);
             pushConstantsMetadata.name = pushConstantsName;
 
             if (pushConstantsMetadataJson.contains(RESOURCES_KEY))
@@ -121,26 +109,25 @@ void RenderGraphMetadata::deserialize(const std::string& path)
                     auto& resourceMetadata = pushConstantsMetadata.resourcesMetadata.emplace_back();
                     resourceMetadata.name = resourceMetadataJson[NAME_KEY];
 
-                    if (resourceMetadataJson.contains(PREVIOUS_FRAME_KEY))
-                        resourceMetadata.previousFrame = resourceMetadataJson[PREVIOUS_FRAME_KEY];
-
-                    if (resourceMetadataJson.contains(WRITE_KEY))
-                        resourceMetadata.write = resourceMetadataJson[WRITE_KEY];
+                    parse_flags(resourceMetadataJson, resourceMetadata);
                 }
             }
         }
     }
 
     const std::vector<JSON>& renderPassMetadataJsons = json[RENDER_PASSES_KEY];
-    m_renderPassMetadataByName.reserve(renderPassMetadataJsons.size());
-    m_pipelineMetadataByName.reserve(m_renderPassMetadataByName.size());
+
+    uint64 renderPassAndPipelineCount = m_resourceMetadataByName.size() * 2;    // Because each render pass has its own pipeline
+    m_resourceMetadataByName.reserve(m_resourceMetadataByName.size() + renderPassAndPipelineCount);
+    m_renderPassesMetadata.reserve(renderPassMetadataJsons.size());
 
     for (const nlohmann::json& renderPassMetadataJson : renderPassMetadataJsons)
     {
         RenderPassName renderPassName = renderPassMetadataJson[NAME_KEY];
-        RenderPassMetadata& renderPassMetadata = m_renderPassMetadataByName[renderPassName];
+        RenderPassMetadata& renderPassMetadata = add_metadata<RenderPassMetadata>(renderPassName);
+        m_renderPassesMetadata.push_back(&renderPassMetadata);
 
-        renderPassMetadata.renderPassName = renderPassName;
+        renderPassMetadata.name = renderPassName;
 
         if (renderPassMetadataJson.contains(TYPE_KEY))
             renderPassMetadata.type = renderPassMetadataJson[TYPE_KEY];
@@ -190,7 +177,7 @@ void RenderGraphMetadata::deserialize(const std::string& path)
         
         if (!renderPassMetadataJson.contains(PIPELINE_KEY))
         {
-            FE_LOG(LogRenderer, ERROR, "No pipeline metadata for render pass {}", renderPassMetadata.renderPassName);
+            FE_LOG(LogRenderer, ERROR, "No pipeline metadata for render pass {}", renderPassMetadata.name);
             continue;
         }
 
@@ -202,8 +189,8 @@ void RenderGraphMetadata::deserialize(const std::string& path)
 
         renderPassMetadata.pipelineName = pipelineName;
 
-        PipelineMetadata& pipelineMetadata = m_pipelineMetadataByName[pipelineName];
-        pipelineMetadata.pipelineName = pipelineName;
+        PipelineMetadata& pipelineMetadata = add_metadata<PipelineMetadata>(pipelineName);
+        pipelineMetadata.name = pipelineName;
 
         if (!pipelineMetadataJson.contains(SHADERS_KEY))
         {
@@ -246,37 +233,51 @@ void RenderGraphMetadata::deserialize(const std::string& path)
 
 const TextureMetadata* RenderGraphMetadata::get_texture_metadata(ResourceName textureName) const
 {
-    auto it = m_renderTextureMetadataByName.find(textureName);
-    if (it == m_renderTextureMetadataByName.end())
+    auto it = m_resourceMetadataByName.find(textureName);
+    if (it == m_resourceMetadataByName.end())
         return nullptr;
 
-    return &it->second;
+    return static_cast<const TextureMetadata*>(it->second.get());
 }
 
 const RenderPassMetadata* RenderGraphMetadata::get_render_pass_metadata(RenderPassName renderPassName) const
 {
-    auto it = m_renderPassMetadataByName.find(renderPassName);
-    if (it == m_renderPassMetadataByName.end())
+    auto it = m_resourceMetadataByName.find(renderPassName);
+    if (it == m_resourceMetadataByName.end())
         return nullptr;
 
-    return &it->second;
+    return static_cast<const RenderPassMetadata*>(it->second.get());
 }
 
 const PipelineMetadata* RenderGraphMetadata::get_pipeline_metadata(PipelineName pipelineName) const
 {
-    auto it = m_pipelineMetadataByName.find(pipelineName);
-    if (it == m_pipelineMetadataByName.end())
+    auto it = m_resourceMetadataByName.find(pipelineName);
+    if (it == m_resourceMetadataByName.end())
         return nullptr;
 
-    return &it->second;
+    return static_cast<const PipelineMetadata*>(it->second.get());
 }
 
 const PushConstantsMetadata* RenderGraphMetadata::get_push_constants_metadata(PushConstantsName pushConstantsName) const
 {
-    auto it = m_pushConstantsMetadataByName.find(pushConstantsName);
-    if (it == m_pushConstantsMetadataByName.end())
+    auto it = m_resourceMetadataByName.find(pushConstantsName);
+    if (it == m_resourceMetadataByName.end())
         return nullptr;
-    return &it->second;
+    return static_cast<const PushConstantsMetadata*>(it->second.get());
+}
+
+void RenderGraphMetadata::parse_flags(const nlohmann::json& metadataJson, ResourceMetadataWithFlags<Name>& metadata)
+{
+    if (metadataJson.contains(FLAGS_KEY))
+    {
+        const std::vector<std::string>& flagStrs = metadataJson[FLAGS_KEY];
+        for (const std::string& flagStr : flagStrs)
+        {
+            ResourceMetadataFlag flag;
+            to_enum(flagStr, flag);
+            metadata.flags |= flag;
+        }
+    }
 }
 
 }

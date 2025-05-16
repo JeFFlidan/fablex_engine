@@ -11,6 +11,8 @@ class RenderContext;
 class SceneManager;
 class RenderGraphMetadata;
 struct RenderSurface;
+struct RenderPassMetadata;
+struct TextureMetadata;
 
 struct RenderPassInfo
 {
@@ -37,8 +39,8 @@ public:
     RenderPassInfo get_info() const;
     void fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo) const;
 
+    RenderPassName get_name() const;
     const RenderPassMetadata& get_metadata() const { return *m_metadata; }
-    RenderPassName get_name() const { return m_metadata->renderPassName; }
 
 protected:
     const RenderPassMetadata* m_metadata;

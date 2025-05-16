@@ -1,4 +1,5 @@
 #include "pipeline_manager.h"
+#include "resource_metadata.h"
 #include "shader_manager.h"
 #include "render_pass_container.h"
 #include "render_pass.h"
@@ -31,7 +32,7 @@ void PipelineManager::create_graphics_pipeline(const PipelineMetadata& pipelineM
     rhi::GraphicsPipelineInfo info;
     configure_pipeline_info(info, pipelineMetadata);
 
-    create_pipeline(pipelineMetadata.pipelineName, &info);
+    create_pipeline(pipelineMetadata.name, &info);
 }
 
 void PipelineManager::create_graphics_pipeline(
@@ -43,7 +44,7 @@ void PipelineManager::create_graphics_pipeline(
     configure_pipeline_info(info, pipelineMetadata);
     configurator(info);
 
-    create_pipeline(pipelineMetadata.pipelineName, &info);
+    create_pipeline(pipelineMetadata.name, &info);
 }
 
 void PipelineManager::create_compute_pipeline(const PipelineMetadata& pipelineMetadata)
@@ -64,7 +65,7 @@ void PipelineManager::create_compute_pipeline(const PipelineMetadata& pipelineMe
 
     info.shaderStage = m_shaderManager->get_shader(*shaderMetadata);
 
-    create_pipeline(pipelineMetadata.pipelineName, &info);
+    create_pipeline(pipelineMetadata.name, &info);
 }
 
 void PipelineManager::create_ray_tracing_pipeline(const PipelineMetadata& pipelineMetadata)
@@ -72,7 +73,7 @@ void PipelineManager::create_ray_tracing_pipeline(const PipelineMetadata& pipeli
     rhi::RayTracingPipelineInfo info;
     configure_pipeline_info(info, pipelineMetadata);
 
-    create_pipeline(pipelineMetadata.pipelineName, &info);
+    create_pipeline(pipelineMetadata.name, &info);
 }
 
 void PipelineManager::create_ray_tracing_pipeline(
@@ -84,7 +85,7 @@ void PipelineManager::create_ray_tracing_pipeline(
     configure_pipeline_info(info, pipelineMetadata);
     configurator(info);
 
-    create_pipeline(pipelineMetadata.pipelineName, &info);
+    create_pipeline(pipelineMetadata.name, &info);
 }
 
 void PipelineManager::create_pipelines(RenderPassContainer* renderPassContainer)

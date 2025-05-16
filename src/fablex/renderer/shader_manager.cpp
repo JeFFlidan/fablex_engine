@@ -1,4 +1,5 @@
 #include "shader_manager.h"
+#include "resource_metadata.h"
 #include "core/utils.h"
 #include "core/logger.h"
 #include "core/file_system/file_system.h"
@@ -436,15 +437,15 @@ ShaderManager::ShaderManager()
 
 ShaderManager::~ShaderManager()
 {
-    for (auto& [metadata, shader] : m_shaderByMetadata)
+    for (auto& [hash, shader] : m_shaderByMetadataHash)
         rhi::destroy_shader(shader);
 }
 
 rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
 {
-    auto it = m_shaderByMetadata.find(shaderMetadata);
+    auto it = m_shaderByMetadataHash.find(get_hash(shaderMetadata));
 
-    if (it != m_shaderByMetadata.end())
+    if (it != m_shaderByMetadataHash.end())
         return it->second;
 
     rhi::Shader* shader = load_shader(
@@ -457,7 +458,7 @@ rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
 
     {
         std::scoped_lock<std::mutex> locker(m_mutex);
-        m_shaderByMetadata[shaderMetadata] = shader;
+        m_shaderByMetadataHash[get_hash(shaderMetadata)] = shader;
     }
 
     return shader;
@@ -537,6 +538,11 @@ rhi::Shader* ShaderManager::load_shader(
     }
 
     return shader;
+}
+
+uint64 ShaderManager::get_hash(const ShaderMetadata& metadata) const
+{
+    return std::hash<ShaderMetadata>()(metadata);
 }
 
 }

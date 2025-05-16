@@ -8,6 +8,7 @@ namespace fe::renderer
 
 class RenderPass;
 class RenderContext;
+struct RenderPassMetadata;
 
 class RenderPassContainer
 {

@@ -46,7 +46,9 @@ struct SerializationInfo { };
             auto it = std::find_if(std::begin(m), std::end(m),                          \
             [&str](const std::pair<EnumType, const char*>& ejPair)                      \
                 {                                                                       \
-                    return strcmp(ejPair.second, fe::Utils::to_upper(str).c_str()) == 0;\
+                    return strcmp(                                                      \
+                        fe::Utils::to_upper(ejPair.second).c_str(),                     \
+                        fe::Utils::to_upper(str).c_str()) == 0;                         \
                 }                                                                       \
             );                                                                          \
             return ((it != std::end(m)) ? it : std::begin(m))->first;                   \
