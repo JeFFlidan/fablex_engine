@@ -14,16 +14,8 @@
             ],
             "Pipeline": {
                 "Name": "SwapChainPipeline",
-                "Shaders": [
-                    {
-                        "Type": "VERTEX",
-                        "Path": "output_plane_vs.hlsl"
-                    },
-                    {
-                        "Type": "FRAGMENT",
-                        "Path": "output_plane_fs.hlsl"
-                    }
-                ]
+                "Vertex": "output_plane_vs.hlsl",
+                "Fragment": "output_plane_fs.hlsl"
             }
         },
         {
@@ -40,48 +32,17 @@
             ],
             "Pipeline": {
                 "Name": "PathTracingPipeline",
-                "Shaders": [
-                    {
-                        "Type": "RAY_GENERATION",
-                        "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "raygen"
-                    },
-                    {
-                        "Type": "RAY_MISS",
-                        "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "miss_primary"
-                    },
-                    {
-                        "Type": "RAY_MISS",
-                        "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "miss_secondary"
-                    },
-                    {
-                        "Type": "RAY_MISS",
-                        "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "miss_shadow"
-                    },
-                    {
-                        "Type": "RAY_CLOSEST_HIT",
-                        "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "closest_hit_primary"
-                    },
-                    {
-                        "Type": "RAY_CLOSEST_HIT",
-                        "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "closest_hit_secondary"
-                    },
-                    {
-                        "Type": "RAY_CLOSEST_HIT",
-                        "Path": "ray_tracing/path_tracing_lib.hlsl",
-                        "EntryPoint": "closest_hit_shadow"
-                    }
-                ]
+                "ShaderLib": {
+                    "Path": "ray_tracing/path_tracing_lib.hlsl",
+                    "Raygen": ["raygen"],
+                    "Miss": ["miss_primary", "miss_secondary", "miss_shadow"],
+                    "ClosestHit": ["closest_hit_primary", "closest_hit_secondary", "closest_hit_shadow"]
+                }
             }
         },
         {
             "Name": "SVGFFilterMomentsPass",
-            "Type": "ASYNC_COMPUTE",
+            "Type": "COMPUTE",
             "OutputStorageTextures": [
                 "FilteredIllumination"
             ],
@@ -93,17 +54,12 @@
             ],
             "Pipeline": {
                 "Name": "SVGFFilterPipeline",
-                "Shaders": [
-                    {
-                        "Type": "COMPUTE",
-                        "Path": "ray_tracing/svgf_filter_moments_cs.hlsl"
-                    }
-                ]
+                "Compute": "ray_tracing/svgf_filter_moments_cs.hlsl"
             }
         },
         {
             "Name": "SVGFAtrousPass",
-            "Type": "ASYNC_COMPUTE",
+            "Type": "COMPUTE",
             "OutputStorageTextures": [
                 "FinalIllumination"
             ],
@@ -115,17 +71,12 @@
             ],
             "Pipeline": {
                 "Name": "SVGFAtrousPipeline",
-                "Shaders": [
-                    {
-                        "Type": "COMPUTE",
-                        "Path": "ray_tracing/svgf_atrous_cs.hlsl"
-                    }
-                ]
+                "Compute": "ray_tracing/svgf_atrous_cs.hlsl"
             }
         },
         {
             "Name": "SVGFFinalModulatePass",
-            "Type": "ASYNC_COMPUTE",
+            "Type": "COMPUTE",
             "OutputStorageTextures": [
                 "ModulatedColor"
             ],
@@ -136,12 +87,7 @@
             ],
             "Pipeline": {
                 "Name": "SVGFFinalModulatePipeline",
-                "Shaders": [
-                    {
-                        "Type": "COMPUTE",
-                        "Path": "ray_tracing/svgf_final_modulate_cs.hlsl"
-                    }
-                ]
+                "Compute": "ray_tracing/svgf_final_modulate_cs.hlsl"
             }
         }
     ],
@@ -161,7 +107,7 @@
         {
             "Name": "DepthNormal",
             "Format": "R32G32B32A32_SFLOAT",
-            "CrossFrameRead": true
+            "Flags": ["CrossFrameRead"]
         },
         {
             "Name": "ReprojectedIllumination",
@@ -170,12 +116,12 @@
         {
             "Name": "Moments",
             "Format": "R32G32_SFLOAT",
-            "CrossFrameRead": true
+            "Flags": ["CrossFrameRead"]
         },
         {
             "Name": "HistoryLength",
             "Format": "R32_SFLOAT",
-            "CrossFrameRead": true
+            "Flags": ["CrossFrameRead"]
         },
         {
             "Name": "FilteredIllumination",
@@ -196,39 +142,39 @@
             "Resources": [
                 {
                     "Name": "MotionVector",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "Albedo",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "Emission",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "DepthNormal",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "DepthNormal",
-                    "PreviousFrame": true
+                    "Flags": ["PreviousFrame"]
                 },
                 {
                     "Name": "ReprojectedIllumination",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "Moments",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "HistoryLength",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "HistoryLength",
-                    "PreviousFrame": true
+                    "Flags": ["PreviousFrame"]
                 }
             ]
         },
@@ -237,7 +183,7 @@
             "Resources": [
                 {
                     "Name": "FilteredIllumination",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "ReprojectedIllumination"
@@ -258,7 +204,7 @@
             "Resources": [
                 {
                     "Name": "FinalIllumination",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "Albedo"
@@ -279,7 +225,7 @@
             "Resources": [
                 {
                     "Name": "ModulatedColor",
-                    "Write": true
+                    "Flags": ["Writable"]
                 },
                 {
                     "Name": "FinalIllumination"
