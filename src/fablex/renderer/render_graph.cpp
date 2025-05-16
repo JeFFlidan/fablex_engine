@@ -354,7 +354,7 @@ void RenderGraph::remove_redundant_syncs()
                 {
                     const Node* nodeToSyncWith = syncCoverage.nodeToSyncWith;
 
-                    if (syncsCoveredByNodeMaxCount >= syncCoverage.syncedQueueIndices.size())
+                    if (syncsCoveredByNodeMaxCount <= syncCoverage.syncedQueueIndices.size())
                     {
                         if (nodeToSyncWith->m_queueIndex != node->m_queueIndex)
                         {

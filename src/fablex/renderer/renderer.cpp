@@ -217,7 +217,6 @@ void Renderer::configure_submit_contexts()
         SubmitContext* lastSubmitContext = lastSubmitContextPerQueue.at(nodeQueueIdx);
 
         if (!lastSubmitContext
-            || node->is_sync_signal_required()
             || !node->get_nodes_to_sync_with().empty()
             || (node->useRayTracing && m_bvhBuildSemaphore && requiresWaitingBVH)
         )
@@ -228,7 +227,7 @@ void Renderer::configure_submit_contexts()
             lastSubmitContext->queueType = (rhi::QueueType)nodeQueueIdx;
         }
 
-        if (node->is_sync_signal_required())
+        if (node->is_sync_signal_required() && !lastSubmitContext->signalSemaphore)
         {            
             lastSubmitContext->signalSemaphore = m_syncManager->get_semaphore();
             rhi::set_name(lastSubmitContext->signalSemaphore, node->name().to_string());
