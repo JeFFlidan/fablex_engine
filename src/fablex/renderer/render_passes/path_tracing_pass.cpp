@@ -50,6 +50,8 @@ void PathTracingPass::execute(rhi::CommandBuffer* cmd)
     pushConstants.bounceCount = 10;
     pushConstants.frameNumber = g_frameNumber;
     pushConstants.accumulationFactor = 1.0f / (m_accumulationFactor + 1.0f);
+    pushConstants.alpha = 0.05f;
+    pushConstants.momentsAlpha = 0.2f;
 
     push_constants(cmd, &pushConstants);
     

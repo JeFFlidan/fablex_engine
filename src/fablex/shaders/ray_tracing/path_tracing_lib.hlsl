@@ -209,8 +209,9 @@ void raygen()
         }
     }
 
-    float4 oldValue = cb.outIllumination.read(pixel);
+    float4 oldValue = cb.inPrevIllumination.read(pixel);
     cb.outIllumination.write(pixel, lerp(oldValue, float4(result, 1), cb.accumulationFactor));  // FOR TEST ONLY
+    // cb.outIllumination.write(pixel, 1);  // FOR TEST ONLY
 
     svgf_reproject(result, primaryPayload.normalFWidth);
 }

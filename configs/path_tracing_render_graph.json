@@ -111,7 +111,8 @@
         },
         {
             "Name": "ReprojectedIllumination",
-            "Format": "R32G32B32A32_SFLOAT"
+            "Format": "R32G32B32A32_SFLOAT",
+            "Flags": ["CrossFrameRead"]
         },
         {
             "Name": "Moments",
@@ -165,8 +166,16 @@
                     "Flags": ["Writable"]
                 },
                 {
+                    "Name": "ReprojectedIllumination",
+                    "Flags": ["PreviousFrame"]
+                },
+                {
                     "Name": "Moments",
                     "Flags": ["Writable"]
+                },
+                {
+                    "Name": "Moments",
+                    "Flags": ["PreviousFrame"]
                 },
                 {
                     "Name": "HistoryLength",

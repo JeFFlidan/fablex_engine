@@ -729,7 +729,9 @@ struct PathTracingPushConstants
 	RWTexture2D_Descriptor<float4> outDepthNormal;
 	Texture2D_Descriptor<float4> inPrevDepthNormal;
 	RWTexture2D_Descriptor<float4> outIllumination;
+	Texture2D_Descriptor<float4> inPrevIllumination;
 	RWTexture2D_Descriptor<float2> outMoments;
+	Texture2D_Descriptor<float2> inPrevMoments;
 	RWTexture2D_Descriptor<float> outHistoryLength;
 	Texture2D_Descriptor<float> inPrevHistoryLength;
 
@@ -738,7 +740,8 @@ struct PathTracingPushConstants
 	uint bounceCount;
 	uint frameNumber;
 	float accumulationFactor;
-	uint3 padding;
+	float alpha;
+	float momentsAlpha;
 };
 
 struct SVGFFilterMomentsPushConstants

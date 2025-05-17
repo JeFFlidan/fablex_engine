@@ -48,25 +48,30 @@ float3 demodulate(float3 c, float3 albedo)
     return c / max(albedo, 0.001);
 }
 
+float luminance(float3 rgb)
+{
+    return dot(rgb, float3(0.2126, 0.7152, 0.0722));
+}
+
 bool is_reprojection_valid(
-    int2 coord, 
+    uint2 coord, 
     float depth, 
-    float depthPrev, 
+    float prevDepth, 
     float depthDeriv, 
     float3 normal, 
-    float3 normalPrev, 
+    float3 prevNormal, 
     float normalFWidth
 )
 {
-    const int2 dimensions = DispatchRaysDimensions().xy;
+    const uint2 dimensions = (uint2)DispatchRaysDimensions().xy;
 
     if (any(coord < 1) || any(coord > dimensions - 1))
         return false;
 
-    if (abs(depthPrev - depth) / (depthDeriv + 1e-2) > 10.0)
+    if (abs(prevDepth - depth) / (depthDeriv + 1e-2) > 10.0)
         return false;
 
-    if (distance(normal, normalPrev) / (normalFWidth + 1e-2) > 16.0)
+    if (distance(normal, prevNormal) / (normalFWidth + 1e-2) > 16.0)
         return false;
 
     return true;
@@ -75,33 +80,141 @@ bool is_reprojection_valid(
 bool load_previous_data(
     in float normalFWidth,
     in float3 normal,
-    in float depth,
-    out float4 illuminationPrev, 
-    out float2 momentsPrev, 
+    in float2 depth,
+    out float4 prevIllumination, 
+    out float2 prevMoments, 
     out float historyLength
 )
 {
     const uint2 pixel = DispatchRaysIndex().xy;
-    const int2 dimensions = DispatchRaysDimensions().xy;
+    const float2 dimensions = DispatchRaysDimensions().xy;
 
     const float2 motion = cb.outMotionVector.read(pixel);
-    
-    // TODO
 
-    illuminationPrev = 0;
-    momentsPrev = 0;
-    historyLength = 0;
+    const uint2 prevPixel = uint2(float2(pixel) + motion * dimensions + 0.5);
 
-    return true;
+    prevIllumination = 0;
+    prevMoments = 0;
+
+    bool v[4];
+    const float2 prevPos = float2(pixel) + motion * dimensions;
+    const uint2 offset[4] = {uint2(0, 0), uint2(1, 0), uint2(0, 1), uint2(1, 1)};
+
+    bool valid = false;
+    for (int sampleIdx = 0; sampleIdx < 4; ++sampleIdx)
+    {
+        uint2 loc = (uint2)prevPos + offset[sampleIdx];
+        float2 prevDepth = cb.inPrevDepthNormal[loc].xy;
+        float3 prevNormal = oct_to_ndir_snorm(cb.inPrevDepthNormal[loc].zw);
+
+        v[sampleIdx] = is_reprojection_valid(prevPos, depth.x, prevDepth.x, depth.y, normal, prevNormal, normalFWidth);
+
+        valid = valid || v[sampleIdx];
+    }
+
+    if (valid)
+    {
+        float sumw = 0;
+        float x = frac(prevPos.x);
+        float y = frac(prevPos.y);
+
+        const float w[4] = {(1 - x) * (1 - y), x * (1 - y), (1 - x) * y, x * y};
+
+        for (int sampleIdx = 0; sampleIdx < 4; ++sampleIdx)
+        {
+            const uint2 loc = uint2(prevPos) + offset[sampleIdx];
+            if (v[sampleIdx])
+            {
+                prevIllumination += w[sampleIdx] * cb.inPrevIllumination.get()[loc];
+                prevMoments += w[sampleIdx] * cb.inPrevMoments.get()[loc].xy;
+                sumw += w[sampleIdx];
+            }
+        }
+
+        valid = (sumw >= 0.01);
+        prevIllumination = valid ? prevIllumination / sumw : 0;
+        prevMoments = valid ? prevMoments / sumw : 0;
+    }
+
+    if (!valid)
+    {
+        float nValid = 0.0;
+
+        const int radius = 1;
+        for (int yy = -radius; yy <= radius; ++yy)
+        {
+            for (int xx = -radius; xx <= radius; ++xx)
+            {
+                const uint2 p = uint2(int2(prevPixel) + int2(xx, yy));
+                const float2 depthFilter = cb.inPrevDepthNormal[p].xy;
+                const float3 normalFilter = oct_to_ndir_snorm(cb.inPrevDepthNormal[p].zw);
+
+                if (is_reprojection_valid(prevPixel, depth.x, depthFilter.x, depth.y, normal, normalFilter, normalFWidth))
+                {
+                    prevIllumination += cb.inPrevIllumination.get()[p];
+                    prevMoments += cb.inPrevMoments.get()[p].xy;
+                    nValid += 1.0;
+                }
+            }
+        }
+
+        if (nValid > 0.0)
+        {
+            valid = true;
+            prevIllumination /= nValid;
+            prevMoments /= nValid;
+        }
+    }
+
+    if (valid)
+    {
+        historyLength = cb.inPrevHistoryLength.get()[prevPixel].x;
+    }
+    else
+    {
+        prevIllumination = 0;
+        prevMoments = 0;
+        historyLength = 0;
+    }
+
+    return valid;
 }
 
 void svgf_reproject(in float3 color, in float normalFWidth)
 {
     const uint2 pixel = DispatchRaysIndex().xy;
+    const float3 albedo = cb.outAlbedo[pixel].xyz;
+    const float3 emission = cb.outEmission[pixel].xyz;
+    const float2 depth = cb.outDepthNormal[pixel].xy;
+    const float3 normal = oct_to_ndir_snorm(cb.outDepthNormal[pixel].zw);
 
-    // float3 illumination = demodulate(color - emission, albedo);
-    // if (any(any(illumination)))
-    //     illumination = 0;
+    float3 illumination = demodulate(color - emission, albedo);
+    if (any(isnan(illumination)))
+        illumination = 0;
+
+    float historyLength;
+    float4 prevIllumination;
+    float2 prevMoments;
+    bool success = load_previous_data(normalFWidth, normal, depth, prevIllumination, prevMoments, historyLength);
+    historyLength = min(32.0f, success ? historyLength + 1.0 : 1.0);
+
+    const float alpha = success ? max(cb.alpha, 1.0 / historyLength) : 1.0;
+    const float alphaMoments = success ? max(cb.momentsAlpha, 1.0 / historyLength) : 1.0;
+
+    float2 moments;
+    moments.r = luminance(illumination);
+    moments.g = moments.r * moments.r;
+
+    moments = lerp(prevMoments, moments, alphaMoments);
+
+    float variance = max(0.0, moments.g - moments.r * moments.r);
+
+    float4 finalIllumination = lerp(prevIllumination, float4(illumination, 0), alpha);
+    finalIllumination.a = variance;
+
+    cb.outIllumination.write(pixel, finalIllumination);
+    cb.outMoments.write(pixel, moments);
+    cb.outHistoryLength.write(pixel, historyLength);
 }
 
 #endif // SVGF_DEFINE
