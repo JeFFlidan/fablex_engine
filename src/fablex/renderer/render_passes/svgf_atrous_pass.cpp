@@ -19,6 +19,9 @@ void SVGFAtrousPass::execute(rhi::CommandBuffer* cmd)
     bind_pipeline(cmd);
 
     SVGFAtrousPushConstants pushConstants;
+    pushConstants.phiNormal = 128.0f;
+    pushConstants.phiColor = 10.0f;
+    pushConstants.stepSize = 1 << 0;
     fill_push_constants(pushConstants);
 
     push_constants(cmd, &pushConstants);

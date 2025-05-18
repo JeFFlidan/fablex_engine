@@ -133,10 +133,18 @@ void RenderGraphResourceManager::end_resource_scheduling()
 {
     for (const ResourceCreationRequest& request : m_primaryResourceCreationRequests)
     {
-        FE_CHECK(!get_resource(request.resourceName));
+        // FE_CHECK(!get_resource(request.resourceName));
+
+        // SVGF needs outputs from the previous render graph execution and assertion is fired because of this, so I decided to use WARNING log.
+        if (get_resource(request.resourceName))
+        {
+            FE_LOG(LogRenderer, WARNING, "Resource {} allocation is already requested by {}", request.resourceName, request.renderPassName);
+            continue;
+        }
+
         create_resource(request);
     }
-
+    
     for (const SchedulingRequest& request : m_schedulingAllocationRequests)
     {
         Resource* resource = get_resource(request.resourceName);
@@ -151,7 +159,7 @@ void RenderGraphResourceManager::end_resource_scheduling()
         Resource* resource = get_resource(request.resourceName);
         if (!resource)
             FE_LOG(LogRenderer, FATAL, "Tries to use resource {} that was not created.", request.resourceName);
-
+        
         request.configurator(resource->get_scheduling_info());
     }
 }

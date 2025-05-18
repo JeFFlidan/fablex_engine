@@ -34,8 +34,8 @@ struct Surface
     float2 barycentrics;
 
 #ifdef SURFACE_BARYCENTRICS_QUADS
-    float2 barycentricsQuadX;
-    float2 barycentricsQuadY;
+    float2 barycentricsQuadX; // world space
+    float2 barycentricsQuadY; // world space
 #endif // SURFACE_BARYCENTRICS_QUADS
 
 #ifdef SURFACE_NORMAL_DERIVATIVES
@@ -53,6 +53,7 @@ struct Surface
     ShaderModelInstance instance;
     ShaderModel model;
 
+#ifndef SURFACE_NORMAL_DERIVATIVES
     void init(in PrimitiveInfo primitiveInfo, in float2 inBarycentrics)
     {
         [branch]
@@ -70,6 +71,7 @@ struct Surface
 
         init_internal();
     }
+#endif // SURFACE_NORMAL_DERIVATIVES
 
     void init(
         in PrimitiveInfo primitiveInfo, 
@@ -84,12 +86,27 @@ struct Surface
 
         barycentrics = inBarycentrics;
 
-#ifdef SURFACE_BARYCENTRICS_QUADS
-        barycentricsQuadX = compute_barycentrics(rayOrigin, QuadReadAcrossX(rayDirection), P0.xyz, P1.xyz, P2.xyz);
-        barycentricsQuadY = compute_barycentrics(rayOrigin, QuadReadAcrossY(rayDirection), P0.xyz, P1.xyz, P2.xyz);
-#endif // SURFACE_BARYCENTRICS_QUADS
-
         P = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentrics);
+
+#ifdef SURFACE_BARYCENTRICS_QUADS
+        float3 rayDirectionX = QuadReadAcrossX(rayDirection);
+        float3 rayDirectionY = QuadReadAcrossY(rayDirection);
+        P0 = mul(instance.transform.get_matrix(), float4(P0, 1)).xyz;
+        P1 = mul(instance.transform.get_matrix(), float4(P1, 1)).xyz;
+        P2 = mul(instance.transform.get_matrix(), float4(P2, 1)).xyz;
+        barycentricsQuadX = compute_barycentrics(rayOrigin, rayDirectionX, P0.xyz, P1.xyz, P2.xyz);
+        barycentricsQuadY = compute_barycentrics(rayOrigin, rayDirectionY, P0.xyz, P1.xyz, P2.xyz);
+#endif
+
+#ifdef SURFACE_NORMAL_DERIVATIVES
+        init_internal(rayOrigin, rayDirectionX, rayDirectionY);
+#else
+        init_internal();
+#endif // SURFACE_NORMAL_DERIVATIVES
+
+
+#ifdef SURFACE_BARYCENTRICS_QUADS
+#endif // SURFACE_BARYCENTRICS_QUADS
 
 #ifdef SURFACE_POSITION_DERIVATIVES
         P_quadX = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentricsQuadX);
@@ -97,11 +114,9 @@ struct Surface
         P_dx = P - P_quadX;
         P_dy = P - P_quadY;
 
-        P_quadX = mul(instance.transform.get_matrix(), float4(P_quadX, 1)).xyz;
-        P_quadY = mul(instance.transform.get_matrix(), float4(P_quadY, 1)).xyz;
+        // P_quadX = mul(instance.transform.get_matrix(), float4(P_quadX, 1)).xyz;
+        // P_quadY = mul(instance.transform.get_matrix(), float4(P_quadY, 1)).xyz;
 #endif
-
-        init_internal();
     }
 
     bool load_model_data(in PrimitiveInfo primitiveInfo)
@@ -114,15 +129,18 @@ struct Surface
         i1 = indices.y;
         i2 = indices.z;
 
-        Buffer<float4> posBuffer = bindlessBuffersFloat4[descriptor_index(model.vertexBufferPosWind)];
-        P0 = posBuffer[i0].xyz;
-        P1 = posBuffer[i1].xyz;
-        P2 = posBuffer[i2].xyz;
+        get_tri(P0, P1, P2);
 
         return true;
     }
 
-    void init_internal()
+    void init_internal(
+#ifdef SURFACE_NORMAL_DERIVATIVES
+        float3 rayOrigin,
+        float3 rayDirectionX,
+        float3 rayDirectionY
+#endif
+    )
     {
         prevP = mul(instance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
         P = mul(instance.transform.get_matrix(), float4(P, 1.0)).xyz;
@@ -144,14 +162,29 @@ struct Surface
             N = normalize(N);
 
 #ifdef SURFACE_NORMAL_DERIVATIVES
+            // n0 = normalBuffer[i0].xyz;
+            // n1 = normalBuffer[i1].xyz;
+            // n2 = normalBuffer[i2].xyz;
+
+            // float3 localP0, localP1, localP2;
+            // get_tri(localP0, localP1, localP2);
+
+            // float2 normalBarycentricsQuadX = compute_barycentrics(rayOrigin, rayDirectionX, localP0, localP1, localP2);
+            // float2 normalBarycentricsQuadY = compute_barycentrics(rayOrigin, rayDirectionY, localP0, localP1, localP2);
+
             N_dx = barycentric_interpolation(n0, n1, n2, barycentricsQuadX);
             N_dy = barycentric_interpolation(n0, n1, n2, barycentricsQuadY);
-
+            
             N_dx = normalize(N_dx);
             N_dy = normalize(N_dy);
 
+            // N_dx = mul(adjointMat, N_dx);
+            // N_dy = mul(adjointMat, N_dy);
+
             N_dx = N - N_dx;
             N_dy = N - N_dy;
+
+            // N_dy = 0;
 #endif
         }
 
@@ -177,6 +210,14 @@ struct Surface
         float2 prevUV = prevClip.xy / prevClip.w * 0.5 + 0.5;
 
         return currUV - prevUV;
+    }
+
+    void get_tri(out float3 localP0, out float3 localP1, out float3 localP2)
+    {
+        Buffer<float4> posBuffer = bindlessBuffersFloat4[descriptor_index(model.vertexBufferPosWind)];
+        localP0 = posBuffer[i0].xyz;
+        localP1 = posBuffer[i1].xyz;
+        localP2 = posBuffer[i2].xyz;
     }
 };
 

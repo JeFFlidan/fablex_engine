@@ -74,7 +74,8 @@ float3 exec_closest_hit(
         shadowPayload
     );
 
-    float shadow = shadowPayload.rayHitT < FLOAT_MAX ? 0 : 1;
+    // float shadow = shadowPayload.rayHitT < FLOAT_MAX ? 0 : 1;
+    float shadow = 1;
 
     float3 color = energy * shadow * iter.count * mad(surface.baseColor.xyz / PI, lighting.direct.diffuse, lighting.direct.specular);
 
@@ -154,7 +155,7 @@ void raygen()
 
     RNG rng;
     rng.compute_rng_seed(id, cb.frameNumber, bounces);
-
+    cb.outColor.write(pixel, 0);
     RayDesc ray = get_camera_ray();
 
     PrimaryRayPayload primaryPayload;
@@ -207,13 +208,19 @@ void raygen()
             if (!canExecNextBounce)
                 break;
         }
+
+        svgf_reproject(result, primaryPayload.normalFWidth);
+    }
+    else
+    {
+        cb.outIllumination.write(pixel, float4(result, 1));  // FOR TEST ONLY
     }
 
-    float4 oldValue = cb.inPrevIllumination.read(pixel);
-    cb.outIllumination.write(pixel, lerp(oldValue, float4(result, 1), cb.accumulationFactor));  // FOR TEST ONLY
+    // cb.outColor.write(pixel, float4(result, 1));
+
+    // float4 oldValue = cb.inPrevIllumination.read(pixel);
     // cb.outIllumination.write(pixel, 1);  // FOR TEST ONLY
 
-    svgf_reproject(result, primaryPayload.normalFWidth);
 }
 
 [shader("closesthit")]

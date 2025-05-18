@@ -2,6 +2,7 @@
 #include "render_graph_resource_manager.h"
 #include "render_graph.h"
 #include "globals.h"
+#include "rhi/utils.h"
 
 namespace fe::renderer
 {

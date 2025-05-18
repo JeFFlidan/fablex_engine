@@ -20,6 +20,31 @@ void RenderPass::init(const RenderPassMetadata& metadata, const RenderContext* r
     m_metadata = &metadata;
 }
 
+void RenderPass::create_pipelines()
+{
+    PipelineManager* pipelineManager = m_renderContext->pipeline_manager();
+    PipelineName pipelineName = m_metadata->pipelineName;
+    uint32 index = 0;
+
+    while (true)
+    {
+        std::string pipelineNameStr = get_name_at_index(pipelineName, index++);
+
+        if (pipelineNameStr.empty())
+            break;
+
+        const PipelineMetadata& pipelineMetadata = get_pipeline_metadata(pipelineNameStr);
+        const ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.at(0);
+
+        if (shaderMetadata.type == rhi::ShaderType::COMPUTE)
+            pipelineManager->create_compute_pipeline(pipelineMetadata);
+        else if (rhi::is_rt_shader(shaderMetadata.type))
+            pipelineManager->create_ray_tracing_pipeline(pipelineMetadata);
+        else
+            pipelineManager->create_compute_pipeline(pipelineMetadata);  
+    }
+}
+
 void RenderPass::schedule_resources()
 {
     FE_CHECK(m_metadata);
@@ -33,6 +58,17 @@ void RenderPass::schedule_resources()
             auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.name);
             ResourceScheduler::read_texture(get_name(), prevFrameName);
             ResourceScheduler::read_texture(get_name(), curFrameName);
+        }
+        else if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ_NO_HISTORY))
+        {
+            rhi::TextureInfo info;
+            fill_texture_info(textureMetadata, info);
+            ResourceScheduler::read_previous_texture(get_name(), textureName, &info);
+        }
+        else if (textureMetadata.has_flag(ResourceMetadataFlag::PING_PONG))
+        {
+            ResourceName pingPong0 = textureName.to_string() + "0";
+            ResourceScheduler::read_texture(get_name(), pingPong0);
         }
         else
         {
@@ -91,6 +127,19 @@ void RenderPass::schedule_resources()
             auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureName);
             ResourceScheduler::read_previous_texture(get_name(), prevFrameName, &info);
             ResourceScheduler::create_storage_texture(get_name(), curFrameName, &info);
+        }
+        else if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ_NO_HISTORY))
+        {
+            ResourceScheduler::create_storage_texture(get_name(), textureName, &info);
+        }
+        else if (textureMetadata.has_flag(ResourceMetadataFlag::PING_PONG))
+        {
+            ResourceName pingPong0 = textureName.to_string() + "0";
+            ResourceName pingPong1 = textureName.to_string() + "1";
+            ResourceScheduler::create_storage_texture(get_name(), pingPong0, &info);
+            ResourceScheduler::create_storage_texture(get_name(), pingPong1, &info);
+
+            s_pingPongResourceRegistry[textureName] = {pingPong0, pingPong1};
         }
         else
         {
@@ -187,9 +236,19 @@ void RenderPass::bind_pipeline(rhi::CommandBuffer* cmd)
     m_renderContext->pipeline_manager()->bind_pipeline(cmd, m_metadata->pipelineName);
 }
 
+void RenderPass::bind_pipeline(rhi::CommandBuffer* cmd, uint32 pipelineIndex)
+{
+    m_renderContext->pipeline_manager()->bind_pipeline(cmd, get_name_at_index(m_metadata->pipelineName, pipelineIndex));
+}
+
 void RenderPass::push_constants(rhi::CommandBuffer* cmd, void* data)
 {
     m_renderContext->pipeline_manager()->push_constants(cmd, m_metadata->pipelineName, data);
+}
+
+void RenderPass::push_constants(rhi::CommandBuffer* cmd, void* data, uint32 pipelineIndex)
+{
+    m_renderContext->pipeline_manager()->push_constants(cmd, get_name_at_index(m_metadata->pipelineName, pipelineIndex), data);
 }
 
 void RenderPass::set_default_viewport_and_scissor(rhi::CommandBuffer* cmd) const
@@ -238,6 +297,15 @@ const PipelineMetadata& RenderPass::get_pipeline_metadata() const
     return *pipelineMetadata;
 }
 
+const PipelineMetadata& RenderPass::get_pipeline_metadata(Name pipelineName) const
+{
+    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->get_metadata();
+    const PipelineMetadata* pipelineMetadata = renderGraphMetadata->get_pipeline_metadata(pipelineName);
+    if (!pipelineMetadata)
+        FE_LOG(LogRenderer, FATAL, "No pipeline metadata for name {}", pipelineName);
+    return *pipelineMetadata;
+}
+
 const TextureMetadata& RenderPass::get_texture_metadata(ResourceName textureName) const
 {
     FE_CHECK(textureName.is_valid());
@@ -283,6 +351,28 @@ ResourceName RenderPass::get_curr_frame_resource_name(ResourceName baseName) con
     return ResourceName(baseName.to_string() + std::to_string(get_curr_frame_index()));
 }
 
+std::string RenderPass::get_name_at_index(Name name, uint32 index) const
+{
+    uint32 start = 0;
+    uint32 currentIndex = 0;
+
+    std::string nameStr = name.to_string();
+
+    for (uint32 i = 0; i <= nameStr.size(); ++i) 
+    {
+        if (i == nameStr.size() || nameStr[i] == '|') 
+        {
+            if (currentIndex == index)
+                return nameStr.substr(start, i - start);
+
+            start = i + 1;
+            ++currentIndex;
+        }
+    }
+
+    return {};
+}
+
 void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* data) const
 {
     const RenderGraphMetadata& renderGraphMetadata = get_render_graph_metadata();
@@ -298,6 +388,7 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
     uint64 offset = 0;
 
     RenderGraphResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
+    std::unordered_set<ResourceName> pingPongResources;
 
     for (const auto& resourceMetadata : pushConstantsMetadata->resourcesMetadata)
     {
@@ -315,9 +406,32 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
                 resourceName = get_curr_frame_resource_name(resourceName);
         }
 
+        bool isWritePingPong = false;
+
+        if (textureMetadata->has_flag(ResourceMetadataFlag::PING_PONG))
+        {
+            isWritePingPong = true;
+
+            if (resourceMetadata.has_flag(ResourceMetadataFlag::PING_PONG_0))
+            {
+                pingPongResources.insert(resourceName);
+                resourceName = get_ping_pong_0(resourceName);
+            }
+            else if (resourceMetadata.has_flag(ResourceMetadataFlag::PING_PONG_1))
+            {
+                pingPongResources.insert(resourceName);
+                resourceName = get_ping_pong_1(resourceName);
+            }
+            else
+            {
+                isWritePingPong = false;
+                resourceName = resourceName.to_string() + "0";
+            }
+        }
+
         uint32 descriptor = ~0u;
 
-        if (resourceMetadata.has_flag(ResourceMetadataFlag::WRITABLE))
+        if (resourceMetadata.has_flag(ResourceMetadataFlag::WRITABLE) || isWritePingPong)
             descriptor = resourceManager->get_texture_uav_descriptor(get_name(), resourceName);
         else
             descriptor = resourceManager->get_texture_srv_descriptor(get_name(), resourceName);
@@ -325,6 +439,34 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
         memcpy(typedData + offset, &descriptor, sizeof(uint32));
         offset += sizeof(uint32);
     }
+
+    for (ResourceName name : pingPongResources)
+        swap_ping_pong(name);
+}
+
+ResourceName RenderPass::get_ping_pong_0(ResourceName baseName) const
+{
+    return get_ping_pong_names(baseName).first;
+}
+
+ResourceName RenderPass::get_ping_pong_1(ResourceName baseName) const
+{
+    return get_ping_pong_names(baseName).second;
+}
+
+void RenderPass::swap_ping_pong(ResourceName baseName) const
+{
+    auto& pingPongNames = get_ping_pong_names(baseName);
+    std::swap(pingPongNames.first, pingPongNames.second);
+}
+
+RenderPass::ResourcePingPongNames& RenderPass::get_ping_pong_names(ResourceName baseName) const
+{
+    auto it = s_pingPongResourceRegistry.find(baseName);
+    if (it == s_pingPongResourceRegistry.end())
+        FE_LOG(LogRenderer, FATAL, "Failed to find ping pong for resource {}", baseName);
+
+    return it->second;
 }
 
 }

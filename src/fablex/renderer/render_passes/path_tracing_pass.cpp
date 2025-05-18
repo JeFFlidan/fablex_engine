@@ -2,6 +2,7 @@
 
 #include "path_tracing_pass.h"
 #include "resource_scheduler.h"
+#include "render_graph_resource_manager.h"
 #include "globals.h"
 
 #include "rhi/rhi.h"
@@ -36,6 +37,10 @@ void PathTracingPass::schedule_resources()
 
 void PathTracingPass::execute(rhi::CommandBuffer* cmd)
 {
+    RenderGraphResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
+    Resource* finalIllumination = resourceManager->get_resource("FilteredIllumination0");
+    FE_CHECK(finalIllumination);
+
     ++m_accumulationFactor;
     if (m_accumulationFactor > MAX_ACCUMULATION_FACTOR)
         m_accumulationFactor = MAX_ACCUMULATION_FACTOR;
@@ -49,9 +54,10 @@ void PathTracingPass::execute(rhi::CommandBuffer* cmd)
     pushConstants.tlas = m_renderContext->scene_manager()->scene_tlas()->descriptorIndex;
     pushConstants.bounceCount = 10;
     pushConstants.frameNumber = g_frameNumber;
-    pushConstants.accumulationFactor = 1.0f / (m_accumulationFactor + 1.0f);
+    pushConstants.accumulationFactor = m_accumulationFactor;
     pushConstants.alpha = 0.05f;
     pushConstants.momentsAlpha = 0.2f;
+    pushConstants.inPrevIllumination = finalIllumination->get_texture().get_srv_descriptor();
 
     push_constants(cmd, &pushConstants);
     

@@ -18,8 +18,12 @@ enum class ResourceMetadataFlag
     USE_MIPS = 1 << 0,
     TRANSFER_DST = 1 << 1,
     CROSS_FRAME_READ = 1 << 2,
-    PREVIOUS_FRAME = 1 << 3,
-    WRITABLE = 1 << 4
+    CROSS_FRAME_READ_NO_HISTORY = 1 << 3,
+    PREVIOUS_FRAME = 1 << 4,
+    WRITABLE = 1 << 5,
+    PING_PONG = 1 << 6,
+    PING_PONG_0 = 1 << 7,
+    PING_PONG_1 = 1 << 8
 };
 
 }

@@ -723,6 +723,7 @@ struct PathTracingPushConstants
 {
 	DEFINE_PUSH_CONSTANTS(PathTracingPushConstants);
 
+	RWTexture2D_Descriptor<float4> outColor;
 	RWTexture2D_Descriptor<float2> outMotionVector;
 	RWTexture2D_Descriptor<float4> outAlbedo;
 	RWTexture2D_Descriptor<float4> outEmission;
@@ -764,7 +765,7 @@ struct SVGFAtrousPushConstants
 
 	RWTexture2D_Descriptor<float4> outFinalIllumination;
 	Texture2D_Descriptor<float4> inAlbedo;
-	Texture2D_Descriptor<float4> inIllumination;
+	RWTexture2D_Descriptor<float4> inIllumination;
 	Texture2D_Descriptor<float> inHistoryLength;
 	Texture2D_Descriptor<float4> inDepthNormal;
 

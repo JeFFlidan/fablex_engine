@@ -10,7 +10,8 @@
             ],
             "InputTextures": [
                 "ModulatedColor",
-                "MotionVector"
+                "MotionVector",
+                "Color"
             ],
             "Pipeline": {
                 "Name": "SwapChainPipeline",
@@ -22,6 +23,7 @@
             "Name": "PathTracingPass",
             "Type": "GRAPHICS",
             "OutputStorageTextures": [
+                "Color",
                 "MotionVector",
                 "DepthNormal",
                 "Albedo",
@@ -41,38 +43,28 @@
             }
         },
         {
-            "Name": "SVGFFilterMomentsPass",
+            "Name": "SVGFPass",
             "Type": "COMPUTE",
             "OutputStorageTextures": [
                 "FilteredIllumination"
             ],
             "InputTextures": [
-                "ReprojectedIllumination",
-                "Moments",
-                "HistoryLength",
-                "DepthNormal"
-            ],
-            "Pipeline": {
-                "Name": "SVGFFilterPipeline",
-                "Compute": "ray_tracing/svgf_filter_moments_cs.hlsl"
-            }
-        },
-        {
-            "Name": "SVGFAtrousPass",
-            "Type": "COMPUTE",
-            "OutputStorageTextures": [
-                "FinalIllumination"
-            ],
-            "InputTextures": [
                 "Albedo",
-                "FilteredIllumination",
                 "HistoryLength",
-                "DepthNormal"
+                "DepthNormal",
+                "ReprojectedIllumination",
+                "Moments"
             ],
-            "Pipeline": {
-                "Name": "SVGFAtrousPipeline",
-                "Compute": "ray_tracing/svgf_atrous_cs.hlsl"
-            }
+            "Pipelines": [
+                {
+                    "Name": "SVGFFilterPipeline",
+                    "Compute": "ray_tracing/svgf_filter_moments_cs.hlsl"
+                },
+                {
+                    "Name": "SVGFAtrousPipeline",
+                    "Compute": "ray_tracing/svgf_atrous_cs.hlsl"
+                }
+            ]
         },
         {
             "Name": "SVGFFinalModulatePass",
@@ -83,7 +75,7 @@
             "InputTextures": [
                 "Albedo",
                 "Emission",
-                "FinalIllumination"
+                "FilteredIllumination"
             ],
             "Pipeline": {
                 "Name": "SVGFFinalModulatePipeline",
@@ -95,6 +87,10 @@
         {
             "Name": "MotionVector",
             "Format": "R16G16_SFLOAT"
+        },
+        {
+            "Name": "Color",
+            "Format": "R32G32B32A32_SFLOAT"
         },
         {
             "Name": "Albedo",
@@ -111,8 +107,7 @@
         },
         {
             "Name": "ReprojectedIllumination",
-            "Format": "R32G32B32A32_SFLOAT",
-            "Flags": ["CrossFrameRead"]
+            "Format": "R32G32B32A32_SFLOAT"
         },
         {
             "Name": "Moments",
@@ -126,11 +121,8 @@
         },
         {
             "Name": "FilteredIllumination",
-            "Format": "R32G32B32A32_SFLOAT"
-        },
-        {
-            "Name": "FinalIllumination",
-            "Format": "R32G32B32A32_SFLOAT"
+            "Format": "R32G32B32A32_SFLOAT",
+            "Flags": ["PingPong"]
         },
         {
             "Name": "ModulatedColor",
@@ -141,6 +133,10 @@
         {
             "Name": "PathTracingPushConstants",
             "Resources": [
+                {
+                    "Name": "Color",
+                    "Flags": ["Writable"]
+                },
                 {
                     "Name": "MotionVector",
                     "Flags": ["Writable"]
@@ -166,7 +162,7 @@
                     "Flags": ["Writable"]
                 },
                 {
-                    "Name": "ReprojectedIllumination",
+                    "Name": "Moments",
                     "Flags": ["PreviousFrame"]
                 },
                 {
@@ -192,7 +188,7 @@
             "Resources": [
                 {
                     "Name": "FilteredIllumination",
-                    "Flags": ["Writable"]
+                    "Flags": ["PingPong0"]
                 },
                 {
                     "Name": "ReprojectedIllumination"
@@ -212,14 +208,15 @@
             "Name": "SVGFAtrousPushConstants",
             "Resources": [
                 {
-                    "Name": "FinalIllumination",
-                    "Flags": ["Writable"]
+                    "Name": "FilteredIllumination",
+                    "Flags": ["PingPong0"]
                 },
                 {
                     "Name": "Albedo"
                 },
                 {
-                    "Name": "FilteredIllumination"
+                    "Name": "FilteredIllumination",
+                    "Flags": ["PingPong1"]
                 },
                 {
                     "Name": "HistoryLength"
@@ -237,7 +234,7 @@
                     "Flags": ["Writable"]
                 },
                 {
-                    "Name": "FinalIllumination"
+                    "Name": "FilteredIllumination"
                 },
                 {
                     "Name": "Albedo"

@@ -19,6 +19,8 @@ void SVGFFilterMomentsPass::execute(rhi::CommandBuffer* cmd)
     bind_pipeline(cmd);
 
     SVGFFilterMomentsPushConstants pushConstants;
+    pushConstants.phiColor = 10.0f;
+    pushConstants.phiNormal = 128.0f;
     fill_push_constants(pushConstants);
 
     push_constants(cmd, &pushConstants);

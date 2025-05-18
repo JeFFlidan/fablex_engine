@@ -55,6 +55,8 @@ void EditorCameraComponent::read_input(float deltaTime)
         Vector rotatedMove = Vector3::transform_normal(move, cameraRotation);
         m_entity->translate(rotatedMove);
         m_entity->set_rotation(Float3(yDelta, xDelta, 0.0f), AngleUnit::RADIANS);
+        // m_entity->set_rotation(Float3(yDelta, 0, 0.0f), AngleUnit::RADIANS);
+        // m_entity->set_rotation(Float3(0, xDelta, 0.0f), AngleUnit::RADIANS);
 
         EventManager::trigger_event(CameraMovedEvent());
     }

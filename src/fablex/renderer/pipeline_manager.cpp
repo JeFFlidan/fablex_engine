@@ -137,7 +137,8 @@ void PipelineManager::push_constants(rhi::CommandBuffer* cmd, PipelineName name,
     FE_CHECK(data);
 
     rhi::Pipeline* pipeline = get_pipeline(name);
-    FE_CHECK(pipeline);
+    if (!pipeline)
+        FE_LOG(LogRenderer, FATAL, "Failed to find pipeline {}", name);
 
     rhi::push_constants(cmd, pipeline, data);
 }

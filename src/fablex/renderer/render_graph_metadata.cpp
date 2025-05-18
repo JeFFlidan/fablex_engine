@@ -25,6 +25,7 @@ constexpr const char* LOAD_OP_KEY = "LoadOp";
 constexpr const char* COLOR_CLEAR_VALUE_KEY = "ColorClearValue";
 constexpr const char* DEPTH_STENCIL_CLEAR_VALUE_KEY = "DepthStencilClearValue";
 constexpr const char* PIPELINE_KEY = "Pipeline";
+constexpr const char* PIPELINES_KEY = "Pipelines";
 constexpr const char* SHADERS_KEY = "Shaders";
 constexpr const char* SHADER_LIB_KEY = "ShaderLib";
 constexpr const char* RAYGEN_KEY = "Raygen";
@@ -197,152 +198,168 @@ void RenderGraphMetadata::deserialize(const std::string& path)
                     renderTargetMetadata.clearValues.depthStencil.stencil = (uint32)values[1];
                 }
             }
-
-        }
-        
-        if (!renderPassMetadataJson.contains(PIPELINE_KEY))
-        {
-            FE_LOG(LogRenderer, ERROR, "No pipeline metadata for render pass {}", renderPassMetadata.name);
-            continue;
         }
 
-        const JSON& pipelineMetadataJson = renderPassMetadataJson[PIPELINE_KEY];
-        
-        PipelineName pipelineName = renderPassName;
-        if (pipelineMetadataJson.contains(NAME_KEY))
-            pipelineName = pipelineMetadataJson[NAME_KEY];
-
-        renderPassMetadata.pipelineName = pipelineName;
-
-        PipelineMetadata& pipelineMetadata = add_metadata<PipelineMetadata>(pipelineName);
-        pipelineMetadata.name = pipelineName;
-
-        for (auto& [key, shaderType] : NOT_RT_SHADER_TYPE_BY_KEY_NAME)
+        auto fillPipelineMetadata = [&](const JSON& pipelineMetadataJson, PipelineMetadata& pipelineMetadata)
         {
-            if (pipelineMetadataJson.contains(key))
-            {
-                ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
-                shaderMetadata.type = shaderType;
-                shaderMetadata.filePath = pipelineMetadataJson[key];
-            }
-        }
-
-        if (pipelineMetadataJson.contains(SHADERS_KEY))
-        {
-            const std::vector<JSON>& shaderJsons = pipelineMetadataJson[SHADERS_KEY];
-            pipelineMetadata.shadersMetadata.reserve(shaderJsons.size() + pipelineMetadata.shadersMetadata.size());
-    
-            for (const JSON& shaderMetadataJson : shaderJsons)
-            {
-                ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
-                shaderMetadata.type = shaderMetadataJson[TYPE_KEY];
-                shaderMetadata.filePath = shaderMetadataJson[PATH_KEY];
-    
-                if (shaderMetadataJson.contains(DEFINES_KEY))
-                    shaderMetadata.defines = shaderMetadataJson[DEFINES_KEY];
-    
-                if (shaderMetadataJson.contains(HIT_GROUP_TYPE_KEY))
-                    shaderMetadata.hitGroupType = shaderMetadataJson[HIT_GROUP_TYPE_KEY];
-    
-                if (shaderMetadataJson.contains(ENTRY_POINT_KEY))
-                    shaderMetadata.entryPoint = shaderMetadataJson[ENTRY_POINT_KEY];
-            }
-        }
-        else if(pipelineMetadataJson.contains(SHADER_LIB_KEY))
-        {
-            const JSON& shaderLibMetadata = pipelineMetadataJson[SHADER_LIB_KEY];
-            const std::string& shaderLibPath = shaderLibMetadata[PATH_KEY];
-
-            bool isRayTracing = true;
-
-            auto addShaderMetadata = [&](const std::string& entryPoint, rhi::ShaderType shaderType)
-            {
-                ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
-                shaderMetadata.type = shaderType;
-                shaderMetadata.filePath = shaderLibPath;
-                shaderMetadata.entryPoint = entryPoint;
-            };
-
             for (auto& [key, shaderType] : NOT_RT_SHADER_TYPE_BY_KEY_NAME)
             {
-                if (shaderLibMetadata.contains(key))
+                if (pipelineMetadataJson.contains(key))
                 {
-                    isRayTracing = false;
-                    addShaderMetadata(shaderLibMetadata[key], shaderType);
+                    ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
+                    shaderMetadata.type = shaderType;
+                    shaderMetadata.filePath = pipelineMetadataJson[key];
                 }
             }
 
-            if (isRayTracing)
+            if (pipelineMetadataJson.contains(SHADERS_KEY))
             {
-                if (!shaderLibMetadata.contains(RAYGEN_KEY)) FE_CHECK(0);
-                if (!shaderLibMetadata.contains(MISS_KEY)) FE_CHECK(0);
-                if (!shaderLibMetadata.contains(CLOSEST_HIT_KEY)) FE_CHECK(0);
-
-                const std::vector<std::string>& raygenEntryPoints = shaderLibMetadata[RAYGEN_KEY];
-                const std::vector<std::string>& missEntryPoints = shaderLibMetadata[MISS_KEY];
-                const std::vector<std::string>& closestHitEntryPoints = shaderLibMetadata[CLOSEST_HIT_KEY];
-
-                std::vector<std::string> anyHitEntryPoints;
-                if (shaderLibMetadata.contains(ANY_HIT_KEY))
-                    anyHitEntryPoints = shaderLibMetadata[ANY_HIT_KEY];
-
-                std::vector<std::string> callableEntryPoints;
-                if (shaderLibMetadata.contains(CALLABLE_KEY))
-                    callableEntryPoints = shaderLibMetadata[CALLABLE_KEY];
-
-                std::vector<std::string> intersectionEntryPoints;
-                if (shaderLibMetadata.contains(INTERSECTION_KEY))
-                    intersectionEntryPoints = shaderLibMetadata[INTERSECTION_KEY];
-
-                pipelineMetadata.shadersMetadata.reserve(
-                    raygenEntryPoints.size()
-                    + missEntryPoints.size()
-                    + closestHitEntryPoints.size()
-                    + anyHitEntryPoints.size()
-                    + callableEntryPoints.size()
-                    + intersectionEntryPoints.size()
-                );
-
-                for (const std::string& entryPoint : raygenEntryPoints)
-                    addShaderMetadata(entryPoint, rhi::ShaderType::RAY_GENERATION);                    
-
-                for (const std::string& entryPoint : missEntryPoints)
-                    addShaderMetadata(entryPoint, rhi::ShaderType::RAY_MISS);
-
-                uint32 hitGroupIndex = 0;
-                for (const std::string& entryPoint : closestHitEntryPoints)
+                const std::vector<JSON>& shaderJsons = pipelineMetadataJson[SHADERS_KEY];
+                pipelineMetadata.shadersMetadata.reserve(shaderJsons.size() + pipelineMetadata.shadersMetadata.size());
+        
+                for (const JSON& shaderMetadataJson : shaderJsons)
                 {
-                    addShaderMetadata(entryPoint, rhi::ShaderType::RAY_CLOSEST_HIT);
-                    if (!anyHitEntryPoints.empty())
+                    ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
+                    shaderMetadata.type = shaderMetadataJson[TYPE_KEY];
+                    shaderMetadata.filePath = shaderMetadataJson[PATH_KEY];
+        
+                    if (shaderMetadataJson.contains(DEFINES_KEY))
+                        shaderMetadata.defines = shaderMetadataJson[DEFINES_KEY];
+        
+                    if (shaderMetadataJson.contains(HIT_GROUP_TYPE_KEY))
+                        shaderMetadata.hitGroupType = shaderMetadataJson[HIT_GROUP_TYPE_KEY];
+        
+                    if (shaderMetadataJson.contains(ENTRY_POINT_KEY))
+                        shaderMetadata.entryPoint = shaderMetadataJson[ENTRY_POINT_KEY];
+                }
+            }
+            else if(pipelineMetadataJson.contains(SHADER_LIB_KEY))
+            {
+                const JSON& shaderLibMetadata = pipelineMetadataJson[SHADER_LIB_KEY];
+                const std::string& shaderLibPath = shaderLibMetadata[PATH_KEY];
+
+                bool isRayTracing = true;
+
+                auto addShaderMetadata = [&](const std::string& entryPoint, rhi::ShaderType shaderType)
+                {
+                    ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
+                    shaderMetadata.type = shaderType;
+                    shaderMetadata.filePath = shaderLibPath;
+                    shaderMetadata.entryPoint = entryPoint;
+                };
+
+                for (auto& [key, shaderType] : NOT_RT_SHADER_TYPE_BY_KEY_NAME)
+                {
+                    if (shaderLibMetadata.contains(key))
                     {
-                        const std::string& anyHitEntryPoint = anyHitEntryPoints.at(hitGroupIndex);
-                        if (!anyHitEntryPoint.empty())
-                            addShaderMetadata(anyHitEntryPoint, rhi::ShaderType::RAY_ANY_HIT);
+                        isRayTracing = false;
+                        addShaderMetadata(shaderLibMetadata[key], shaderType);
+                    }
+                }
+
+                if (isRayTracing)
+                {
+                    if (!shaderLibMetadata.contains(RAYGEN_KEY)) FE_CHECK(0);
+                    if (!shaderLibMetadata.contains(MISS_KEY)) FE_CHECK(0);
+                    if (!shaderLibMetadata.contains(CLOSEST_HIT_KEY)) FE_CHECK(0);
+
+                    const std::vector<std::string>& raygenEntryPoints = shaderLibMetadata[RAYGEN_KEY];
+                    const std::vector<std::string>& missEntryPoints = shaderLibMetadata[MISS_KEY];
+                    const std::vector<std::string>& closestHitEntryPoints = shaderLibMetadata[CLOSEST_HIT_KEY];
+
+                    std::vector<std::string> anyHitEntryPoints;
+                    if (shaderLibMetadata.contains(ANY_HIT_KEY))
+                        anyHitEntryPoints = shaderLibMetadata[ANY_HIT_KEY];
+
+                    std::vector<std::string> callableEntryPoints;
+                    if (shaderLibMetadata.contains(CALLABLE_KEY))
+                        callableEntryPoints = shaderLibMetadata[CALLABLE_KEY];
+
+                    std::vector<std::string> intersectionEntryPoints;
+                    if (shaderLibMetadata.contains(INTERSECTION_KEY))
+                        intersectionEntryPoints = shaderLibMetadata[INTERSECTION_KEY];
+
+                    pipelineMetadata.shadersMetadata.reserve(
+                        raygenEntryPoints.size()
+                        + missEntryPoints.size()
+                        + closestHitEntryPoints.size()
+                        + anyHitEntryPoints.size()
+                        + callableEntryPoints.size()
+                        + intersectionEntryPoints.size()
+                    );
+
+                    for (const std::string& entryPoint : raygenEntryPoints)
+                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_GENERATION);                    
+
+                    for (const std::string& entryPoint : missEntryPoints)
+                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_MISS);
+
+                    uint32 hitGroupIndex = 0;
+                    for (const std::string& entryPoint : closestHitEntryPoints)
+                    {
+                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_CLOSEST_HIT);
+                        if (!anyHitEntryPoints.empty())
+                        {
+                            const std::string& anyHitEntryPoint = anyHitEntryPoints.at(hitGroupIndex);
+                            if (!anyHitEntryPoint.empty())
+                                addShaderMetadata(anyHitEntryPoint, rhi::ShaderType::RAY_ANY_HIT);
+                        }
+
+                        ++hitGroupIndex;
                     }
 
-                    ++hitGroupIndex;
+                    for (const std::string& entryPoint : intersectionEntryPoints)
+                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_INTERSECTION);
+
+                    for (const std::string& entryPoint : callableEntryPoints)
+                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_CALLABLE);
                 }
-
-                for (const std::string& entryPoint : intersectionEntryPoints)
-                    addShaderMetadata(entryPoint, rhi::ShaderType::RAY_INTERSECTION);
-
-                for (const std::string& entryPoint : callableEntryPoints)
-                    addShaderMetadata(entryPoint, rhi::ShaderType::RAY_CALLABLE);
             }
-        }
 
-        if (pipelineMetadata.shadersMetadata.empty())
-            FE_LOG(LogRenderer, FATAL, "Pipeline {} does not have any shaders.", pipelineMetadata.name);
+            if (pipelineMetadata.shadersMetadata.empty())
+                FE_LOG(LogRenderer, FATAL, "Pipeline {} does not have any shaders.", pipelineMetadata.name);
 
-        for (const ShaderMetadata& shaderMetadata : pipelineMetadata.shadersMetadata)
-            m_shaderManager->request_shader_loading(shaderMetadata);
+            for (const ShaderMetadata& shaderMetadata : pipelineMetadata.shadersMetadata)
+                m_shaderManager->request_shader_loading(shaderMetadata);
 
-        for (const RenderTargetMetadata& renderTargetMetadata : renderPassMetadata.renderTargetsMetadata)
+            for (const RenderTargetMetadata& renderTargetMetadata : renderPassMetadata.renderTargetsMetadata)
+            {
+                if (rhi::is_depth_stencil_format(renderTargetMetadata.format))
+                    pipelineMetadata.depthStencilFormat = renderTargetMetadata.format;
+                else
+                    pipelineMetadata.colorAttachmentFormats.push_back(renderTargetMetadata.format);
+            }
+        };
+        
+        if (renderPassMetadataJson.contains(PIPELINE_KEY))
         {
-            if (rhi::is_depth_stencil_format(renderTargetMetadata.format))
-                pipelineMetadata.depthStencilFormat = renderTargetMetadata.format;
-            else
-                pipelineMetadata.colorAttachmentFormats.push_back(renderTargetMetadata.format);
+            const JSON& pipelineMetadataJson = renderPassMetadataJson[PIPELINE_KEY];
+            PipelineName pipelineName = renderPassName;
+            if (pipelineMetadataJson.contains(NAME_KEY))
+                pipelineName = pipelineMetadataJson[NAME_KEY];
+            renderPassMetadata.pipelineName = pipelineName;
+
+            PipelineMetadata& pipelineMetadata = add_metadata<PipelineMetadata>(pipelineName);
+            pipelineMetadata.name = pipelineName;
+
+            fillPipelineMetadata(pipelineMetadataJson, pipelineMetadata);
+        }
+        else if (renderPassMetadataJson.contains(PIPELINES_KEY))
+        {
+            const JSON& pipelinesMetadataJson = renderPassMetadataJson[PIPELINES_KEY];
+            std::string generalPipelineName = "";
+
+            for (const JSON& pipelineMetadataJson : pipelinesMetadataJson)
+            {
+                std::string pipelineName = pipelineMetadataJson[NAME_KEY];
+                generalPipelineName += pipelineName + "|";
+
+                PipelineMetadata& pipelineMetadata = add_metadata<PipelineMetadata>(pipelineName);
+                pipelineMetadata.name = pipelineName;
+                fillPipelineMetadata(pipelineMetadataJson, pipelineMetadata);
+            }
+
+            renderPassMetadata.pipelineName = generalPipelineName;
         }
     }
 
