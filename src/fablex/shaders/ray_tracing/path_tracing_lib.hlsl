@@ -62,7 +62,7 @@ float3 exec_closest_hit(
         FLOAT_MAX
     };
 
-    PTShadowRayPayload shadowPayload;
+    ShadowRayPayload shadowPayload;
     TraceRay(
         cb.tlas.get(),
         RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
@@ -216,7 +216,7 @@ void raygen()
         cb.outIllumination.write(pixel, float4(result, 1));  // FOR TEST ONLY
     }
 
-    // cb.outColor.write(pixel, float4(result, 1));
+    cb.outColor.write(pixel, float4(result, 1));
 
     // float4 oldValue = cb.inPrevIllumination.read(pixel);
     // cb.outIllumination.write(pixel, 1);  // FOR TEST ONLY
@@ -253,7 +253,7 @@ void closest_hit_secondary(inout SecondaryRayPayload payload, in RayAttributes a
 }
 
 [shader("closesthit")]
-void closest_hit_shadow(inout PTShadowRayPayload payload, in RayAttributes attr)
+void closest_hit_shadow(inout ShadowRayPayload payload, in RayAttributes attr)
 {
     payload.rayHitT = RayTCurrent();
 }
@@ -272,7 +272,7 @@ void miss_secondary(inout SecondaryRayPayload payload)
 }
 
 [shader("miss")]
-void miss_shadow(inout PTShadowRayPayload payload)
+void miss_shadow(inout ShadowRayPayload payload)
 {
     payload.rayHitT = FLOAT_MAX;
 }

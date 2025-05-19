@@ -52,7 +52,12 @@
 
 struct Descriptor
 {
-    uint descriptor;
+    int descriptor;
+
+    bool is_valid()
+    {
+        return descriptor >= 0;
+    }
 };
 
 template<typename T>

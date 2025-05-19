@@ -28,7 +28,7 @@ struct [raypayload] SecondaryRayPayload
     float3 color : read(caller) : write(closesthit, miss);
 };
 
-struct [raypayload] PTShadowRayPayload
+struct [raypayload] ShadowRayPayload
 {
     float rayHitT : read(caller) : write(miss, closesthit);
 };

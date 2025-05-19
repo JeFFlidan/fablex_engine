@@ -3,6 +3,11 @@
 
 PUSH_CONSTANTS(pushConstants, RayTracingPushConstants);
 
+static const uint LIGHT_MISS_INDEX = 0;
+static const uint SHADOW_MISS_INDEX = 1;
+static const uint LIGHT_HIT_GROUP_INDEX = 2;
+static const uint SHADOW_HIT_GROUP_INDEX = 3;
+
 [shader("raygeneration")]
 void raygen()
 {
@@ -12,22 +17,21 @@ void raygen()
     RayPayload payload;
 
     TraceRay(
-        bindlessAccelerationStructures[pushConstants.tlas],
+        pushConstants.tlas.get(),
         0,
         ~0,
+        LIGHT_HIT_GROUP_INDEX,
         0,
-        0,
-        0,
+        LIGHT_MISS_INDEX,
         ray,
         payload
     );
 
-    uint targetIndex = pushConstants.outputTargetIndex;
-    bindlessRWTextures2DFloat4[targetIndex][DTid.xy] = payload.color;
+    pushConstants.outColor.write(DTid.xy, payload.color);
 }
 
 [shader("closesthit")]
-void closest_hit(inout RayPayload payload, in RayAttributes attr)
+void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
 {
     PrimitiveInfo primitiveInfo;
     primitiveInfo.primitiveIndex = PrimitiveIndex();
@@ -44,6 +48,8 @@ void closest_hit(inout RayPayload payload, in RayAttributes attr)
     LightingResult lightingResult;
     lightingResult.init(0, 0, 0, 0);
 
+    float shadow = 1;
+
     for (uint i = lightArrayOffset; i != lightArrayOffset + lightArrayCount; ++i)
     {
         ShaderEntity entity = get_entity(i);
@@ -54,19 +60,52 @@ void closest_hit(inout RayPayload payload, in RayAttributes attr)
         case SHADER_ENTITY_TYPE_SPOT_LIGHT:
             break;
         case SHADER_ENTITY_TYPE_DIRECTIONAL_LIGHT:
+        {
             light_directional(entity, surface, lightingResult);
+
+            RayDesc ray = {
+                surface.P + 0.01f * surface.N,
+                0.001f,
+                -entity.get_direction(),
+                FLOAT_MAX
+            };
+
+            ShadowRayPayload shadowPayload;
+            TraceRay(
+                pushConstants.tlas.get(),
+                RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
+                ~0,
+                SHADOW_HIT_GROUP_INDEX,
+                1,
+                SHADOW_MISS_INDEX,
+                ray,
+                shadowPayload
+            );
+
+            shadow = shadowPayload.rayHitT < FLOAT_MAX ? 0 : 1;
             break;
+        }
         }
     }
 
-    payload.color = float4(0.0, 0.0, 0.0, 1.0);
     lightingResult.apply(payload.color);
+    payload.color *= shadow;
+}
 
-    // payload.color.xyz = lightingResult.direct.diffuse;
+[shader("closesthit")]
+void closest_hit_shadow(inout ShadowRayPayload payload, in RayAttributes attr)
+{
+    payload.rayHitT = RayTCurrent();
 }
 
 [shader("miss")]
-void miss(inout RayPayload payload)
+void miss_light(inout RayPayload payload)
 {
     payload.color = float4(0.2, 0.3, 0.4, 1.0);
+}
+
+[shader("miss")]
+void miss_shadow(inout ShadowRayPayload payload)
+{
+    payload.rayHitT = FLOAT_MAX;
 }

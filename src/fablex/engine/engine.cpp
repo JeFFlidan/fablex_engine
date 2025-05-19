@@ -151,23 +151,23 @@ void Engine::configure_test_scene()
 
     asset::AssetManager::import_model(importContext, importResult4);
 
-    // Entity* planeEntity = m_world->create_entity();
-    // planeEntity->set_name("plane");
-    // modelComponent = planeEntity->create_component<ModelComponent>();
-    // modelComponent->set_model_uuid(importResult4.models.at(0)->get_uuid());
+    Entity* planeEntity = m_world->create_entity();
+    planeEntity->set_name("plane");
+    modelComponent = planeEntity->create_component<ModelComponent>();
+    modelComponent->set_model_uuid(importResult4.models.at(0)->get_uuid());
 
-    // opaqueMaterialCreateInfo.name = "Plane Material";
-    // opaqueMaterialCreateInfo.projectDirectory = projectDirectory;
+    opaqueMaterialCreateInfo.name = "Plane Material";
+    opaqueMaterialCreateInfo.projectDirectory = projectDirectory;
 
-    // asset::Material* opaqueMaterial2 = asset::AssetManager::create_material(opaqueMaterialCreateInfo);
-    // opaqueMaterialSettings = opaqueMaterial2->material_settings<asset::OpaqueMaterialSettings>();
+    asset::Material* opaqueMaterial2 = asset::AssetManager::create_material(opaqueMaterialCreateInfo);
+    opaqueMaterialSettings = opaqueMaterial2->material_settings<asset::OpaqueMaterialSettings>();
 
-    // opaqueMaterialSettings->set_base_color(Float4(0.5, 0.5, 0.5, 1));
-    // opaqueMaterialSettings->set_roughness(0.35);
-    // opaqueMaterialSettings->set_metallic(0.0);
+    opaqueMaterialSettings->set_base_color(Float4(0.5, 0.5, 0.5, 1));
+    opaqueMaterialSettings->set_roughness(0.35);
+    opaqueMaterialSettings->set_metallic(0.0);
 
-    // matComponent = planeEntity->create_component<MaterialComponent>();
-    // matComponent->set_material(opaqueMaterial2);
+    matComponent = planeEntity->create_component<MaterialComponent>();
+    matComponent->set_material(opaqueMaterial2);
 }
 
 }

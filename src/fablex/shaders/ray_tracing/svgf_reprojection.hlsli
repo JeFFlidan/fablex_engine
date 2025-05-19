@@ -68,10 +68,10 @@ bool is_reprojection_valid(
 )
 {
     const int2 dimensions = (uint2)DispatchRaysDimensions().xy;
-
+    
     if (any(coord < 1) || any(coord > dimensions - 1))
         return false;
-
+    cb.outColor.write(coord, float4(abs(prevDepth - depth) / (depthDeriv + 1e-2f) > 10.f, distance(prevNormal, normal) / (normalFWidth + 1e-2) > 16.0, abs(prevDepth - depth) / (depthDeriv + 1e-2f), 1));
     const int prevModelInstance = (int)cb.outEmission[coord].a;
 
     if (abs(prevDepth - depth) / (depthDeriv + 1e-2f) > 10.f)
@@ -108,13 +108,13 @@ bool load_previous_data(
     const uint2 offset[4] = {uint2(0, 0), uint2(1, 0), uint2(0, 1), uint2(1, 1)};
 
     bool valid = false;
-    for (int sampleIdx = 0; sampleIdx < 1; ++sampleIdx)
+    for (int sampleIdx = 0; sampleIdx < 4; ++sampleIdx)
     {
         int2 loc = prevPixel + offset[sampleIdx];
         float2 prevDepth = cb.inPrevDepthNormal[loc].xy;
         float3 prevNormal = oct_to_ndir_snorm(cb.inPrevDepthNormal[loc].zw);
 
-        v[sampleIdx] = is_reprojection_valid(loc, depth.x, prevDepth.x, depth.y, normal, prevNormal, normalFWidth);
+        v[sampleIdx] = is_reprojection_valid(prevPos, depth.x, prevDepth.x, depth.y, normal, prevNormal, normalFWidth);
 
         valid = valid || v[sampleIdx];
     }
@@ -224,7 +224,7 @@ void svgf_reproject(in float3 color, in float normalFWidth)
     cb.outIllumination.write(pixel, finalIllumination);
     cb.outMoments.write(pixel, moments);
     cb.outHistoryLength.write(pixel, historyLength);
-    cb.outColor.write(pixel, float4(illumination, 1));
+    // cb.outColor.write(pixel, float4(illumination, 1));
 }
 
 #endif // SVGF_REPROJECTION

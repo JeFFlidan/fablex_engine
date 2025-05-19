@@ -714,8 +714,8 @@ struct RayTracingPushConstants
 {
 	DEFINE_PUSH_CONSTANTS(RayTracingPushConstants);
 
-	uint outputTargetIndex;
-	uint tlas;
+	RWTexture2D_Descriptor<float4> outColor;
+	AccelerationStructure_Descriptor tlas;
 	uint2 padding;
 };
 

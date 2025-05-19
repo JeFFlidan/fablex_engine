@@ -13,16 +13,8 @@
             ],
             "Pipeline": {
                 "Name": "SwapChainPipeline",
-                "Shaders": [
-                    {
-                        "Type": "VERTEX",
-                        "Path": "output_plane_vs.hlsl"
-                    },
-                    {
-                        "Type": "FRAGMENT",
-                        "Path": "output_plane_fs.hlsl"
-                    }
-                ]
+                "Vertex": "output_plane_vs.hlsl",
+                "Fragment": "output_plane_fs.hlsl"
             }
         },
         {
@@ -31,44 +23,14 @@
             "OutputStorageTextures": [
                 "RTColorOutput"
             ],
-            "InputTextures": [
-                "RNGSeed"
-            ],
             "Pipeline": {
                 "Name": "RTTestPipeline",
-                "Shaders": [
-                    {
-                        "Type": "RAY_GENERATION",
-                        "Path": "ray_tracing/ray_tracing_main_lib.hlsl",
-                        "EntryPoint": "raygen"
-                    },
-                    {
-                        "Type": "RAY_MISS",
-                        "Path": "ray_tracing/ray_tracing_main_lib.hlsl",
-                        "EntryPoint": "miss"
-                    },
-                    {
-                        "Type": "RAY_CLOSEST_HIT",
-                        "Path": "ray_tracing/ray_tracing_main_lib.hlsl",
-                        "EntryPoint": "closest_hit"
-                    }
-                ]
-            }
-        },
-        {
-            "Name": "RNGSeedGenerationPass",
-            "Type": "ASYNC_COMPUTE",
-            "OutputStorageTextures": [
-                "RNGSeed"
-            ],
-            "Pipeline": {
-                "Name": "RNGSeedGenerationPipeline",
-                "Shaders": [
-                    {
-                        "Path": "rng_seed_generation_cs.hlsl",
-                        "Type": "COMPUTE"
-                    }
-                ]
+                "ShaderLib": {
+                    "Path": "ray_tracing/ray_tracing.hlsl",
+                    "Raygen": ["raygen"],
+                    "Miss": ["miss_light", "miss_shadow"],
+                    "ClosestHit": ["closest_hit_light", "closest_hit_shadow"]
+                }
             }
         }
     ],
@@ -76,11 +38,6 @@
         {
             "Name": "RTColorOutput",
             "Format": "R8G8B8A8_UNORM"
-        },
-        {
-            "Name": "RNGSeed",
-            "Format": "R8G8B8A8_UINT",
-            "CrossFrameRead": true
         }
     ],
     "PushConstants": [
@@ -89,7 +46,7 @@
             "Resources": [
                 {
                     "Name": "RTColorOutput",
-                    "Write": true
+                    "Flags": ["Writable"]
                 }
             ]
         },
@@ -98,15 +55,6 @@
             "Resources": [
                 {
                     "Name": "RTColorOutput"
-                }
-            ]
-        },
-        {
-            "Name": "RNGSeedGenerationPushConstants",
-            "Resources": [
-                {
-                    "Name": "RNGSeed",
-                    "Write": true
                 }
             ]
         }
