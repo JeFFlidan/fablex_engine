@@ -77,6 +77,20 @@ float2 compute_barycentrics(float3 rayOrigin, float3 rayDirection, float3 a, flo
     return float2(u, v);
 }
 
+float2 compute_barycentrics(float3 p, float3 a, float3 b, float3 c)
+{
+	float3 v0 = b - a, v1 = c - a, v2 = p - a;
+	float d00 = dot(v0, v0);
+	float d01 = dot(v0, v1);
+	float d11 = dot(v1, v1);
+	float d20 = dot(v2, v0);
+	float d21 = dot(v2, v1);
+	float denom_rcp = rcp(d00 * d11 - d01 * d01);
+	float u = (d11 * d20 - d01 * d21) * denom_rcp;
+	float v = (d00 * d21 - d01 * d20) * denom_rcp;
+	return float2(u, v);
+}
+
 /* 
  * Octahedral remapping
  * Survey of Efficient Representations for Independent Unit Vectors: https://jcgt.org/published/0003/02/01/

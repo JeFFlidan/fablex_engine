@@ -56,7 +56,7 @@ struct ShaderMaterial
 	uint flags8;		// 24 bits are empty
 	float3 empty;
 
-	ShaderTexture2D textures[TEXTURE_SLOT_COUNT];
+	Texture2D_Descriptor<float4> textures[TEXTURE_SLOT_COUNT];
 
 #ifndef __cplusplus
 	inline float4 get_base_color()
@@ -95,10 +95,16 @@ struct ShaderMaterial
 		return f16tof32(opacity16SamplerIndex16);
 	}
 
-	inline float4 sample_texture(TextureSlot textureSlot, in float4 uvSets)
+	inline float4 sample(TextureSlot textureSlot, in float4 uvSets)
 	{
 		SamplerState sampler = bindlessSamplers[descriptor_index(get_sampler_index())];
-		return textures[textureSlot].sample(sampler, uvSets);
+		return textures[textureSlot].get().Sample(sampler, uvSets.xy);
+	}
+
+	inline float4 sample(TextureSlot textureSlot, in float4 uvSets, in float lod)
+	{
+		SamplerState sampler = bindlessSamplers[descriptor_index(get_sampler_index())];
+		return textures[textureSlot].get().SampleLevel(sampler, uvSets.xy, lod);
 	}
 
 #else

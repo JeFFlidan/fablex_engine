@@ -24,7 +24,7 @@ struct Surface
     float3 P2;
 
     float4 baseColor;
-    float3 emissionColor;
+    float4 emissionColor;
     float roughness;
     float metallic;
     float occlusion;
@@ -88,12 +88,13 @@ struct Surface
 
         P = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentrics);
 
-#ifdef SURFACE_BARYCENTRICS_QUADS
-        float3 rayDirectionX = QuadReadAcrossX(rayDirection);
-        float3 rayDirectionY = QuadReadAcrossY(rayDirection);
         P0 = mul(instance.transform.get_matrix(), float4(P0, 1)).xyz;
         P1 = mul(instance.transform.get_matrix(), float4(P1, 1)).xyz;
         P2 = mul(instance.transform.get_matrix(), float4(P2, 1)).xyz;
+
+#ifdef SURFACE_BARYCENTRICS_QUADS
+        float3 rayDirectionX = QuadReadAcrossX(rayDirection);
+        float3 rayDirectionY = QuadReadAcrossY(rayDirection);
         barycentricsQuadX = compute_barycentrics(rayOrigin, rayDirectionX, P0.xyz, P1.xyz, P2.xyz);
         barycentricsQuadY = compute_barycentrics(rayOrigin, rayDirectionY, P0.xyz, P1.xyz, P2.xyz);
 #endif
@@ -113,9 +114,6 @@ struct Surface
         P_quadY = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentricsQuadY);
         P_dx = P - P_quadX;
         P_dy = P - P_quadY;
-
-        // P_quadX = mul(instance.transform.get_matrix(), float4(P_quadX, 1)).xyz;
-        // P_quadY = mul(instance.transform.get_matrix(), float4(P_quadY, 1)).xyz;
 #endif
     }
 
@@ -130,7 +128,7 @@ struct Surface
         i2 = indices.z;
 
         get_tri(P0, P1, P2);
-
+        baseColor = primitiveInfo.primitiveIndex;
         return true;
     }
 
@@ -144,6 +142,8 @@ struct Surface
     {
         prevP = mul(instance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
         P = mul(instance.transform.get_matrix(), float4(P, 1.0)).xyz;
+
+        // barycentrics = compute_barycentrics(P, P0, P1, P2);
 
         float3x3 adjointMat = instance.rawTransform.get_matrix_adjoint();
         
@@ -162,35 +162,42 @@ struct Surface
             N = normalize(N);
 
 #ifdef SURFACE_NORMAL_DERIVATIVES
-            // n0 = normalBuffer[i0].xyz;
-            // n1 = normalBuffer[i1].xyz;
-            // n2 = normalBuffer[i2].xyz;
-
-            // float3 localP0, localP1, localP2;
-            // get_tri(localP0, localP1, localP2);
-
-            // float2 normalBarycentricsQuadX = compute_barycentrics(rayOrigin, rayDirectionX, localP0, localP1, localP2);
-            // float2 normalBarycentricsQuadY = compute_barycentrics(rayOrigin, rayDirectionY, localP0, localP1, localP2);
-
             N_dx = barycentric_interpolation(n0, n1, n2, barycentricsQuadX);
             N_dy = barycentric_interpolation(n0, n1, n2, barycentricsQuadY);
             
             N_dx = normalize(N_dx);
             N_dy = normalize(N_dy);
 
-            // N_dx = mul(adjointMat, N_dx);
-            // N_dy = mul(adjointMat, N_dy);
-
             N_dx = N - N_dx;
             N_dy = N - N_dy;
-
-            // N_dy = 0;
 #endif
         }
 
-        // TODO: Get values from textures
+        float4 uvSets;
+
+        [branch]
+        if (model.vertexBufferUVs >= 0)
+        {
+            Buffer<float4> uvsBuffer = bindlessBuffersFloat4[descriptor_index(model.vertexBufferUVs)];
+            float4 uv0 = lerp(model.uvRangeMin.xyxy, model.uvRangeMax.xyxy, uvsBuffer[i0]);
+            float4 uv1 = lerp(model.uvRangeMin.xyxy, model.uvRangeMax.xyxy, uvsBuffer[i1]);
+            float4 uv2 = lerp(model.uvRangeMin.xyxy, model.uvRangeMax.xyxy, uvsBuffer[i2]);
+            // TODO: Add uv coord multiplier like Texture Coordinate node in UE
+            uvSets = barycentric_interpolation(uv1, uv0, uv2, barycentrics);
+        }
+
         ShaderMaterial shaderMaterial = get_material(instance.materialIndex);
-        baseColor = shaderMaterial.get_base_color();
+
+        // TODO: Get values from textures
+        if (shaderMaterial.textures[TEXTURE_SLOT_BASE_COLOR].is_valid())
+        {
+            baseColor = shaderMaterial.sample(TEXTURE_SLOT_BASE_COLOR, uvSets, 0.0);
+        }
+        else
+        {
+            baseColor = shaderMaterial.get_base_color();
+        }
+
         roughness = shaderMaterial.get_roughness();
         roughness *= roughness;
         metallic = shaderMaterial.get_metallic();

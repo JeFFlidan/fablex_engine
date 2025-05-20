@@ -103,7 +103,7 @@ struct VertexUV32Bit
 
 struct VertexUVs16Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R16G16_UNORM;
+    static constexpr rhi::Format FORMAT = rhi::Format::R16G16B16A16_UNORM;
 
     VertexUV16Bit uv0;
     VertexUV16Bit uv1;
@@ -111,7 +111,7 @@ struct VertexUVs16Bit
 
 struct VertexUVs32Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R32G32_SFLOAT;
+    static constexpr rhi::Format FORMAT = rhi::Format::R32G32B32A32_SFLOAT;
 
     VertexUV32Bit uv0;
     VertexUV32Bit uv1;

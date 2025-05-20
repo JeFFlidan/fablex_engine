@@ -32,6 +32,8 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
     outImportResult.texture = AssetManager::create_texture(createInfo);
     TextureProxy textureProxy(outImportResult.texture);
 
+    rhi::TextureInitInfo gpuTextureInitInfo;
+
     if (extension == "basis")
     {
         // TODO
@@ -64,7 +66,6 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
         textureProxy.bcFormat = rhi::is_format_block_compressed(textureProxy.format) 
             ? textureProxy.format : rhi::Format::UNDEFINED;
 
-        rhi::TextureInitInfo gpuTextureInitInfo;
         gpuTextureInitInfo.mipMaps.reserve(ddsTextureInfo.num_mips);
         gpuTextureInitInfo.buffer = create_upload_buffer(ddsTextureInfo.size_bytes);
 
@@ -109,22 +110,26 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
 
             bufferOffset += mipLevelSize;
         }
-
-        CopyTextureIntoGPURequest request(outImportResult.texture, gpuTextureInitInfo);
-        EventManager::trigger_event(request);
     }
     else
     {
         int width = 0, height = 0, channels = 0;
+
+        // stbi has no mipmaps, but I need one default mipmap to describe what value to copy from the upload buffer
+        gpuTextureInitInfo.mipMaps.emplace_back();
+
         if (stbi_is_16_bit_from_memory(textureRawData.data(), textureRawData.size()))
         {
             void* textureData = stbi_load_16_from_memory(textureRawData.data(), textureRawData.size(), &width, &height, &channels, 0);
-            const uint64 textureSize = width * height * channels * sizeof(uint16_t);
+            const uint64 textureSize = get_texture_size<uint16>(width, height, channels);
             
             textureProxy.width = width;
             textureProxy.height = height;
+            textureProxy.depth = 1;
             textureProxy.is16Bit = true;
-            textureProxy.data.resize(textureSize);
+
+            gpuTextureInitInfo.buffer = create_upload_buffer(textureSize);
+            void* uploadBufferData = gpuTextureInitInfo.buffer->mappedData;
 
             switch (channels)
             {
@@ -133,7 +138,7 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                     textureProxy.format = rhi::Format::R16_UNORM;
                     textureProxy.bcFormat = rhi::Format::BC4_UNORM;
                     textureProxy.mapping = { rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::ONE };
-                    memcpy(textureProxy.data.data(), textureData, textureSize);
+                    memcpy(uploadBufferData, textureData, textureSize);
                     break;
                 }
                 case 2:
@@ -141,7 +146,7 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                     textureProxy.format = rhi::Format::R16G16_UNORM;
                     textureProxy.bcFormat = rhi::Format::BC5_UNORM;
                     textureProxy.mapping = { rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::G, rhi::ComponentSwizzle::ONE, rhi::ComponentSwizzle::ONE };
-                    memcpy(textureProxy.data.data(), textureData, textureSize);
+                    memcpy(uploadBufferData, textureData, textureSize);
                     break;
                 }
                 case 3:
@@ -156,12 +161,10 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                     };
 
                     Color3Channels* textureData3Channels = static_cast<Color3Channels*>(textureData);
+                    Color16Bit* typedUploadBufferData = static_cast<Color16Bit*>(uploadBufferData);
 
-                    for (size_t i = 0; i < textureProxy.data.size() / sizeof(Color16Bit); i += sizeof(Color16Bit))
-                    {
-                        Color16Bit* color = reinterpret_cast<Color16Bit*>(&textureProxy.data.at(i));
-                        *color = { textureData3Channels[i].r, textureData3Channels[i].g, textureData3Channels[i].b };
-                    }
+                    for (size_t i = 0; i < textureSize / sizeof(Color16Bit); ++i)
+                        typedUploadBufferData[i] = { textureData3Channels[i].r, textureData3Channels[i].g, textureData3Channels[i].b };
 
                     break;
                 }
@@ -180,12 +183,15 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
         else
         {
             void* textureData = stbi_load_from_memory(textureRawData.data(), textureRawData.size(), &width, &height, &channels, 0);
-            const uint64 textureSize = width * height * channels;
+            const uint64 textureSize = get_texture_size<uint8>(width, height, channels);
 
             textureProxy.width = width;
             textureProxy.height = height;
+            textureProxy.depth = 1;
             textureProxy.is16Bit = false;
-            textureProxy.data.resize(textureSize);
+
+            gpuTextureInitInfo.buffer = create_upload_buffer(textureSize);
+            void* uploadBufferData = gpuTextureInitInfo.buffer->mappedData;
 
             switch (channels)
             {
@@ -194,7 +200,7 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                     textureProxy.format = rhi::Format::R8_UNORM;
                     textureProxy.bcFormat = rhi::Format::BC4_UNORM;
                     textureProxy.mapping = { rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::ONE };
-                    memcpy(textureProxy.data.data(), textureData, textureSize);
+                    memcpy(uploadBufferData, textureData, textureSize);
                     break;
                 }
                 case 2:
@@ -202,7 +208,7 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                     textureProxy.format = rhi::Format::R8G8_UNORM;
                     textureProxy.bcFormat = rhi::Format::BC5_UNORM;
                     textureProxy.mapping = { rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::G, rhi::ComponentSwizzle::ONE, rhi::ComponentSwizzle::ONE };
-                    memcpy(textureProxy.data.data(), textureData, textureSize);
+                    memcpy(uploadBufferData, textureData, textureSize);
                     break;
                 }
                 case 3:
@@ -217,20 +223,19 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                     };
 
                     Color3Channels* textureData3Channels = static_cast<Color3Channels*>(textureData);
+                    Color8Bit* typedUploadBufferData = static_cast<Color8Bit*>(uploadBufferData);
 
-                    for (size_t i = 0; i < textureProxy.data.size() / sizeof(Color8Bit); i += sizeof(Color8Bit))
-                    {
-                        Color8Bit* color = reinterpret_cast<Color8Bit*>(&textureProxy.data.at(i));
-                        *color = { textureData3Channels[i].r, textureData3Channels[i].g, textureData3Channels[i].b };
-                    }
+                    for (size_t i = 0; i < textureSize / sizeof(Color8Bit); ++i)
+                        typedUploadBufferData[i] = { textureData3Channels[i].r, textureData3Channels[i].g, textureData3Channels[i].b };
 
                     break;
                 }
                 case 4:
                 {
-                    textureProxy.format = rhi::Format::BC3_UNORM;
+                    textureProxy.format = rhi::Format::R8G8B8A8_UNORM;
+                    textureProxy.bcFormat = rhi::Format::BC3_UNORM;
                     textureProxy.mapping = { rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::G, rhi::ComponentSwizzle::B, rhi::ComponentSwizzle::A };
-                    memcpy(textureProxy.data.data(), textureData, textureSize);
+                    memcpy(uploadBufferData, textureData, textureSize);
                     break;
                 }
             }
@@ -238,6 +243,9 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
             stbi_image_free(textureData);
         }
     }
+
+    CopyTextureIntoGPURequest request(outImportResult.texture, gpuTextureInitInfo);
+    EventManager::trigger_event(request);
 
     return true;
 }

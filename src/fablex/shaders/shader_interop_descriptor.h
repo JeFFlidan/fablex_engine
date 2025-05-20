@@ -54,6 +54,11 @@ struct Descriptor
 {
     int descriptor;
 
+    void init()
+    {
+        descriptor = -1;
+    }
+
     bool is_valid()
     {
         return descriptor >= 0;

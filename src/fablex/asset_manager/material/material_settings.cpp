@@ -15,7 +15,7 @@ void MaterialSettings::set_texture(
 {
     outShaderMaterial.textures[textureSlot].init();
     if (textureAsset)
-        outShaderMaterial.textures[textureSlot].textureIndex = renderer::Utils::get_descriptor(textureAsset);
+        outShaderMaterial.textures[textureSlot] = renderer::Utils::get_descriptor(textureAsset);
 }
 
 }

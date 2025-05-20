@@ -315,7 +315,7 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
 
         switch (m_uvFormat)
         {
-        case VertexUV16Bit::FORMAT:
+        case VertexUVs16Bit::FORMAT:
         {
             VertexUVs16Bit* vertices = reinterpret_cast<VertexUVs16Bit*>(bufferData + bufferOffset);
             bufferOffset += rhi::align_to(m_vertexUVs.size, alignment);
@@ -325,12 +325,17 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
                 VertexUVs16Bit vertex;
                 vertex.uv0.from_full(uv0.at(i), m_uvRangeMin, m_uvRangeMax);
                 vertex.uv1.from_full(uv1.at(i), m_uvRangeMin, m_uvRangeMax);
+                if (m_model->get_name() == "Ground")
+                {
+                    FE_LOG(LogDefault, INFO, "Vertex {} UV0: {}; {}; {}", i, uv0.at(i), Float2((float)vertex.uv0.x / 65535, (float)vertex.uv0.y / 65535), lerp(m_uvRangeMin, m_uvRangeMax, Float2(float(vertex.uv0.x) / MAX_16_BIT, float(vertex.uv0.y) / MAX_16_BIT)));
+                    FE_LOG(LogDefault, INFO, "Vertex {} UV1: {}; {}; {}", i, uv1.at(i), Float2((float)vertex.uv1.x / 65535, (float)vertex.uv1.y / 65535), lerp(m_uvRangeMin, m_uvRangeMax, Float2(float(vertex.uv1.x) / MAX_16_BIT, float(vertex.uv1.y) / MAX_16_BIT)));
+                }
                 memcpy(vertices + i, &vertex, sizeof(VertexUVs16Bit));
             }
 
             break;
         }
-        case VertexUV32Bit::FORMAT:
+        case VertexUVs32Bit::FORMAT:
         {
             VertexUVs32Bit* vertices = reinterpret_cast<VertexUVs32Bit*>(bufferData + bufferOffset);
             bufferOffset += rhi::align_to(m_vertexUVs.size, alignment);
