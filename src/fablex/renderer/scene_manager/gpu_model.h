@@ -8,6 +8,7 @@
 
 struct ShaderModel;
 struct ShaderModelInstance;
+struct ShaderMeshInstance;
 
 namespace fe::renderer
 {
@@ -36,12 +37,14 @@ public:
 
     void add_instance(engine::Entity* entity);
 
-    void fill_shader_models(ShaderModel* modelArray, uint64 modelArrayOffset) const;
+    void fill_shader_model(ShaderModel& outShaderModel) const;
     
-    void fill_shader_model_instances(
+    void fill_shader_model_and_mesh_instances(
         SceneManager* sceneManager,
         ShaderModelInstance* modelInstanceArray,
-        uint64 modelInstanceArrayOffset
+        uint64& modelInstanceArrayOffset,
+        ShaderMeshInstance* meshInstanceArray,
+        uint64& meshInstanceArrayOffset
     );
 
     asset::Model* model_asset() const { return m_model; }

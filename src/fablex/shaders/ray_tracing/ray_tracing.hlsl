@@ -91,7 +91,6 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
 
     lightingResult.apply(payload.color);
     // payload.color *= shadow;
-    // payload.color = 1;
 }
 
 [shader("closesthit")]

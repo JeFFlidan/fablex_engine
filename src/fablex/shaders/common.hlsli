@@ -94,6 +94,7 @@ static const uint BINDLESS_DESCRIPTOR_SET_ACCELERATION_STRUCTURE = 7;
 #if defined(__spirv__)
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModel> bindlessStructuredModels[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModelInstance> bindlessStructuredModelInstances[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMeshInstance> bindlessStructuredMeshInstances[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModelInstanceID> bindlessStructuredModelInstanceIDs[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMaterial> bindlessStructuredMaterials[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderEntity> bindlessStructuredEntities[];
@@ -139,6 +140,11 @@ inline ShaderModelInstance get_model_instance(uint hlslInstanceID)
     return bindlessStructuredModelInstances[get_frame().modelInstanceBufferIndex][hlslInstanceID];
 }
 
+inline ShaderMeshInstance get_mesh_instance(uint meshID)
+{
+    return bindlessStructuredMeshInstances[get_frame().meshInstanceBufferIndex][meshID];
+}
+
 inline ShaderEntityIterator lights_iter()
 {
     FrameUB frame = get_frame();
@@ -166,9 +172,10 @@ struct PrimitiveInfo
     uint3 tri()
     {
         ShaderModelInstance instance = get_model_instance(instanceIndex);
-        ShaderModel model = get_model(instance.geometryOffset + meshIndex); // TEMP, THINK HOW TO FIND GEOMETRY INDEX
+        ShaderMeshInstance meshInstance = get_mesh_instance(meshIndex + instance.meshOffset);
+        ShaderModel model = get_model(meshInstance.modelIndex); // TEMP, THINK HOW TO FIND GEOMETRY INDEX
         
-        const uint beginIndex = primitiveIndex * 3 + model.indexOffset;
+        const uint beginIndex = primitiveIndex * 3 + meshInstance.indexOffset;
         Buffer<uint> indexBuffer = bindlessBuffersUInt[descriptor_index(model.indexBuffer)];
 
         return uint3(

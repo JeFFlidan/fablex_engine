@@ -181,8 +181,6 @@ struct ShaderModel
 	float3 aabbMin;
 	float3 aabbMax;
 
-	uint indexOffset;
-
 	void init()
 	{
 		indexBuffer = -1;
@@ -261,7 +259,7 @@ struct ShaderModelInstance
 	ShaderSphereBounds sphereBounds;
 
 	uint materialIndex;
-	uint geometryOffset;
+	uint meshOffset;
 
 	float3 scale;
 
@@ -274,8 +272,24 @@ struct ShaderModelInstance
 		sphereBounds.init();
 
 		materialIndex = 0;
-		geometryOffset = 0;
+		meshOffset = 0;
 		scale = float3(0.0f, 0.0f, 0.0f);
+	}
+};
+
+struct ShaderMeshInstance
+{
+	uint materialIndex;
+	uint modelIndex;
+	uint indexOffset;
+	uint padding;
+
+	void init()
+	{
+		materialIndex = 0;
+		modelIndex = 0;
+		indexOffset = 0;
+		padding = 0;
 	}
 };
 
@@ -474,6 +488,7 @@ struct alignas(16) FrameUB
 	int materialBufferIndex;
 	int modelBufferIndex;
 	int modelInstanceBufferIndex;
+	int meshInstanceBufferIndex;
 	int modelInstanceIDBufferIndex;
 
 	uint lightArrayOffset;

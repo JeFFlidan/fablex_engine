@@ -258,10 +258,6 @@ void Engine::configure_sponza()
     asset::ModelImportResult importResult;
 
     asset::AssetManager::import_model(importContext, importResult);
-
-    FE_LOG(LogDefault, INFO, "Model mesh count: {}", importResult.models.at(0)->meshes().size());
-    FE_LOG(LogDefault, INFO, "Model models count: {}", importResult.models.size());
-    FE_LOG(LogDefault, INFO, "Model models count: {}", importResult.models.at(0)->vertex_count());
     
     asset::OpaqueMaterialCreateInfo opaqueMaterialCreateInfo;
     opaqueMaterialCreateInfo.name = "Opaque1";

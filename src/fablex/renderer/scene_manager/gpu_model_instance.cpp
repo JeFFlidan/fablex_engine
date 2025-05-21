@@ -25,7 +25,7 @@ void GPUModelInstance::fill_shader_model_instance(SceneManager* sceneManager, Sh
     Sphere sphereBounds(aabb);
     outModelInstance.sphereBounds.center = sphereBounds.center;
     outModelInstance.sphereBounds.radius = sphereBounds.radius;
-    outModelInstance.geometryOffset = sceneManager->resource_index(modelAsset->get_uuid());
+    outModelInstance.meshOffset = sceneManager->resource_index(modelAsset->get_uuid());
     outModelInstance.materialIndex = sceneManager->resource_index(materialUUID);
 
     Matrix remapMat = modelAsset->aabb().get_unorm_remap_matrix();

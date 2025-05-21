@@ -136,7 +136,7 @@ struct Surface
         barycentrics = 0;        
 
         instance = get_model_instance(primitiveInfo.instanceIndex);
-        model = get_model(instance.geometryOffset);
+        model = get_model(instance.meshOffset);
 
         uint3 indices = primitiveInfo.tri();
         i0 = indices.x;

@@ -524,44 +524,46 @@ void GPUModel::add_instance(engine::Entity* entity)
     m_instances.push_back(entity);
 }
 
-void GPUModel::fill_shader_models(ShaderModel* modelArray, uint64 modelArrayOffset) const
+void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
 {
-    uint64 index = modelArrayOffset;
-    for (auto& mesh : m_model->meshes())
-    {
-        ShaderModel& shaderModel = modelArray[index++];
-        shaderModel.indexBuffer = srv_indices();
-        shaderModel.vertexBufferPosWind = srv_positions_winds();
-        shaderModel.vertexBufferMeshlets = srv_meshlets();
-        shaderModel.vertexBufferMeshletBounds = srv_meshlet_bounds();
-        shaderModel.vertexBufferNormals = srv_normals();
-        shaderModel.vertexBufferTangents = srv_tangents();
-        shaderModel.vertexBufferUVs = srv_uvs();
-        shaderModel.vertexBufferAtlas = srv_atlas();
-        shaderModel.vertexBufferColors = srv_colors();
-        
-        shaderModel.aabbMin = aabb().minPoint;
-        shaderModel.aabbMax = aabb().maxPoint;
-        
-        shaderModel.uvRangeMin = m_uvRangeMin;
-        shaderModel.uvRangeMax = m_uvRangeMax;
-
-        shaderModel.indexOffset = mesh.indexOffset;
-    }
+    outShaderModel.indexBuffer = srv_indices();
+    outShaderModel.vertexBufferPosWind = srv_positions_winds();
+    outShaderModel.vertexBufferMeshlets = srv_meshlets();
+    outShaderModel.vertexBufferMeshletBounds = srv_meshlet_bounds();
+    outShaderModel.vertexBufferNormals = srv_normals();
+    outShaderModel.vertexBufferTangents = srv_tangents();
+    outShaderModel.vertexBufferUVs = srv_uvs();
+    outShaderModel.vertexBufferAtlas = srv_atlas();
+    outShaderModel.vertexBufferColors = srv_colors();
+    
+    outShaderModel.aabbMin = aabb().minPoint;
+    outShaderModel.aabbMax = aabb().maxPoint;
+    
+    outShaderModel.uvRangeMin = m_uvRangeMin;
+    outShaderModel.uvRangeMax = m_uvRangeMax;
 }
 
-void GPUModel::fill_shader_model_instances(
+void GPUModel::fill_shader_model_and_mesh_instances(
     SceneManager* sceneManager,
     ShaderModelInstance* modelInstanceArray,
-    uint64 modelInstanceArrayOffset
+    uint64& modelInstanceArrayOffset,
+    ShaderMeshInstance* meshInstanceArray,
+    uint64& meshInstanceArrayOffset
 )
 {
-    uint64 index = 0;
     for (const GPUModelInstance& instance : m_instances)
     {
-        ShaderModelInstance& shaderModelInstance = modelInstanceArray[modelInstanceArrayOffset + index];
+        ShaderModelInstance& shaderModelInstance = modelInstanceArray[modelInstanceArrayOffset++];
         instance.fill_shader_model_instance(sceneManager, shaderModelInstance);
-        ++index;
+        shaderModelInstance.meshOffset = meshInstanceArrayOffset;
+
+        for (auto& mesh : m_model->meshes())
+        {
+            ShaderMeshInstance& shaderMeshInstance = meshInstanceArray[meshInstanceArrayOffset++];
+            shaderMeshInstance.modelIndex = sceneManager->resource_index(m_model->get_uuid());
+            shaderMeshInstance.materialIndex = shaderModelInstance.materialIndex;   // TEMP, WILL BE REPLACED
+            shaderMeshInstance.indexOffset = mesh.indexOffset;
+        }
     }
 }
 

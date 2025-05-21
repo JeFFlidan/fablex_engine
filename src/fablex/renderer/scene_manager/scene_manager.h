@@ -95,6 +95,7 @@ private:
 
     BufferArray m_modelBuffers;
     BufferArray m_modelInstanceBuffers;
+    BufferArray m_meshInstanceBuffers;
     BufferArray m_materialBuffers;
     BufferArray m_shaderEntityBuffers;
 
@@ -122,6 +123,7 @@ private:
     void allocate_storage_buffers();
     rhi::Buffer* get_model_buffer() const;
     rhi::Buffer* get_model_instance_buffer() const;
+    rhi::Buffer* get_mesh_instance_buffer() const;
     rhi::Buffer* get_material_buffer() const;
     rhi::Buffer* get_shader_entity_buffer() const;
     uint64 calc_buffer_size(uint64 currentSize, uint64 cpuEntrieSize);

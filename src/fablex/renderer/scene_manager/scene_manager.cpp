@@ -21,6 +21,7 @@ constexpr uint64 TEXTURE_INIT_COUNT = 256ULL;
 
 const std::string MODEL_BUFFER_NAME = "ModelBuffer";
 const std::string MODEL_INSTANCE_BUFFER_NAME = "ModelInstanceBuffer";
+const std::string MESH_INSTANCE_BUFFER_NAME = "MeshInstanceBuffer";
 const std::string ENTITY_BUFFER_NAME = "EntityBuffer";
 const std::string MATERIAL_BUFFER_NAME = "MaterialBuffer";
 const std::string FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
@@ -44,6 +45,9 @@ SceneManager::~SceneManager()
         rhi::destroy_buffer(buffer);
 
     for (rhi::Buffer* buffer : m_modelInstanceBuffers)
+        rhi::destroy_buffer(buffer);
+
+    for (rhi::Buffer* buffer : m_meshInstanceBuffers)
         rhi::destroy_buffer(buffer);
 
     for (rhi::Buffer* buffer : m_shaderEntityBuffers)
@@ -175,25 +179,32 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     {
         rhi::Buffer* buffer = get_model_buffer();
         ShaderModel* shaderModels = static_cast<ShaderModel*>(buffer->mappedData);
-        uint64 offset = 0;
+        uint64 index = 0;
 
         for (const GPUModelHandle& gpuModel : m_gpuModels)
-        {
-            gpuModel->fill_shader_models(shaderModels, offset);
-            offset += gpuModel->mesh_count();
-        }
+            gpuModel->fill_shader_model(shaderModels[index++]);
     });
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
-        rhi::Buffer* buffer = get_model_instance_buffer();
-        ShaderModelInstance* shaderModelInstances = static_cast<ShaderModelInstance*>(buffer->mappedData);
-        uint64 offset = 0;
+        rhi::Buffer* modelInstanceBuffer = get_model_instance_buffer();
+        rhi::Buffer* meshInstanceBuffer = get_mesh_instance_buffer();
+
+        ShaderModelInstance* shaderModelInstances = static_cast<ShaderModelInstance*>(modelInstanceBuffer->mappedData);
+        ShaderMeshInstance* shaderMeshInstances = static_cast<ShaderMeshInstance*>(meshInstanceBuffer->mappedData);
+
+        uint64 modelInstanceOffset = 0;
+        uint64 meshInstanceOffset = 0;
 
         for (const GPUModelHandle& gpuModel : m_gpuModels)
         {
-            gpuModel->fill_shader_model_instances(this, shaderModelInstances, offset);
-            offset += gpuModel->instance_count();
+            gpuModel->fill_shader_model_and_mesh_instances(
+                this, 
+                shaderModelInstances, 
+                modelInstanceOffset,
+                shaderMeshInstances,
+                meshInstanceOffset
+            );
         }
     });
 
@@ -507,8 +518,9 @@ void SceneManager::allocate_storage_buffers()
         }
     };
 
-    alloc(sizeof(ShaderModel), m_meshCount, m_modelBuffers, MODEL_BUFFER_NAME);
+    alloc(sizeof(ShaderModel), m_gpuModels.size(), m_modelBuffers, MODEL_BUFFER_NAME);
     alloc(sizeof(ShaderModelInstance), m_modelInstanceCount, m_modelInstanceBuffers, MODEL_INSTANCE_BUFFER_NAME);
+    alloc(sizeof(ShaderMeshInstance), m_meshCount, m_meshInstanceBuffers, MESH_INSTANCE_BUFFER_NAME);
     alloc(sizeof(ShaderEntity), m_shaderEntityComponents.size(), m_shaderEntityBuffers, ENTITY_BUFFER_NAME);
     alloc(sizeof(ShaderMaterial), m_gpuMaterials.size(), m_materialBuffers, MATERIAL_BUFFER_NAME);
 }
@@ -521,6 +533,11 @@ rhi::Buffer* SceneManager::get_model_buffer() const
 rhi::Buffer* SceneManager::get_model_instance_buffer() const
 {
     return m_modelInstanceBuffers.at(g_frameIndex);
+}
+
+rhi::Buffer* SceneManager::get_mesh_instance_buffer() const
+{
+    return m_meshInstanceBuffers.at(g_frameIndex);
 }
 
 rhi::Buffer* SceneManager::get_material_buffer() const
@@ -551,6 +568,7 @@ void SceneManager::fill_frame_data()
     
     m_frameData.modelBufferIndex = get_model_buffer()->descriptorIndex;
     m_frameData.modelInstanceBufferIndex = get_model_instance_buffer()->descriptorIndex;
+    m_frameData.meshInstanceBufferIndex = get_mesh_instance_buffer()->descriptorIndex;
     m_frameData.entityBufferIndex = get_shader_entity_buffer()->descriptorIndex;
     m_frameData.lightArrayCount = m_lightComponentCount;
     m_frameData.lightArrayOffset = 0;
