@@ -94,85 +94,85 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
 
     const float coneWeight = 0.5f;
 
-    const size_t maxMeshlets = meshopt_buildMeshletsBound(
-        m_model->index_count(), 
-        MESHLET_VERTEX_COUNT, 
-        MESHLET_TRIANGLE_COUNT
-    );
+    // const size_t maxMeshlets = meshopt_buildMeshletsBound(
+    //     m_model->index_count(), 
+    //     MESHLET_VERTEX_COUNT, 
+    //     MESHLET_TRIANGLE_COUNT
+    // );
 
-    std::vector<meshopt_Meshlet> meshoptMeshlets(maxMeshlets);
-    std::vector<unsigned int> meshletVertices(maxMeshlets * MESHLET_VERTEX_COUNT);
-    std::vector<unsigned char> meshletTriangles(maxMeshlets * MESHLET_TRIANGLE_COUNT * 3);
+    // std::vector<meshopt_Meshlet> meshoptMeshlets(maxMeshlets);
+    // std::vector<unsigned int> meshletVertices(maxMeshlets * MESHLET_VERTEX_COUNT);
+    // std::vector<unsigned char> meshletTriangles(maxMeshlets * MESHLET_TRIANGLE_COUNT * 3);
 
-    m_meshletCount = meshopt_buildMeshlets(
-        meshoptMeshlets.data(),
-        meshletVertices.data(),
-        meshletTriangles.data(),
-        m_model->indices().data(),
-        m_model->index_count(),
-        (float*)m_model->vertex_positions().data(),
-        m_model->vertex_count(),
-        sizeof(Float3),
-        MESHLET_VERTEX_COUNT,
-        MESHLET_TRIANGLE_COUNT,
-        coneWeight
-    );
+    // m_meshletCount = meshopt_buildMeshlets(
+    //     meshoptMeshlets.data(),
+    //     meshletVertices.data(),
+    //     meshletTriangles.data(),
+    //     m_model->indices().data(),
+    //     m_model->index_count(),
+    //     (float*)m_model->vertex_positions().data(),
+    //     m_model->vertex_count(),
+    //     sizeof(Float3),
+    //     MESHLET_VERTEX_COUNT,
+    //     MESHLET_TRIANGLE_COUNT,
+    //     coneWeight
+    // );
 
     std::vector<ShaderMeshlet> shaderMeshlets;
     std::vector<ShaderMeshletBounds> shaderMeshletBounds;
 
-    shaderMeshlets.reserve(m_meshletCount);
-    shaderMeshletBounds.reserve(m_meshletCount);
+    // shaderMeshlets.reserve(m_meshletCount);
+    // shaderMeshletBounds.reserve(m_meshletCount);
 
-    const meshopt_Meshlet& lastMeshlet = meshoptMeshlets[m_meshletCount - 1];
-    meshletVertices.resize(lastMeshlet.vertex_offset + lastMeshlet.vertex_count);
-    meshletTriangles.resize(lastMeshlet.triangle_offset + ((lastMeshlet.triangle_count * 3 + 3) & ~3));
-    meshoptMeshlets.resize(m_meshletCount);
+    // const meshopt_Meshlet& lastMeshlet = meshoptMeshlets[m_meshletCount - 1];
+    // meshletVertices.resize(lastMeshlet.vertex_offset + lastMeshlet.vertex_count);
+    // meshletTriangles.resize(lastMeshlet.triangle_offset + ((lastMeshlet.triangle_count * 3 + 3) & ~3));
+    // meshoptMeshlets.resize(m_meshletCount);
 
-    for (const meshopt_Meshlet& meshoptMeshlet : meshoptMeshlets)
-    {
-        meshopt_optimizeMeshlet(
-            &meshletVertices[meshoptMeshlet.vertex_offset], 
-            &meshletTriangles[meshoptMeshlet.triangle_offset], 
-            meshoptMeshlet.triangle_count,
-            meshoptMeshlet.vertex_count
-        );
+    // for (const meshopt_Meshlet& meshoptMeshlet : meshoptMeshlets)
+    // {
+    //     meshopt_optimizeMeshlet(
+    //         &meshletVertices[meshoptMeshlet.vertex_offset], 
+    //         &meshletTriangles[meshoptMeshlet.triangle_offset], 
+    //         meshoptMeshlet.triangle_count,
+    //         meshoptMeshlet.vertex_count
+    //     );
 
-        meshopt_Bounds bounds = meshopt_computeMeshletBounds(
-            &meshletVertices[meshoptMeshlet.vertex_offset], 
-            &meshletTriangles[meshoptMeshlet.triangle_offset], 
-            meshoptMeshlet.triangle_count, 
-            &m_model->vertex_positions()[0].x, 
-            m_model->vertex_count(), 
-            sizeof(Float3)
-        );
+    //     meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+    //         &meshletVertices[meshoptMeshlet.vertex_offset], 
+    //         &meshletTriangles[meshoptMeshlet.triangle_offset], 
+    //         meshoptMeshlet.triangle_count, 
+    //         &m_model->vertex_positions()[0].x, 
+    //         m_model->vertex_count(), 
+    //         sizeof(Float3)
+    //     );
 
-        ShaderMeshletBounds& shaderMeshletBoundsEntry = shaderMeshletBounds.emplace_back();
-        shaderMeshletBoundsEntry.bounds.center.x = bounds.center[0];
-        shaderMeshletBoundsEntry.bounds.center.y = bounds.center[1];
-        shaderMeshletBoundsEntry.bounds.center.z = bounds.center[2];
-        shaderMeshletBoundsEntry.bounds.radius = bounds.radius;
-        shaderMeshletBoundsEntry.coneAxis.x = bounds.cone_axis[0];
-        shaderMeshletBoundsEntry.coneAxis.y = bounds.cone_axis[1];
-        shaderMeshletBoundsEntry.coneAxis.z = bounds.cone_axis[2];
-        shaderMeshletBoundsEntry.coneCutoff = bounds.cone_cutoff;
+    //     ShaderMeshletBounds& shaderMeshletBoundsEntry = shaderMeshletBounds.emplace_back();
+    //     shaderMeshletBoundsEntry.bounds.center.x = bounds.center[0];
+    //     shaderMeshletBoundsEntry.bounds.center.y = bounds.center[1];
+    //     shaderMeshletBoundsEntry.bounds.center.z = bounds.center[2];
+    //     shaderMeshletBoundsEntry.bounds.radius = bounds.radius;
+    //     shaderMeshletBoundsEntry.coneAxis.x = bounds.cone_axis[0];
+    //     shaderMeshletBoundsEntry.coneAxis.y = bounds.cone_axis[1];
+    //     shaderMeshletBoundsEntry.coneAxis.z = bounds.cone_axis[2];
+    //     shaderMeshletBoundsEntry.coneCutoff = bounds.cone_cutoff;
 
-        ShaderMeshlet& shaderMeshlet = shaderMeshlets.emplace_back();
-        shaderMeshlet.triangleCount = meshoptMeshlet.triangle_count;
-        shaderMeshlet.vertexCount = meshoptMeshlet.vertex_count;
+    //     ShaderMeshlet& shaderMeshlet = shaderMeshlets.emplace_back();
+    //     shaderMeshlet.triangleCount = meshoptMeshlet.triangle_count;
+    //     shaderMeshlet.vertexCount = meshoptMeshlet.vertex_count;
 
-        for (size_t i = 0; i != meshoptMeshlet.triangle_count; ++i)
-        {
-            shaderMeshlet.triangles[i].init(
-                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 0),
-                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 1),
-                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 2)
-            );
-        }
+    //     for (size_t i = 0; i != meshoptMeshlet.triangle_count; ++i)
+    //     {
+    //         shaderMeshlet.triangles[i].init(
+    //             meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 0),
+    //             meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 1),
+    //             meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 2)
+    //         );
+    //     }
 
-        for (size_t i = 0; i != meshoptMeshlet.vertex_count; ++i)
-            shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
-    }
+    //     for (size_t i = 0; i != meshoptMeshlet.vertex_count; ++i)
+    //         shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
+    // }
 
     rhi::BufferInfo bufferInfo;
     bufferInfo.bufferUsage = 

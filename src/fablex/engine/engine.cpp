@@ -34,9 +34,12 @@ void Engine::configure_test_scene()
         "content/streaky-metal1_albedo.png",
         "content/streaky-metal1_ao.png",
         "content/streaky-metal1_metallic.png",
-        "content/streaky-metal1_normal-ogl.png",
+        "content/streaky-metal1_normal.png",
         "content/streaky-metal1_roughness.png",
-        "content/rocky-rugged-terrain_1_albedo.png"
+        "content/rocky-rugged-terrain_1_albedo.png",
+        "content/rocky-rugged-terrain_1_roughness.png",
+        "content/rocky-rugged-terrain_1_metallic.png",
+        "content/rocky-rugged-terrain_1_normal.png"
     };
 
     std::mutex mutex;
@@ -77,6 +80,9 @@ void Engine::configure_test_scene()
 
     opaqueMaterialSettings->set_base_color(Float4(0.5, 0.8, 0.1, 1));
     opaqueMaterialSettings->set_base_color_texture(textureByPath["content/streaky-metal1_albedo.png"]);
+    opaqueMaterialSettings->set_roughness_texture(textureByPath["content/streaky-metal1_roughness.png"]);
+    opaqueMaterialSettings->set_metallic_texture(textureByPath["content/streaky-metal1_metallic.png"]);
+    opaqueMaterialSettings->set_normal_texture(textureByPath["content/streaky-metal1_normal.png"]);
     opaqueMaterialSettings->set_roughness(0.42f);
     opaqueMaterialSettings->set_metallic(0.0f);
 
@@ -197,6 +203,9 @@ void Engine::configure_test_scene()
 
     opaqueMaterialSettings->set_base_color(Float4(0.5, 0.5, 0.5, 1));
     opaqueMaterialSettings->set_base_color_texture(textureByPath["content/rocky-rugged-terrain_1_albedo.png"]);
+    opaqueMaterialSettings->set_roughness_texture(textureByPath["content/rocky-rugged-terrain_1_roughness.png"]);
+    opaqueMaterialSettings->set_metallic_texture(textureByPath["content/rocky-rugged-terrain_1_metallic.png"]);
+    opaqueMaterialSettings->set_normal_texture(textureByPath["content/rocky-rugged-terrain_1_normal.png"]);
     opaqueMaterialSettings->set_roughness(0.35);
     opaqueMaterialSettings->set_metallic(0.0);
 

@@ -14,6 +14,7 @@ struct Surface
     float3 P;   // World space position
     float3 prevP;
     float3 N;   // World space normal
+    float4 T;   // Tangent
     float3 V;   // World space view vec
 
     uint i0;
@@ -25,6 +26,7 @@ struct Surface
 
     float4 baseColor;
     float4 emissionColor;
+    float3 bumpColor;
     float roughness;
     float metallic;
     float occlusion;
@@ -119,6 +121,20 @@ struct Surface
 
     bool load_model_data(in PrimitiveInfo primitiveInfo)
     {
+        P = 0;
+        prevP = 0;
+        N = 0;
+        T = 0;
+        baseColor = 0;
+        emissionColor = 0;
+        bumpColor = 0;
+        roughness = 0;
+        metallic = 0;
+        occlusion = 1;
+        F0 = 0;
+        F = 0;
+        barycentrics = 0;        
+
         instance = get_model_instance(primitiveInfo.instanceIndex);
         model = get_model(instance.geometryOffset);
 
@@ -128,7 +144,7 @@ struct Surface
         i2 = indices.z;
 
         get_tri(P0, P1, P2);
-        baseColor = primitiveInfo.primitiveIndex;
+        
         return true;
     }
 
@@ -143,8 +159,9 @@ struct Surface
         prevP = mul(instance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
         P = mul(instance.transform.get_matrix(), float4(P, 1.0)).xyz;
 
-        // barycentrics = compute_barycentrics(P, P0, P1, P2);
+        ShaderMaterial material = get_material(instance.materialIndex);
 
+        float3 unnormalizedN = 0;
         float3x3 adjointMat = instance.rawTransform.get_matrix_adjoint();
         
         [branch]
@@ -158,6 +175,8 @@ struct Surface
             n1 = any(n1) ? normalize(n1) : 0;
             n2 = any(n2) ? normalize(n2) : 0;
             N = barycentric_interpolation(n0, n1, n2, barycentrics);
+
+            unnormalizedN = N;
 
             N = normalize(N);
 
@@ -183,24 +202,77 @@ struct Surface
             float4 uv1 = lerp(model.uvRangeMin.xyxy, model.uvRangeMax.xyxy, uvsBuffer[i1]);
             float4 uv2 = lerp(model.uvRangeMin.xyxy, model.uvRangeMax.xyxy, uvsBuffer[i2]);
             // TODO: Add uv coord multiplier like Texture Coordinate node in UE
-            uvSets = barycentric_interpolation(uv1, uv0, uv2, barycentrics);
+            uvSets = barycentric_interpolation(uv0, uv1, uv2, barycentrics);
         }
 
-        ShaderMaterial shaderMaterial = get_material(instance.materialIndex);
+        float3x3 TBN = float3x3(1,0,0, 0,1,0, 0,0,1);
 
-        // TODO: Get values from textures
-        if (shaderMaterial.textures[TEXTURE_SLOT_BASE_COLOR].is_valid())
+        [branch]
+        if (model.vertexBufferTangents >= 0)
         {
-            baseColor = shaderMaterial.sample(TEXTURE_SLOT_BASE_COLOR, uvSets, 0.0);
+            Buffer<float4> tangentBuffer = bindlessBuffersFloat4[descriptor_index(model.vertexBufferTangents)];
+            float4 t0 = tangentBuffer[i0];
+            float4 t1 = tangentBuffer[i1];
+            float4 t2 = tangentBuffer[i2];
+            t0.xyz = mul(adjointMat, t0.xyz);
+            t1.xyz = mul(adjointMat, t1.xyz);
+            t2.xyz = mul(adjointMat, t2.xyz);
+            t0.xyz = any(t0.xyz) ? normalize(t0.xyz) : 0;
+            t1.xyz = any(t1.xyz) ? normalize(t1.xyz) : 0;
+            t2.xyz = any(t2.xyz) ? normalize(t2.xyz) : 0;
+            T = barycentric_interpolation(t0, t1, t2, barycentrics);
+            T.w = T.w < 0 ? -1 : 1;
+            float3 B = cross(T.xyz, unnormalizedN) * T.w;   // Bitangent
+            TBN = float3x3(T.xyz, B, unnormalizedN);
+
+            [branch]
+            if (material.textures[TEXTURE_SLOT_NORMAL].is_valid())
+            {
+                bumpColor = material.sample(TEXTURE_SLOT_NORMAL, uvSets, 0.0).xyz;
+                bumpColor = bumpColor * 2 - 1;
+            }
+        }
+
+        [branch]
+        if (any(bumpColor))
+        {
+            N = normalize(mul(bumpColor, TBN));
+        }
+
+        if (material.textures[TEXTURE_SLOT_BASE_COLOR].is_valid())
+        {
+            baseColor = material.sample(TEXTURE_SLOT_BASE_COLOR, uvSets, 0.0);
         }
         else
         {
-            baseColor = shaderMaterial.get_base_color();
+            baseColor = material.get_base_color();
         }
 
-        roughness = shaderMaterial.get_roughness();
+        if (material.textures[TEXTURE_SLOT_ROUGHNESS].is_valid())
+        {
+            roughness = material.sample(TEXTURE_SLOT_ROUGHNESS, uvSets, 0.0).r;
+        }
+        else
+        {
+            roughness = material.get_roughness();
+        }
+
         roughness *= roughness;
-        metallic = shaderMaterial.get_metallic();
+
+        if (material.textures[TEXTURE_SLOT_METALLIC].is_valid())
+        {
+            metallic = material.sample(TEXTURE_SLOT_METALLIC, uvSets, 0.0).r;
+        }
+        else
+        {
+            metallic = material.get_metallic();
+        }
+
+        if (material.textures[TEXTURE_SLOT_AO].is_valid())
+        {
+            occlusion = material.sample(TEXTURE_SLOT_AO, uvSets, 0.0).r;
+        }
+
         emissionColor = 0;   // TEMP
         
         F0 = lerp(float3(0.04f, 0.04f, 0.04f), baseColor.xyz, metallic);
