@@ -94,85 +94,85 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
 
     const float coneWeight = 0.5f;
 
-    // const size_t maxMeshlets = meshopt_buildMeshletsBound(
-    //     m_model->index_count(), 
-    //     MESHLET_VERTEX_COUNT, 
-    //     MESHLET_TRIANGLE_COUNT
-    // );
+    const size_t maxMeshlets = meshopt_buildMeshletsBound(
+        m_model->index_count(), 
+        MESHLET_VERTEX_COUNT, 
+        MESHLET_TRIANGLE_COUNT
+    );
 
-    // std::vector<meshopt_Meshlet> meshoptMeshlets(maxMeshlets);
-    // std::vector<unsigned int> meshletVertices(maxMeshlets * MESHLET_VERTEX_COUNT);
-    // std::vector<unsigned char> meshletTriangles(maxMeshlets * MESHLET_TRIANGLE_COUNT * 3);
+    std::vector<meshopt_Meshlet> meshoptMeshlets(maxMeshlets);
+    std::vector<unsigned int> meshletVertices(maxMeshlets * MESHLET_VERTEX_COUNT);
+    std::vector<unsigned char> meshletTriangles(maxMeshlets * MESHLET_TRIANGLE_COUNT * 3);
 
-    // m_meshletCount = meshopt_buildMeshlets(
-    //     meshoptMeshlets.data(),
-    //     meshletVertices.data(),
-    //     meshletTriangles.data(),
-    //     m_model->indices().data(),
-    //     m_model->index_count(),
-    //     (float*)m_model->vertex_positions().data(),
-    //     m_model->vertex_count(),
-    //     sizeof(Float3),
-    //     MESHLET_VERTEX_COUNT,
-    //     MESHLET_TRIANGLE_COUNT,
-    //     coneWeight
-    // );
+    m_meshletCount = meshopt_buildMeshlets(
+        meshoptMeshlets.data(),
+        meshletVertices.data(),
+        meshletTriangles.data(),
+        m_model->indices().data(),
+        m_model->index_count(),
+        (float*)m_model->vertex_positions().data(),
+        m_model->vertex_count(),
+        sizeof(Float3),
+        MESHLET_VERTEX_COUNT,
+        MESHLET_TRIANGLE_COUNT,
+        coneWeight
+    );
 
     std::vector<ShaderMeshlet> shaderMeshlets;
     std::vector<ShaderMeshletBounds> shaderMeshletBounds;
 
-    // shaderMeshlets.reserve(m_meshletCount);
-    // shaderMeshletBounds.reserve(m_meshletCount);
+    shaderMeshlets.reserve(m_meshletCount);
+    shaderMeshletBounds.reserve(m_meshletCount);
 
-    // const meshopt_Meshlet& lastMeshlet = meshoptMeshlets[m_meshletCount - 1];
-    // meshletVertices.resize(lastMeshlet.vertex_offset + lastMeshlet.vertex_count);
-    // meshletTriangles.resize(lastMeshlet.triangle_offset + ((lastMeshlet.triangle_count * 3 + 3) & ~3));
-    // meshoptMeshlets.resize(m_meshletCount);
+    const meshopt_Meshlet& lastMeshlet = meshoptMeshlets[m_meshletCount - 1];
+    meshletVertices.resize(lastMeshlet.vertex_offset + lastMeshlet.vertex_count);
+    meshletTriangles.resize(lastMeshlet.triangle_offset + ((lastMeshlet.triangle_count * 3 + 3) & ~3));
+    meshoptMeshlets.resize(m_meshletCount);
 
-    // for (const meshopt_Meshlet& meshoptMeshlet : meshoptMeshlets)
-    // {
-    //     meshopt_optimizeMeshlet(
-    //         &meshletVertices[meshoptMeshlet.vertex_offset], 
-    //         &meshletTriangles[meshoptMeshlet.triangle_offset], 
-    //         meshoptMeshlet.triangle_count,
-    //         meshoptMeshlet.vertex_count
-    //     );
+    for (const meshopt_Meshlet& meshoptMeshlet : meshoptMeshlets)
+    {
+        meshopt_optimizeMeshlet(
+            &meshletVertices[meshoptMeshlet.vertex_offset], 
+            &meshletTriangles[meshoptMeshlet.triangle_offset], 
+            meshoptMeshlet.triangle_count,
+            meshoptMeshlet.vertex_count
+        );
 
-    //     meshopt_Bounds bounds = meshopt_computeMeshletBounds(
-    //         &meshletVertices[meshoptMeshlet.vertex_offset], 
-    //         &meshletTriangles[meshoptMeshlet.triangle_offset], 
-    //         meshoptMeshlet.triangle_count, 
-    //         &m_model->vertex_positions()[0].x, 
-    //         m_model->vertex_count(), 
-    //         sizeof(Float3)
-    //     );
+        meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+            &meshletVertices[meshoptMeshlet.vertex_offset], 
+            &meshletTriangles[meshoptMeshlet.triangle_offset], 
+            meshoptMeshlet.triangle_count, 
+            &m_model->vertex_positions()[0].x, 
+            m_model->vertex_count(), 
+            sizeof(Float3)
+        );
 
-    //     ShaderMeshletBounds& shaderMeshletBoundsEntry = shaderMeshletBounds.emplace_back();
-    //     shaderMeshletBoundsEntry.bounds.center.x = bounds.center[0];
-    //     shaderMeshletBoundsEntry.bounds.center.y = bounds.center[1];
-    //     shaderMeshletBoundsEntry.bounds.center.z = bounds.center[2];
-    //     shaderMeshletBoundsEntry.bounds.radius = bounds.radius;
-    //     shaderMeshletBoundsEntry.coneAxis.x = bounds.cone_axis[0];
-    //     shaderMeshletBoundsEntry.coneAxis.y = bounds.cone_axis[1];
-    //     shaderMeshletBoundsEntry.coneAxis.z = bounds.cone_axis[2];
-    //     shaderMeshletBoundsEntry.coneCutoff = bounds.cone_cutoff;
+        ShaderMeshletBounds& shaderMeshletBoundsEntry = shaderMeshletBounds.emplace_back();
+        shaderMeshletBoundsEntry.bounds.center.x = bounds.center[0];
+        shaderMeshletBoundsEntry.bounds.center.y = bounds.center[1];
+        shaderMeshletBoundsEntry.bounds.center.z = bounds.center[2];
+        shaderMeshletBoundsEntry.bounds.radius = bounds.radius;
+        shaderMeshletBoundsEntry.coneAxis.x = bounds.cone_axis[0];
+        shaderMeshletBoundsEntry.coneAxis.y = bounds.cone_axis[1];
+        shaderMeshletBoundsEntry.coneAxis.z = bounds.cone_axis[2];
+        shaderMeshletBoundsEntry.coneCutoff = bounds.cone_cutoff;
 
-    //     ShaderMeshlet& shaderMeshlet = shaderMeshlets.emplace_back();
-    //     shaderMeshlet.triangleCount = meshoptMeshlet.triangle_count;
-    //     shaderMeshlet.vertexCount = meshoptMeshlet.vertex_count;
+        ShaderMeshlet& shaderMeshlet = shaderMeshlets.emplace_back();
+        shaderMeshlet.triangleCount = meshoptMeshlet.triangle_count;
+        shaderMeshlet.vertexCount = meshoptMeshlet.vertex_count;
 
-    //     for (size_t i = 0; i != meshoptMeshlet.triangle_count; ++i)
-    //     {
-    //         shaderMeshlet.triangles[i].init(
-    //             meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 0),
-    //             meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 1),
-    //             meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 2)
-    //         );
-    //     }
+        for (size_t i = 0; i != meshoptMeshlet.triangle_count; ++i)
+        {
+            shaderMeshlet.triangles[i].init(
+                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 0),
+                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 1),
+                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 2)
+            );
+        }
 
-    //     for (size_t i = 0; i != meshoptMeshlet.vertex_count; ++i)
-    //         shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
-    // }
+        for (size_t i = 0; i != meshoptMeshlet.vertex_count; ++i)
+            shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
+    }
 
     rhi::BufferInfo bufferInfo;
     bufferInfo.bufferUsage = 
@@ -445,17 +445,20 @@ void GPUModel::build_blas(const CommandRecorder& cmdRecorder)
         rhi::AccelerationStructureInfo asInfo;
         asInfo.type = rhi::AccelerationStructureInfo::BOTTOM_LEVEL;
         asInfo.flags |= rhi::AccelerationStructureInfo::Flags::PREFER_FAST_TRACE;
-        
-        rhi::BLAS::Geometry& geometry = asInfo.blas.geometries.emplace_back();
-        geometry.triangles.vertexBuffer = m_generalBuffer;
-        geometry.triangles.vertexOffset = m_vertexPositionsWinds.offset;
-        geometry.triangles.vertexCount = m_model->vertex_count();
-        geometry.triangles.vertexFormat = m_positionFormat == rhi::Format::R32G32B32A32_SFLOAT ? rhi::Format::R32G32B32_SFLOAT : m_positionFormat;
-        geometry.triangles.vertexStride = rhi::get_format_stride(m_positionFormat);
-        geometry.triangles.indexBuffer = m_generalBuffer;
-        geometry.triangles.indexCount = m_model->index_count();
-        geometry.triangles.indexOffset = m_indices.offset / sizeof(uint32);
 
+        for (const asset::Mesh& mesh : m_model->meshes())
+        {
+            rhi::BLAS::Geometry& geometry = asInfo.blas.geometries.emplace_back();
+            geometry.triangles.vertexBuffer = m_generalBuffer;
+            geometry.triangles.vertexOffset = m_vertexPositionsWinds.offset;
+            geometry.triangles.vertexCount = m_model->vertex_count();
+            geometry.triangles.vertexFormat = m_positionFormat == rhi::Format::R32G32B32A32_SFLOAT ? rhi::Format::R32G32B32_SFLOAT : m_positionFormat;
+            geometry.triangles.vertexStride = rhi::get_format_stride(m_positionFormat);
+            geometry.triangles.indexBuffer = m_generalBuffer;
+            geometry.triangles.indexCount = mesh.indexCount;
+            geometry.triangles.indexOffset = m_indices.offset / sizeof(uint32) + mesh.indexOffset;
+        }
+        
         rhi::create_acceleration_structure(&m_BLASes.emplace_back(), &asInfo);
     }
 
@@ -521,23 +524,30 @@ void GPUModel::add_instance(engine::Entity* entity)
     m_instances.push_back(entity);
 }
 
-void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
+void GPUModel::fill_shader_models(ShaderModel* modelArray, uint64 modelArrayOffset) const
 {
-    outShaderModel.indexBuffer = srv_indices();
-    outShaderModel.vertexBufferPosWind = srv_positions_winds();
-    outShaderModel.vertexBufferMeshlets = srv_meshlets();
-    outShaderModel.vertexBufferMeshletBounds = srv_meshlet_bounds();
-    outShaderModel.vertexBufferNormals = srv_normals();
-    outShaderModel.vertexBufferTangents = srv_tangents();
-    outShaderModel.vertexBufferUVs = srv_uvs();
-    outShaderModel.vertexBufferAtlas = srv_atlas();
-    outShaderModel.vertexBufferColors = srv_colors();
+    uint64 index = modelArrayOffset;
+    for (auto& mesh : m_model->meshes())
+    {
+        ShaderModel& shaderModel = modelArray[index++];
+        shaderModel.indexBuffer = srv_indices();
+        shaderModel.vertexBufferPosWind = srv_positions_winds();
+        shaderModel.vertexBufferMeshlets = srv_meshlets();
+        shaderModel.vertexBufferMeshletBounds = srv_meshlet_bounds();
+        shaderModel.vertexBufferNormals = srv_normals();
+        shaderModel.vertexBufferTangents = srv_tangents();
+        shaderModel.vertexBufferUVs = srv_uvs();
+        shaderModel.vertexBufferAtlas = srv_atlas();
+        shaderModel.vertexBufferColors = srv_colors();
+        
+        shaderModel.aabbMin = aabb().minPoint;
+        shaderModel.aabbMax = aabb().maxPoint;
+        
+        shaderModel.uvRangeMin = m_uvRangeMin;
+        shaderModel.uvRangeMax = m_uvRangeMax;
 
-    outShaderModel.aabbMin = aabb().minPoint;
-    outShaderModel.aabbMax = aabb().maxPoint;
-
-    outShaderModel.uvRangeMin = m_uvRangeMin;
-    outShaderModel.uvRangeMax = m_uvRangeMax;
+        shaderModel.indexOffset = mesh.indexOffset;
+    }
 }
 
 void GPUModel::fill_shader_model_instances(
@@ -558,6 +568,11 @@ void GPUModel::fill_shader_model_instances(
 const AABB& GPUModel::aabb() const
 {
     return m_model->aabb();
+}
+
+uint32 GPUModel::mesh_count() const
+{
+    return m_model->meshes().size();
 }
 
 uint32 GPUModel::thread_group_count_x() const

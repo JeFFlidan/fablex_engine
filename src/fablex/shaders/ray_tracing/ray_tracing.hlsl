@@ -36,6 +36,7 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
     PrimitiveInfo primitiveInfo;
     primitiveInfo.primitiveIndex = PrimitiveIndex();
     primitiveInfo.instanceIndex = InstanceIndex();
+    primitiveInfo.meshIndex = GeometryIndex();
 
     Surface surface;
     surface.init(primitiveInfo, attr.barycentrics);
@@ -76,7 +77,7 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
                 RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
                 ~0,
                 SHADOW_HIT_GROUP_INDEX,
-                1,
+                0,
                 SHADOW_MISS_INDEX,
                 ray,
                 shadowPayload
@@ -89,7 +90,8 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
     }
 
     lightingResult.apply(payload.color);
-    payload.color *= shadow;
+    // payload.color *= shadow;
+    // payload.color = 1;
 }
 
 [shader("closesthit")]

@@ -69,6 +69,7 @@ public:
     const std::vector<Float2>& vertex_atlas() const { return m_vertexAtlas; }
     const std::vector<uint32>& vertex_colors() const { return m_vertexColors; }
     const std::vector<uint8>& vertex_wind_weights() const { return m_vertexWindWeights; }
+    const std::vector<Mesh>& meshes() const { return m_meshes; }
     const AABB& aabb() const { return m_aabb; }
 
     // ========== Begin Asset interface ==========

@@ -17,6 +17,7 @@ public:
     void set_window(Window* window) { m_window = window; }
 
     void configure_test_scene();
+    void configure_sponza();
 
 private:
     std::unique_ptr<World> m_world;

@@ -97,6 +97,8 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         if (engine::ModelComponent* modelComponent = entity->get_component<engine::ModelComponent>())
         {
             ++m_modelInstanceCount;
+            m_meshCount += modelComponent->get_model()->meshes().size();
+
             m_entitiesForTLAS.push_back(entity);
             
             UUID modelUUID = modelComponent->get_model_uuid();
@@ -173,13 +175,12 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     {
         rhi::Buffer* buffer = get_model_buffer();
         ShaderModel* shaderModels = static_cast<ShaderModel*>(buffer->mappedData);
-        uint64 index = 0;
+        uint64 offset = 0;
 
         for (const GPUModelHandle& gpuModel : m_gpuModels)
         {
-            ShaderModel& shaderModel = shaderModels[index++];
-            shaderModel.init();
-            gpuModel->fill_shader_model(shaderModel);
+            gpuModel->fill_shader_models(shaderModels, offset);
+            offset += gpuModel->mesh_count();
         }
     });
 
@@ -506,7 +507,7 @@ void SceneManager::allocate_storage_buffers()
         }
     };
 
-    alloc(sizeof(ShaderModel), m_gpuModels.size(), m_modelBuffers, MODEL_BUFFER_NAME);
+    alloc(sizeof(ShaderModel), m_meshCount, m_modelBuffers, MODEL_BUFFER_NAME);
     alloc(sizeof(ShaderModelInstance), m_modelInstanceCount, m_modelInstanceBuffers, MODEL_INSTANCE_BUFFER_NAME);
     alloc(sizeof(ShaderEntity), m_shaderEntityComponents.size(), m_shaderEntityBuffers, ENTITY_BUFFER_NAME);
     alloc(sizeof(ShaderMaterial), m_gpuMaterials.size(), m_materialBuffers, MATERIAL_BUFFER_NAME);

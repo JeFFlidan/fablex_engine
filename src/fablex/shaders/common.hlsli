@@ -152,21 +152,23 @@ struct PrimitiveInfo
 {
     uint primitiveIndex;
     uint instanceIndex;
-    uint2 padding;
+    uint meshIndex;
+    uint padding;
 
     void init()
     {
         primitiveIndex = 0;
         instanceIndex = 0;
-        padding = uint2(0, 0);
+        meshIndex = 0;
+        padding = 0;
     }
 
     uint3 tri()
     {
         ShaderModelInstance instance = get_model_instance(instanceIndex);
-        ShaderModel model = get_model(instance.geometryOffset); // TEMP, THINK HOW TO FIND GEOMETRY INDEX
+        ShaderModel model = get_model(instance.geometryOffset + meshIndex); // TEMP, THINK HOW TO FIND GEOMETRY INDEX
         
-        const uint beginIndex = primitiveIndex * 3;
+        const uint beginIndex = primitiveIndex * 3 + model.indexOffset;
         Buffer<uint> indexBuffer = bindlessBuffersUInt[descriptor_index(model.indexBuffer)];
 
         return uint3(

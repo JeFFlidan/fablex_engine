@@ -181,6 +181,8 @@ struct ShaderModel
 	float3 aabbMin;
 	float3 aabbMax;
 
+	uint indexOffset;
+
 	void init()
 	{
 		indexBuffer = -1;

@@ -91,6 +91,7 @@ private:
     std::vector<GPUMaterialHandle> m_gpuMaterials;
 
     uint64 m_modelInstanceCount = 0;
+    uint64 m_meshCount = 0;
 
     BufferArray m_modelBuffers;
     BufferArray m_modelInstanceBuffers;

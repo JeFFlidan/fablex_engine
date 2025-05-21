@@ -41,7 +41,7 @@ Application::Application()
     rendererInfo.window = m_mainWindow.get();
     m_renderer = std::make_unique<renderer::Renderer>(rendererInfo);
 
-    m_engine->configure_test_scene();
+    m_engine->configure_sponza();
 
     FE_LOG(LogApplication, INFO, "Application initialization completed.");
 }

@@ -36,7 +36,8 @@ public:
 
     void add_instance(engine::Entity* entity);
 
-    void fill_shader_model(ShaderModel& outShaderModel) const;
+    void fill_shader_models(ShaderModel* modelArray, uint64 modelArrayOffset) const;
+    
     void fill_shader_model_instances(
         SceneManager* sceneManager,
         ShaderModelInstance* modelInstanceArray,
@@ -45,6 +46,7 @@ public:
 
     asset::Model* model_asset() const { return m_model; }
     const AABB& aabb() const;
+    uint32 mesh_count() const;
     rhi::Format position_format() const { return m_positionFormat; }
     rhi::Format uv_format() const { return m_uvFormat; }
     uint64 meshlet_count() const { return m_meshletCount; }

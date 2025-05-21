@@ -213,4 +213,87 @@ void Engine::configure_test_scene()
     matComponent->set_material(opaqueMaterial2);
 }
 
+void Engine::configure_sponza()
+{
+    std::string projectDirectory = "projects/3d_model_rendering";
+    FileSystem::create_project_directory(projectDirectory);
+
+        std::vector<std::string> texturePaths = {
+        "content/streaky-metal1_albedo.png",
+        "content/streaky-metal1_ao.png",
+        "content/streaky-metal1_metallic.png",
+        "content/streaky-metal1_normal.png",
+        "content/streaky-metal1_roughness.png",
+        "content/rocky-rugged-terrain_1_albedo.png",
+        "content/rocky-rugged-terrain_1_roughness.png",
+        "content/rocky-rugged-terrain_1_metallic.png",
+        "content/rocky-rugged-terrain_1_normal.png"
+    };
+
+    std::mutex mutex;
+    std::unordered_map<std::string, asset::Texture*> textureByPath;
+
+    TaskGroup textureTaskGroup; 
+
+    for (auto& texturePath : texturePaths)
+    {
+        TaskComposer::execute(textureTaskGroup, [&mutex, &textureByPath, texturePath, projectDirectory](TaskExecutionInfo execInfo)
+        {
+            asset::TextureImportContext textureImportContext;
+            textureImportContext.projectDirectory = projectDirectory;
+            textureImportContext.originalFilePath = FileSystem::get_absolute_path(texturePath);
+            asset::TextureImportResult importResult;
+            asset::AssetManager::import_texture(textureImportContext, importResult);
+            std::scoped_lock<std::mutex> locker(mutex);
+            textureByPath[texturePath] = importResult.texture;
+        });
+    }
+
+    TaskComposer::wait(textureTaskGroup);
+
+    asset::ModelImportContext importContext;
+    importContext.originalFilePath = FileSystem::get_absolute_path("content/sponza.glb");
+    importContext.projectDirectory = projectDirectory;
+    // importContext.mergeMeshes = true;
+    asset::ModelImportResult importResult;
+
+    asset::AssetManager::import_model(importContext, importResult);
+
+    FE_LOG(LogDefault, INFO, "Model mesh count: {}", importResult.models.at(0)->meshes().size());
+    FE_LOG(LogDefault, INFO, "Model models count: {}", importResult.models.size());
+    FE_LOG(LogDefault, INFO, "Model models count: {}", importResult.models.at(0)->vertex_count());
+    
+    asset::OpaqueMaterialCreateInfo opaqueMaterialCreateInfo;
+    opaqueMaterialCreateInfo.name = "Opaque1";
+    opaqueMaterialCreateInfo.projectDirectory = projectDirectory;
+
+    asset::Material* opaqueMaterial1 = asset::AssetManager::create_material(opaqueMaterialCreateInfo);
+    auto opaqueMaterialSettings = opaqueMaterial1->material_settings<asset::OpaqueMaterialSettings>();
+
+    opaqueMaterialSettings->set_base_color(Float4(0.5, 0.5, 0.5, 1));
+    opaqueMaterialSettings->set_roughness(0.42f);
+    opaqueMaterialSettings->set_metallic(0.0f);
+
+    Entity* modelEntity = m_world->create_entity();
+    modelEntity->set_name("Sponza");
+    auto modelComponent = modelEntity->create_component<ModelComponent>();
+    modelComponent->set_model(importResult.models.at(0));
+    auto matComponent = modelEntity->create_component<MaterialComponent>();
+    matComponent->set_material(opaqueMaterial1);
+    modelEntity->set_rotation(Float3(0, 1, 0), 90);
+
+    Entity* cameraEntity = m_world->create_entity();
+    cameraEntity->set_name("Camera");
+    EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
+    cameraComponent->mouseSensitivity = 0.12f;
+    cameraComponent->movementSpeed = 50;
+    cameraComponent->window = m_window;
+    cameraEntity->set_position(Float3(0, 100, 0));
+
+    Entity* lightEntity = m_world->create_entity();
+    lightEntity->set_name("Sun");
+    lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
+    lightEntity->set_rotation(Float3(1, 0, 0), -50);
+}
+
 }
