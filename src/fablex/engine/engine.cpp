@@ -99,7 +99,7 @@ void Engine::configure_test_scene()
     modelComponent->set_model(importResult2.models.at(0));
     modelEntity->set_position(Float3(-2, 0, 5));
     MaterialComponent* matComponent = modelEntity->create_component<MaterialComponent>();
-    matComponent->set_material(opaqueMaterial1);
+    matComponent->add_material(opaqueMaterial1);
 
     const uint32 instanceColumnCount = 20;
     const uint32 instanceRowCount = 10;
@@ -118,7 +118,7 @@ void Engine::configure_test_scene()
             modelComponent->set_model(importResult.models.at(0));
             modelEntity->set_position(Float3(x, y, z));
             MaterialComponent* matComponent = modelEntity->create_component<MaterialComponent>();
-            matComponent->set_material(opaqueMaterial1);
+            matComponent->add_material(opaqueMaterial1);
         }
     }
 
@@ -164,7 +164,7 @@ void Engine::configure_test_scene()
             modelComponent->set_model(importResult3.models.at(0));
             modelEntity->set_position(Float3(x, y, z));
             MaterialComponent* matComponent = modelEntity->create_component<MaterialComponent>();
-            matComponent->set_material(opaqueMaterial);
+            matComponent->add_material(opaqueMaterial);
         }
 
         metallicValue = 0.0f;
@@ -210,7 +210,7 @@ void Engine::configure_test_scene()
     opaqueMaterialSettings->set_metallic(0.0);
 
     matComponent = planeEntity->create_component<MaterialComponent>();
-    matComponent->set_material(opaqueMaterial2);
+    matComponent->add_material(opaqueMaterial2);
 }
 
 void Engine::configure_sponza()
@@ -218,7 +218,9 @@ void Engine::configure_sponza()
     std::string projectDirectory = "projects/3d_model_rendering";
     FileSystem::create_project_directory(projectDirectory);
 
-        std::vector<std::string> texturePaths = {
+    create_default_material();
+
+    std::vector<std::string> texturePaths = {
         "content/streaky-metal1_albedo.png",
         "content/streaky-metal1_ao.png",
         "content/streaky-metal1_metallic.png",
@@ -254,11 +256,12 @@ void Engine::configure_sponza()
     asset::ModelImportContext importContext;
     importContext.originalFilePath = FileSystem::get_absolute_path("content/sponza.glb");
     importContext.projectDirectory = projectDirectory;
+    importContext.generateMaterials = true;
     // importContext.mergeMeshes = true;
     asset::ModelImportResult importResult;
 
     asset::AssetManager::import_model(importContext, importResult);
-    
+
     asset::OpaqueMaterialCreateInfo opaqueMaterialCreateInfo;
     opaqueMaterialCreateInfo.name = "Opaque1";
     opaqueMaterialCreateInfo.projectDirectory = projectDirectory;
@@ -271,12 +274,15 @@ void Engine::configure_sponza()
     opaqueMaterialSettings->set_metallic(0.0f);
 
     Entity* modelEntity = m_world->create_entity();
+    modelEntity->set_rotation(Float3(0, 1, 0), 90);
     modelEntity->set_name("Sponza");
     auto modelComponent = modelEntity->create_component<ModelComponent>();
     modelComponent->set_model(importResult.models.at(0));
     auto matComponent = modelEntity->create_component<MaterialComponent>();
-    matComponent->set_material(opaqueMaterial1);
-    modelEntity->set_rotation(Float3(0, 1, 0), 90);
+    matComponent->add_material(opaqueMaterial1);
+
+    for (auto material : importResult.materials)
+        matComponent->add_material(material);
 
     Entity* cameraEntity = m_world->create_entity();
     cameraEntity->set_name("Camera");
@@ -289,7 +295,19 @@ void Engine::configure_sponza()
     Entity* lightEntity = m_world->create_entity();
     lightEntity->set_name("Sun");
     lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
-    lightEntity->set_rotation(Float3(1, 0, 0), -50);
+    lightEntity->set_rotation(Float3(1, 0, 0), -30);
+}
+
+void Engine::create_default_material()
+{
+    asset::OpaqueMaterialCreateInfo createInfo;
+    createInfo.roughness = 0.7;
+    createInfo.metallic = 0.0;
+    createInfo.baseColor = Float4(0.65, 0.65, 0.65, 1);
+    createInfo.name = "DefaultGray";
+    createInfo.projectDirectory = FileSystem::get_project_path();
+    createInfo.flags |= asset::AssetFlag::USE_AS_DEFAULT;
+    asset::AssetManager::create_material(createInfo);
 }
 
 }

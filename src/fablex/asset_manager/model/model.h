@@ -36,7 +36,18 @@ struct Mesh
 {
     uint32 indexCount = 0;
     uint32 indexOffset = 0;
-    uint32 materialIndex = 0;
+    UUID materialUUID = 0;
+};
+
+struct MaterialSlot
+{
+    std::string name;
+    UUID materialUUID;
+
+    bool operator==(const MaterialSlot& other) const
+    {
+        return name == other.name;
+    }
 };
 
 class Model : public Asset
@@ -70,6 +81,7 @@ public:
     const std::vector<uint32>& vertex_colors() const { return m_vertexColors; }
     const std::vector<uint8>& vertex_wind_weights() const { return m_vertexWindWeights; }
     const std::vector<Mesh>& meshes() const { return m_meshes; }
+    const std::vector<MaterialSlot>& material_slots() const { return m_materialSlots; }
     const AABB& aabb() const { return m_aabb; }
 
     // ========== Begin Asset interface ==========
@@ -91,7 +103,7 @@ protected:
     std::vector<uint32> m_vertexColors;
     std::vector<uint8> m_vertexWindWeights;
     std::vector<Mesh> m_meshes;
-    std::vector<std::string> m_materialNames;
+    std::vector<MaterialSlot> m_materialSlots;
     
     AABB m_aabb;
 };
@@ -115,7 +127,7 @@ struct ModelProxy
         vertexColors(model->m_vertexColors),
         vertexWindWeights(model->m_vertexWindWeights),
         meshes(model->m_meshes),
-        materialNames(model->m_materialNames),
+        materialSlots(model->m_materialSlots),
         aabb(model->m_aabb)
     {
 
@@ -133,7 +145,7 @@ struct ModelProxy
     std::vector<uint32>& vertexColors;
     std::vector<uint8>& vertexWindWeights;
     std::vector<Mesh>& meshes;
-    std::vector<std::string>& materialNames;
+    std::vector<MaterialSlot>& materialSlots;
     
     AABB& aabb;
 };

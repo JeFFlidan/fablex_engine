@@ -1,5 +1,6 @@
 #pragma once
 
+#include "enums.h"
 #include "core/logger.h"
 #include <string>
 
@@ -14,6 +15,7 @@ struct CreateInfo
 {
     std::string name;
     std::string projectDirectory;
+    AssetFlag flags = AssetFlag::UNDEFINED;
 };
 
 struct ImportContext

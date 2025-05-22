@@ -1,21 +1,14 @@
 #pragma once
 
+#include "enums.h"
 #include "core/object.h"
 #include "core/uuid.h"
+#include "core/flags_operations.h"
 
 namespace fe::asset
 {
 
 class AssetManager;
-
-enum class Type : uint32
-{
-    MODEL,
-    TEXTURE,
-    MATERIAL,
-
-    COUNT
-};
 
 class Asset : public Object
 {
@@ -47,6 +40,7 @@ protected:
     std::string m_name;
     std::string m_assetPath;
     std::string m_originalFilePath;
+    AssetFlag m_assetFlag = AssetFlag::UNDEFINED;
     bool m_isDirty = false;
 };
 

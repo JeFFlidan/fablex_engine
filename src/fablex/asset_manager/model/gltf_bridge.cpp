@@ -2,8 +2,12 @@
 #include "gltf_bridge.h"
 #include "asset_manager.h"
 #include "model.h"
+#include "texture/texture_bridge.h"
+#include "asset_manager.h"
+#include "material/opaque_material_settings.h"
 
 #include "core/file_system/file_system.h"
+#include "core/task_composer.h"
 #include "core/platform/platform.h"
 
 #define TINYGLTF_IMPLEMENTATION
@@ -14,6 +18,13 @@
 
 namespace tinygltf
 {
+
+struct TextureLoadingContext
+{
+    fe::TaskGroup taskGroup;
+    std::mutex mutex;
+    std::unordered_map<std::string, fe::asset::Texture*> textureByURI; 
+};
 
 bool FileExists(const std::string& absFilename, void*)
 {
@@ -42,16 +53,44 @@ bool WriteWholeFile(
     const std::string& filePath,
     const std::vector<unsigned char>& contents, void*)
 {
-    // TODO
     FE_CHECK_MSG(0, "WriteWholeFile is not implemented");
     return true;
 }
 
 bool LoadImageData(Image *image, const int imageIdx, std::string *err, std::string *warn,
-    int reqWidth, int reqHeight, const unsigned char *bytes, int size_t, void *userData)
+    int reqWidth, int reqHeight, const unsigned char *bytes, int size, void *userData)
 {
-    // TODO
-    FE_CHECK_MSG(0, "LoadImageData is not implemented");
+    (void)warn;
+
+    if (image->uri.empty())
+    {
+        image->uri = "gltf_" + image->name + ".png"; // Random name with extension to determine how to parse texture
+    }
+
+    TextureLoadingContext* loadingContext = static_cast<TextureLoadingContext*>(userData);
+
+    fe::asset::TextureImportFromMemoryContext importContext;
+    importContext.data = bytes;
+    importContext.dataSize = size;
+    importContext.name = image->name;
+    importContext.originalFilePath = image->uri;
+    importContext.projectDirectory = fe::FileSystem::get_project_path();
+
+    fe::TaskComposer::execute(loadingContext->taskGroup, [importContext, loadingContext](fe::TaskExecutionInfo)
+    {   
+        fe::asset::TextureImportResult importResult;
+        std::string uri = importContext.originalFilePath;
+
+        if (!fe::asset::AssetManager::import_texture(importContext, importResult))
+        {
+            FE_LOG(LogDefault, ERROR, "Failed to load texture {}", uri);
+            loadingContext->textureByURI[uri] = nullptr; // temp, must use default texture not to fire material assertion
+        }
+
+        std::scoped_lock<std::mutex> locker(loadingContext->mutex);
+        loadingContext->textureByURI[uri] = importResult.texture;
+    });
+
     return true;
 }
 
@@ -82,7 +121,9 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
     
     loader.SetFsCallbacks(callbacks);
 
-    loader.SetImageLoader(tinygltf::LoadImageData, nullptr);
+    tinygltf::TextureLoadingContext loadingContext;
+
+    loader.SetImageLoader(tinygltf::LoadImageData, &loadingContext);
     loader.SetImageWriter(tinygltf::WriteImageData, nullptr);
     
     std::vector<uint8> fileData;
@@ -123,9 +164,68 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
     if (!isValid)
         FE_LOG(LogAssetManager, WARNING, "GLTFBridge::import(): {}", tinygltfError);
 
-    for (auto& material : gltfModel.materials)
+    auto getTexture = [&](const tinygltf::Parameter& parameter)
     {
-        
+        auto& texture = gltfModel.textures[parameter.TextureIndex()];
+        return loadingContext.textureByURI.at(gltfModel.images[texture.source].uri);
+    };
+
+    outImportResult.materials.reserve(gltfModel.materials.size());
+
+    TaskComposer::wait(loadingContext.taskGroup);
+
+    if (inImportContext.generateMaterials)
+    {
+        for (auto& material : gltfModel.materials)
+        {
+            // For now only opaque materials
+
+            asset::OpaqueMaterialCreateInfo createInfo;
+            createInfo.name = material.name;
+            createInfo.projectDirectory = inImportContext.projectDirectory;
+            createInfo.baseColor = Float4(1, 1, 1, 1);
+            createInfo.roughness = 1;
+            createInfo.metallic = 0;
+
+            auto baseColorTexture = material.values.find("baseColorTexture");
+            auto normalTexture = material.additionalValues.find("normalTexture");
+            auto metallicRoughnessTexture = material.values.find("metallicRoughnessTexture");
+            auto baseColorFactor = material.values.find("baseColorFactor");
+            auto roughnessFactor = material.values.find("roughnessFactor");
+            auto metallicFactor = material.values.find("metallicFactor");
+
+            if (baseColorTexture != material.values.end())
+                createInfo.baseColorTexture = getTexture(baseColorTexture->second);
+
+            if (normalTexture != material.additionalValues.end())
+                createInfo.normalTexture = getTexture(normalTexture->second);
+
+            if (metallicRoughnessTexture != material.values.end())
+            {
+                createInfo.armTexture = getTexture(metallicRoughnessTexture->second);
+                createInfo.metallic = 1.0f;
+            }
+
+            if (baseColorFactor != material.values.end())
+            {
+                createInfo.baseColor.x = float(baseColorFactor->second.ColorFactor()[0]);
+                createInfo.baseColor.y = float(baseColorFactor->second.ColorFactor()[1]);
+                createInfo.baseColor.z = float(baseColorFactor->second.ColorFactor()[2]);
+                createInfo.baseColor.w = float(baseColorFactor->second.ColorFactor()[3]);
+            }
+
+            if (roughnessFactor != material.values.end())
+                createInfo.roughness = float(roughnessFactor->second.Factor());
+
+            if (metallicFactor != material.values.end())
+                createInfo.metallic = float(metallicFactor->second.Factor());
+
+            outImportResult.materials.push_back(asset::AssetManager::create_material(createInfo));
+        }
+    }
+    else 
+    {
+        outImportResult.materials.resize(gltfModel.materials.size(), AssetManager::get_default_material());
     }
 
     // From WickedEngine
@@ -143,7 +243,7 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
     {
         outImportResult.models.reserve(gltfModel.meshes.size());
     }
-    
+
     for (auto& gltfMesh : gltfModel.meshes)
     {
         if (!inImportContext.mergeMeshes)
@@ -155,7 +255,10 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
         }
 
         ModelProxy modelProxy(model);
-        modelProxy.meshes.reserve(gltfMesh.primitives.size());
+        modelProxy.meshes.reserve(gltfMesh.primitives.size() + modelProxy.meshes.size());
+        modelProxy.materialSlots.reserve(gltfModel.materials.size());
+        
+        std::vector<MaterialSlot>& materialSlots = modelProxy.materialSlots;
         
         for (auto& primitive : gltfMesh.primitives)
         {
@@ -174,6 +277,13 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
                 modelProxy.indices.resize(indexCount + indexOffset);
                 mesh.indexCount = indexCount;
                 mesh.indexOffset = indexOffset;
+                mesh.materialUUID = outImportResult.materials[primitive.material]->get_uuid();
+
+                std::string materialName = gltfModel.materials[primitive.material].name;
+                MaterialSlot materialSlot = {materialName, mesh.materialUUID};
+
+                if (std::find(materialSlots.begin(), materialSlots.end(), materialSlot) == materialSlots.end())
+                    materialSlots.push_back(materialSlot);
 
                 const uint8* gltfIndices = buffer.data.data() + accessor.byteOffset + bufferView.byteOffset;
 

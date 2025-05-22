@@ -64,6 +64,9 @@ Material* AssetManager::create_material(const MaterialCreateInfo& createInfo)
     configure_created_asset(material, createInfo);
     EventManager::enqueue_event(AssetCreatedEvent<Material>(material));
     
+    if (has_flag(createInfo.flags, AssetFlag::USE_AS_DEFAULT))
+        s_defaultMaterial = material;
+
     return material;
 }
 
@@ -94,7 +97,18 @@ bool AssetManager::import_texture(const TextureImportContext& inImportContext, T
 
     configure_imported_asset(outImportResult.texture, inImportContext);
     EventManager::enqueue_event(AssetImportedEvent<Texture>(outImportResult.texture));
-    
+
+    return true;
+}
+
+bool AssetManager::import_texture(const TextureImportFromMemoryContext& inImportContext, TextureImportResult& outImportResult)
+{
+    if (!TextureBridge::import(inImportContext, outImportResult))
+        return false;
+
+    configure_imported_asset(outImportResult.texture, inImportContext);
+    EventManager::enqueue_event(AssetImportedEvent<Texture>(outImportResult.texture));
+
     return true;
 }
 

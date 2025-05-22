@@ -11,29 +11,15 @@ FE_BEGIN_PROPERTY_REGISTER(MaterialComponent)
 }
 FE_END_PROPERTY_REGISTER(MaterialComponent)
 
-void MaterialComponent::set_material(asset::Material* material)
+void MaterialComponent::add_material(asset::Material* material)
 {
-    m_materialUUID = material->get_uuid();
+    m_materialUUIDs.reserve(100);
+    m_materialUUIDs.push_back(material->get_uuid());
 }
 
-void MaterialComponent::set_material_uuid(UUID materialUUID)
+void MaterialComponent::add_material(UUID materialUUID)
 {
-    m_materialUUID = materialUUID;
-}
-
-asset::Material* MaterialComponent::get_material() const
-{
-    return asset::AssetManager::get_material(m_materialUUID);
-}
-
-UUID MaterialComponent::get_material_uuid() const
-{
-    return m_materialUUID;
-}
-
-bool MaterialComponent::is_material_loaded() const
-{
-    return asset::AssetManager::is_asset_loaded(m_materialUUID);
+    m_materialUUIDs.push_back(materialUUID);
 }
 
 }

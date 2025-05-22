@@ -22,6 +22,7 @@ void Asset::serialize(Archive& archive) const
     archive << m_name;
     archive << m_assetPath;
     archive << m_originalFilePath;
+    archive << std::to_underlying<AssetFlag>(m_assetFlag);
 }
 
 void Asset::deserialize(Archive& archive)
@@ -33,6 +34,10 @@ void Asset::deserialize(Archive& archive)
     archive >> m_name;
     archive >> m_assetPath;
     archive >> m_originalFilePath;
+    
+    uint64 flags;
+    archive >> flags;
+    m_assetFlag = static_cast<AssetFlag>(flags);
 }
 
 uint32 get_asset_type_count()

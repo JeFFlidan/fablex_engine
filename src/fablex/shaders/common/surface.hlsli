@@ -52,7 +52,8 @@ struct Surface
     float3 P_dy;
 #endif // SURFACE_POSITION_DERIVATIVES
 
-    ShaderModelInstance instance;
+    ShaderModelInstance modelInstance;
+    ShaderMeshInstance meshInstance;
     ShaderModel model;
 
 #ifndef SURFACE_NORMAL_DERIVATIVES
@@ -63,7 +64,7 @@ struct Surface
             return;
 
         barycentrics = inBarycentrics;
-
+        baseColor = meshInstance.modelIndex;
         P = barycentric_interpolation(
             P0.xyz,
             P1.xyz,
@@ -90,9 +91,9 @@ struct Surface
 
         P = barycentric_interpolation(P0.xyz, P1.xyz, P2.xyz, barycentrics);
 
-        P0 = mul(instance.transform.get_matrix(), float4(P0, 1)).xyz;
-        P1 = mul(instance.transform.get_matrix(), float4(P1, 1)).xyz;
-        P2 = mul(instance.transform.get_matrix(), float4(P2, 1)).xyz;
+        P0 = mul(modelInstance.transform.get_matrix(), float4(P0, 1)).xyz;
+        P1 = mul(modelInstance.transform.get_matrix(), float4(P1, 1)).xyz;
+        P2 = mul(modelInstance.transform.get_matrix(), float4(P2, 1)).xyz;
 
 #ifdef SURFACE_BARYCENTRICS_QUADS
         float3 rayDirectionX = QuadReadAcrossX(rayDirection);
@@ -106,7 +107,6 @@ struct Surface
 #else
         init_internal();
 #endif // SURFACE_NORMAL_DERIVATIVES
-
 
 #ifdef SURFACE_BARYCENTRICS_QUADS
 #endif // SURFACE_BARYCENTRICS_QUADS
@@ -135,8 +135,9 @@ struct Surface
         F = 0;
         barycentrics = 0;        
 
-        instance = get_model_instance(primitiveInfo.instanceIndex);
-        model = get_model(instance.meshOffset);
+        modelInstance = get_model_instance(primitiveInfo.instanceIndex);
+        meshInstance = get_mesh_instance(primitiveInfo.meshIndex + modelInstance.meshOffset);
+        model = get_model(meshInstance.modelIndex);
 
         uint3 indices = primitiveInfo.tri();
         i0 = indices.x;
@@ -156,13 +157,13 @@ struct Surface
 #endif
     )
     {
-        prevP = mul(instance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
-        P = mul(instance.transform.get_matrix(), float4(P, 1.0)).xyz;
+        prevP = mul(modelInstance.prevTransform.get_matrix(), float4(P, 1.0)).xyz;
+        P = mul(modelInstance.transform.get_matrix(), float4(P, 1.0)).xyz;
 
-        ShaderMaterial material = get_material(instance.materialIndex);
+        ShaderMaterial material = get_material(meshInstance.materialIndex);
 
         float3 unnormalizedN = 0;
-        float3x3 adjointMat = instance.rawTransform.get_matrix_adjoint();
+        float3x3 adjointMat = modelInstance.rawTransform.get_matrix_adjoint();
         
         [branch]
         if (model.vertexBufferNormals >= 0)
@@ -251,17 +252,17 @@ struct Surface
         if (material.textures[TEXTURE_SLOT_ROUGHNESS].is_valid())
         {
             roughness = material.sample(TEXTURE_SLOT_ROUGHNESS, uvSets, 0.0).r;
+            roughness *= material.get_roughness();
         }
         else
         {
             roughness = material.get_roughness();
         }
 
-        roughness *= roughness;
-
         if (material.textures[TEXTURE_SLOT_METALLIC].is_valid())
         {
             metallic = material.sample(TEXTURE_SLOT_METALLIC, uvSets, 0.0).r;
+            metallic *= material.get_metallic();
         }
         else
         {
@@ -273,8 +274,14 @@ struct Surface
             occlusion = material.sample(TEXTURE_SLOT_AO, uvSets, 0.0).r;
         }
 
-        emissionColor = 0;   // TEMP
+        if (material.textures[TEXTURE_SLOT_ARM].is_valid())
+        {
+            float4 value = material.sample(TEXTURE_SLOT_ARM, uvSets, 0.0);
+            roughness = value.g * material.get_roughness();
+            metallic = value.b * material.get_metallic();
+        }
         
+        roughness *= roughness;
         F0 = lerp(float3(0.04f, 0.04f, 0.04f), baseColor.xyz, metallic);
 
         // TODO: UV

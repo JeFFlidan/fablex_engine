@@ -24,10 +24,13 @@ public:
 
     static bool import_model(const ModelImportContext& inImportContext, ModelImportResult& outImportResult);
     static bool import_texture(const TextureImportContext& inImportContext, TextureImportResult& outImportResult);
+    static bool import_texture(const TextureImportFromMemoryContext& inImportContext, TextureImportResult& outImportResult);
 
     static Model* get_model(UUID uuid);
     static Texture* get_texture(UUID uuid);
     static Material* get_material(UUID uuid);
+    
+    static Material* get_default_material() { FE_CHECK(s_defaultMaterial); return s_defaultMaterial; }
 
     template<typename T>
     static T* get_asset(UUID uuid)
@@ -62,6 +65,7 @@ public:
 
 private:
     inline static AssetStorage s_assetStorage;
+    inline static Material* s_defaultMaterial = nullptr;
 
     template<typename T>
     static T* allocate()

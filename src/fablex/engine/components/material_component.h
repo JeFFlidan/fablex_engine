@@ -12,16 +12,13 @@ class MaterialComponent : public Component
     FE_DECLARE_PROPERTY_REGISTER(MaterialComponent);
 
 public:
-    void set_material(asset::Material* material);
-    void set_material_uuid(UUID materialUUID);
+    void add_material(asset::Material* material);
+    void add_material(UUID materialUUID);
 
-    asset::Material* get_material() const;
-    UUID get_material_uuid() const;
+    const std::vector<UUID>& get_material_uuids() const { return m_materialUUIDs; }
     
-    bool is_material_loaded() const;
-
 protected:
-    UUID m_materialUUID = UUID::INVALID;
+    std::vector<UUID> m_materialUUIDs;
 };
 
 }

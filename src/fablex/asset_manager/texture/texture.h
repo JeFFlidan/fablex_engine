@@ -22,6 +22,13 @@ struct TextureImportContext : public ImportContext
     
 };
 
+struct TextureImportFromMemoryContext : public ImportContext
+{
+    std::string name;
+    const void* data = nullptr;
+    uint64 dataSize = 0;
+};
+
 struct TextureImportResult
 {
     Texture* texture = nullptr;

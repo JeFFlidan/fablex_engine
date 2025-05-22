@@ -561,7 +561,8 @@ void GPUModel::fill_shader_model_and_mesh_instances(
         {
             ShaderMeshInstance& shaderMeshInstance = meshInstanceArray[meshInstanceArrayOffset++];
             shaderMeshInstance.modelIndex = sceneManager->resource_index(m_model->get_uuid());
-            shaderMeshInstance.materialIndex = shaderModelInstance.materialIndex;   // TEMP, WILL BE REPLACED
+            shaderMeshInstance.materialIndex = sceneManager->resource_index(mesh.materialUUID);   // TEMP, WILL BE REPLACED
+            // shaderMeshInstance.materialIndex = 0;   // TEMP, WILL BE REPLACED
             shaderMeshInstance.indexOffset = mesh.indexOffset;
         }
     }

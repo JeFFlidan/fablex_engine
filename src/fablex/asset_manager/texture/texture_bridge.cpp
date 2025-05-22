@@ -25,12 +25,33 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
 
     std::vector<uint8_t> textureRawData;
     FileSystem::read(inImportContext.originalFilePath, textureRawData);
+
+    TextureImportFromMemoryContext importFromMemoryContext;
+    importFromMemoryContext.data = textureRawData.data();
+    importFromMemoryContext.dataSize = textureRawData.size();
+    importFromMemoryContext.name = FileSystem::get_file_name(inImportContext.originalFilePath);
+    importFromMemoryContext.originalFilePath = inImportContext.originalFilePath;
+    importFromMemoryContext.projectDirectory = inImportContext.projectDirectory;
+
+    return load_texture(importFromMemoryContext, outImportResult);
+}
+
+bool TextureBridge::import(const TextureImportFromMemoryContext& inImportContext, TextureImportResult& outImportResult)
+{
+    return load_texture(inImportContext, outImportResult);
+}
+
+bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportContext, TextureImportResult& outImportResult)
+{
     std::string extension = FileSystem::get_file_extension(inImportContext.originalFilePath);
 
     TextureCreateInfo createInfo;
-    createInfo.name = FileSystem::get_file_name(inImportContext.originalFilePath);
+    createInfo.name = FileSystem::get_file_name(inImportContext.name);
     outImportResult.texture = AssetManager::create_texture(createInfo);
     TextureProxy textureProxy(outImportResult.texture);
+
+    const uint8* data = static_cast<const uint8*>(inImportContext.data);
+    uint64 dataSize = inImportContext.dataSize;
 
     rhi::TextureInitInfo gpuTextureInitInfo;
 
@@ -51,7 +72,7 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
         ddsktx_texture_info ddsTextureInfo;
         ddsktx_error error;
 
-        if (!ddsktx_parse(&ddsTextureInfo, textureRawData.data(), (int)textureRawData.size(), &error))
+        if (!ddsktx_parse(&ddsTextureInfo, data, (int)dataSize, &error))
         {
             FE_LOG(LogAssetManager, ERROR, "Failed to load dds texture {}. Parser error: {}", inImportContext.originalFilePath, error.msg);
             return false;
@@ -79,7 +100,7 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
             for (uint32 depthLayer = 0; depthLayer != ddsTextureInfo.depth; ++depthLayer)
             {
                 ddsktx_sub_data subData;
-                ddsktx_get_sub(&ddsTextureInfo, &subData, textureRawData.data(), (int)textureRawData.size(), 0, depthLayer, mip);
+                ddsktx_get_sub(&ddsTextureInfo, &subData, data, (int)dataSize, 0, depthLayer, mip);
 
                 mipLevelSize += subData.size_bytes;
                 const uint32 blockSize = rhi::get_block_format_size(textureProxy.format);
@@ -101,8 +122,6 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
                         dstRowPitch
                     );
                 }
-
-                
             }
             rhi::MipMap& mipMap = gpuTextureInitInfo.mipMaps.emplace_back();
             mipMap.layer = 0;   // TEMP
@@ -118,9 +137,9 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
         // stbi has no mipmaps, but I need one default mipmap to describe what value to copy from the upload buffer
         gpuTextureInitInfo.mipMaps.emplace_back();
 
-        if (stbi_is_16_bit_from_memory(textureRawData.data(), textureRawData.size()))
+        if (stbi_is_16_bit_from_memory(data, dataSize))
         {
-            void* textureData = stbi_load_16_from_memory(textureRawData.data(), textureRawData.size(), &width, &height, &channels, 0);
+            void* textureData = stbi_load_16_from_memory(data, dataSize, &width, &height, &channels, 0);
             const uint64 textureSize = get_texture_size<uint16>(width, height, channels);
             
             textureProxy.width = width;
@@ -182,7 +201,7 @@ bool TextureBridge::import(const TextureImportContext& inImportContext, TextureI
         }
         else
         {
-            void* textureData = stbi_load_from_memory(textureRawData.data(), textureRawData.size(), &width, &height, &channels, 0);
+            void* textureData = stbi_load_from_memory(data, dataSize, &width, &height, &channels, 0);
             const uint64 textureSize = get_texture_size<uint8>(width, height, channels);
 
             textureProxy.width = width;

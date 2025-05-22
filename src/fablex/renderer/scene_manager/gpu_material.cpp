@@ -10,11 +10,6 @@ GPUMaterial::GPUMaterial(asset::Material* material) : m_material(material)
 
 }
 
-GPUMaterial::GPUMaterial(engine::MaterialComponent* materialComponent) : m_material(materialComponent->get_material())
-{
-
-}
-
 void GPUMaterial::build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder)
 {
     

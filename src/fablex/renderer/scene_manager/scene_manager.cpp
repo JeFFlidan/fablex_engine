@@ -129,16 +129,14 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
         if (engine::MaterialComponent* materialComponent = entity->get_component<engine::MaterialComponent>())
         {
-            UUID materialUUID = materialComponent->get_material_uuid();
-            
-            if (!get_gpu_material(materialUUID))
+            for (UUID materialUUID : materialComponent->get_material_uuids())
             {
                 uint64 index = m_gpuMaterials.size();
-                m_gpuMaterials.emplace_back(new GPUMaterial(materialComponent));
+                m_gpuMaterials.emplace_back(new GPUMaterial(asset::AssetManager::get_material(materialUUID)));
                 GPUMaterial* gpuMaterial = m_gpuMaterials.back().get();
 
                 m_gpuResourcesLookup[materialUUID] = index;
-
+    
                 TaskComposer::execute(taskGroup, [this, gpuMaterial](TaskExecutionInfo execInfo)
                 {
                     gpuMaterial->build(this, cmd_recorder(rhi::QueueType::GRAPHICS));

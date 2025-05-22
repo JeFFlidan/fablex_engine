@@ -23,6 +23,8 @@ private:
     std::unique_ptr<World> m_world;
     Window* m_window;
 
+    void create_default_material();
+
 };
 
 }

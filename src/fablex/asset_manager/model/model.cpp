@@ -31,10 +31,16 @@ void Model::serialize(Archive& archive) const
     {
         archive << mesh.indexCount;
         archive << mesh.indexOffset;
-        archive << mesh.materialIndex;
+        archive << mesh.materialUUID;
     }
 
-    archive << m_materialNames;
+    archive << m_materialSlots.size();
+    for (const MaterialSlot& slot : m_materialSlots)
+    {
+        archive << slot.name;
+        archive << slot.materialUUID;
+    }
+
     archive << m_aabb.minPoint;
     archive << m_aabb.maxPoint;
 }
@@ -61,10 +67,18 @@ void Model::deserialize(Archive& archive)
     {
         archive >> mesh.indexCount;
         archive >> mesh.indexOffset;
-        archive >> mesh.materialIndex;
+        archive >> mesh.materialUUID;
     }
 
-    archive >> m_materialNames;
+    archive >> size;
+    m_materialSlots.resize(size);
+    
+    for (MaterialSlot& slot : m_materialSlots)
+    {
+        archive >> slot.name;
+        archive >> slot.materialUUID;
+    }
+
     archive >> m_aabb.minPoint;
     archive >> m_aabb.maxPoint;
 }

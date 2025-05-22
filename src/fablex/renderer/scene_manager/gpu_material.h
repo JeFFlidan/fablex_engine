@@ -13,7 +13,6 @@ class GPUMaterial
 {
 public:
     GPUMaterial(asset::Material* material);
-    GPUMaterial(engine::MaterialComponent* materialComponent);
 
     void build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder);
     void fill_shader_material(const SceneManager* sceneManager, ShaderMaterial& shaderMaterial) const;

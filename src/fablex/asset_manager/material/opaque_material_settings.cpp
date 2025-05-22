@@ -25,6 +25,7 @@ void OpaqueMaterialSettings::fill_shader_material(ShaderMaterial& outShaderMater
     set_texture(outShaderMaterial, TEXTURE_SLOT_ROUGHNESS, roughness_texture());
     set_texture(outShaderMaterial, TEXTURE_SLOT_METALLIC, metallic_texture());
     set_texture(outShaderMaterial, TEXTURE_SLOT_AO, ambient_occlusion_texture());
+    set_texture(outShaderMaterial, TEXTURE_SLOT_ARM, arm_texture());
 }
 
 void OpaqueMaterialSettings::serialize(Archive& archive) const
@@ -67,6 +68,8 @@ void OpaqueMaterialSettings::init(const OpaqueMaterialCreateInfo& info)
         set_metallic_texture(info.metallicTexture);
     if (info.ambientOcclusionTexture)
         set_ambient_occlusion_texture(info.ambientOcclusionTexture);
+    if (info.armTexture)
+        set_arm_texture(info.armTexture);
 
     set_base_color(info.baseColor);
     set_roughness(info.roughness);
@@ -103,6 +106,12 @@ void OpaqueMaterialSettings::set_ambient_occlusion_texture(Texture* ambientOcclu
     m_ambientOcclusionTextureUUID = ambientOcclusionTexture->get_uuid();
 }
 
+void OpaqueMaterialSettings::set_arm_texture(Texture* armTexture)
+{
+    FE_CHECK(armTexture);
+    m_armTextureUUID = armTexture->get_uuid();
+}
+
 Texture* OpaqueMaterialSettings::base_color_texture() const
 {
     if ((uint64)m_baseColorTextureUUID == UUID::INVALID)
@@ -136,6 +145,13 @@ Texture* OpaqueMaterialSettings::ambient_occlusion_texture() const
     if ((uint64)m_ambientOcclusionTextureUUID == UUID::INVALID)
         return nullptr;
     return AssetManager::get_texture(m_ambientOcclusionTextureUUID);
+}
+
+Texture* OpaqueMaterialSettings::arm_texture() const
+{
+        if ((uint64)m_armTextureUUID == UUID::INVALID)
+        return nullptr;
+    return AssetManager::get_texture(m_armTextureUUID);
 }
 
 }
