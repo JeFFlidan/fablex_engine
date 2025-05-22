@@ -74,3 +74,11 @@ file(GLOB MESHOPT_FILES
 )
 target_sources(meshopt PRIVATE ${MESHOPT_FILES})
 target_include_directories(meshopt PUBLIC meshoptimizer)
+
+add_library(imgui STATIC)
+file(GLOB IMGUI_FILES
+    imgui/*.h
+    imgui/*.cpp
+)
+target_sources(imgui PRIVATE ${IMGUI_FILES})
+target_include_directories(imgui PUBLIC imgui)
