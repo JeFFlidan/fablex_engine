@@ -818,4 +818,12 @@ struct RNGSeedGenerationPushConstants
 	uint blueNoiseTextureDepth;
 };
 
+struct ImGuiPushConstants
+{
+	float2 scale;
+	float2 translate;
+	Sampler_Descriptor sampler;
+	Texture2D_Descriptor<float4> texture;
+};
+
 #endif // SHADER_INTEROP_RENDERER

@@ -1,5 +1,6 @@
 #include "swap_chain_pass.h"
 #include "render_context.h"
+#include "imgui_renderer.h"
 #include "rhi/rhi.h"
 #include "shaders/shader_interop_renderer.h"
 
@@ -29,6 +30,8 @@ void SwapChainPass::execute(rhi::CommandBuffer* cmd)
     bind_pipeline(cmd);
     push_constants(cmd, &pushConstants);
     rhi::draw(cmd, 6);
+
+    m_renderContext->imgui_renderer()->draw(cmd);
 }
 
 }

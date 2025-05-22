@@ -36,6 +36,8 @@ Application::Application()
     m_engine = std::make_unique<engine::Engine>();
     m_engine->set_window(m_mainWindow.get());
 
+    m_editor = std::make_unique<editor::Editor>(m_mainWindow.get());
+
     renderer::RendererInfo rendererInfo;
     rendererInfo.config = &m_renderConfig;
     rendererInfo.window = m_mainWindow.get();
@@ -65,6 +67,8 @@ void Application::execute()
         }
 
         Core::update();
+        m_renderer->predraw();
+        m_editor->draw();
         m_engine->update();
         EventManager::dispatch_events();
         m_renderer->draw();

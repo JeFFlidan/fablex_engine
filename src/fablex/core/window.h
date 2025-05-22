@@ -65,4 +65,8 @@ private:
     Float2 get_cursor_relative_to_window() const;
 };
 
+#ifdef WIN32
+LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+#endif
+
 }

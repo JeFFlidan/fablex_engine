@@ -3292,6 +3292,19 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
 
     bufferPtr->mappedData = bufferPtr->vk().allocation->GetMappedData();
 
+    switch (info->memoryUsage)
+    {
+    case rhi::MemoryUsage::CPU:
+    case rhi::MemoryUsage::CPU_TO_GPU:
+    {
+        if (info->initData)
+            memcpy(bufferPtr->mappedData, info->initData, info->initDataSize);
+        break;
+    }
+    default:
+        break;
+    }
+
     *buffer = bufferPtr;
 }
 
@@ -3843,6 +3856,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     {
         VkPipelineColorBlendAttachmentState attachmentState{};
         attachmentState.colorWriteMask = (VkColorComponentFlags)attach.colorWriteMask;
+        attachmentState.blendEnable = VK_FALSE;
         if (attach.isBlendEnabled)
         {
             if (attach.srcColorBlendFactor == rhi::BlendFactor::UNDEFINED)
@@ -3871,7 +3885,6 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
             attachmentState.colorBlendOp = get_blend_op(attach.colorBlendOp);
             attachmentState.alphaBlendOp = get_blend_op(attach.alphaBlendOp);
         }
-        attachmentState.blendEnable = VK_FALSE;
         colorBlendAttachments.push_back(attachmentState);
     }
 
@@ -3880,7 +3893,8 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     colorBlendState.attachmentCount = colorBlendAttachments.size();
     colorBlendState.pAttachments = colorBlendAttachments.data();
     colorBlendState.logicOpEnable = info->colorBlendState.isLogicOpEnabled ? VK_TRUE : VK_FALSE;
-    colorBlendState.logicOp = get_logic_op(info->colorBlendState.logicOp);
+    if (info->colorBlendState.isLogicOpEnabled)
+        colorBlendState.logicOp = get_logic_op(info->colorBlendState.logicOp);
     colorBlendState.blendConstants[0] = 1.0f;
     colorBlendState.blendConstants[1] = 1.0f;
     colorBlendState.blendConstants[2] = 1.0f;
@@ -3903,14 +3917,15 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
         shaderStage.pSpecializationInfo = nullptr;
     }
 
-    if (info->depthStencilState.compareOp == rhi::CompareOp::UNDEFINED)
+    if (info->depthStencilState.compareOp == rhi::CompareOp::UNDEFINED && info->depthStencilState.isDepthTestEnabled)
         FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined compare op, depth. Failed to create VkPipeline.");
     
     VkPipelineDepthStencilStateCreateInfo depthStencilState{};
     depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencilState.depthTestEnable = info->depthStencilState.isDepthTestEnabled ? VK_TRUE : VK_FALSE;
     depthStencilState.depthWriteEnable = info->depthStencilState.isDepthWriteEnabled ? VK_TRUE : VK_FALSE;
-    depthStencilState.depthCompareOp = get_compare_op(info->depthStencilState.compareOp);
+    if (info->depthStencilState.isDepthTestEnabled)
+        depthStencilState.depthCompareOp = get_compare_op(info->depthStencilState.compareOp);
     depthStencilState.minDepthBounds = 0.0f;
     depthStencilState.maxDepthBounds = 1.0f;
     depthStencilState.stencilTestEnable = VK_FALSE;
@@ -4706,9 +4721,9 @@ void set_viewports(CommandBuffer* cmd, const std::vector<Viewport>& viewports)
 	{
 		const Viewport& viewport = viewports[i];
 		vulkanViewports[i].x = viewport.x;
-		vulkanViewports[i].y = viewport.height;
+		vulkanViewports[i].y = viewport.height > 0 ? viewport.height : viewport.y;
 		vulkanViewports[i].width = viewport.width;
-		vulkanViewports[i].height = -(int32)viewport.height;
+		vulkanViewports[i].height = -viewport.height;
 		vulkanViewports[i].minDepth = viewport.minDepth;
 		vulkanViewports[i].maxDepth = viewport.maxDepth;
 	}

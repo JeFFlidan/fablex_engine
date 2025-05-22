@@ -328,7 +328,7 @@ struct ColorBlendAttachmentState
 
 struct ColorBlendState
 {
-    bool isLogicOpEnabled;
+    bool isLogicOpEnabled = false;
     LogicOp logicOp{ LogicOp::UNDEFINED };
     std::vector<ColorBlendAttachmentState> colorBlendAttachments;
 };
@@ -346,10 +346,10 @@ struct StencilOpState
 
 struct DepthStencilState
 {
-    bool isDepthTestEnabled;
-    bool isDepthWriteEnabled;
+    bool isDepthTestEnabled = false;
+    bool isDepthWriteEnabled = false;
     CompareOp compareOp = CompareOp::UNDEFINED;
-    bool isStencilTestEnabled;
+    bool isStencilTestEnabled = false;
     StencilOpState frontStencil;
     StencilOpState backStencil;
 };
@@ -788,8 +788,8 @@ struct Viewport
 {
     uint32 x = 0;
     uint32 y = 0;
-    uint32 width;
-    uint32 height;
+    int32 width;
+    int32 height;
     uint32 minDepth = 0;
     uint32 maxDepth = 1;
 };

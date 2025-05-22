@@ -1,5 +1,11 @@
 #include "window.h"
+
+#ifdef WIN32
+#include "imgui_impl_win32.h"
 #include <winuser.h>
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif
 
 namespace fe
 {
@@ -7,6 +13,8 @@ namespace fe
 LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     auto window = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
+    ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
 
     switch (uMsg)
     {

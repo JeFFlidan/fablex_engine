@@ -202,4 +202,16 @@ struct AccelerationStructure_Descriptor : Descriptor
 #endif // __cplusplus
 };
 
+struct Sampler_Descriptor : Descriptor
+{
+    DEFINE_CPP_DESCRIPTOR();
+
+#ifndef __cplusplus
+    SamplerState get()
+    {
+        return bindlessSamplers[NonUniformResourceIndex(descriptor)];
+    }
+#endif // __cplusplus
+};
+
 #endif // SHADER_INTEROP_DESCRIPTOR

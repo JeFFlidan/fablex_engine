@@ -20,8 +20,9 @@ Renderer::Renderer(const RendererInfo& rendererInfo)
     
     m_renderGraph->load_from_metadata(m_config->get_render_graph_metadata_path(), m_renderPassContainer.get());
 
+    create_pipelines();
+    
     create_main_swap_chain();
-    m_pipelineManager->create_pipelines(m_renderPassContainer.get());
 }
 
 Renderer::~Renderer()
@@ -36,7 +37,51 @@ Renderer::~Renderer()
     m_syncManager.reset();
     m_commandManager.reset();
     m_sceneManager.reset();
+    m_imGuiRenderer.reset();
+    m_deletionQueue.reset();
     rhi::cleanup();
+}
+
+void Renderer::predraw()
+{
+    bool beginFrameCalled = false;
+
+    rhi::CommandBuffer* cmd = nullptr;
+
+    if (!m_imGuiRenderer->is_font_texture_created())
+    {
+        if (!beginFrameCalled)
+        {
+            m_commandManager->begin_frame();
+            m_syncManager->begin_frame();
+            beginFrameCalled = true;
+        }
+
+        if (!cmd)
+        {
+            cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
+            rhi::begin_command_buffer(cmd);
+        }
+
+        m_imGuiRenderer->create_font_texture(cmd);
+
+        if (!beginFrameCalled)
+        {
+            m_commandManager->begin_frame();
+            m_syncManager->begin_frame();
+        }
+    }
+
+    if (cmd)
+    {
+        rhi::end_command_buffer(cmd);
+
+        rhi::SubmitInfo submitInfo;
+        submitInfo.cmdBuffers.push_back(cmd);
+        rhi::submit(&submitInfo, m_syncManager->get_fence());
+
+        m_syncManager->wait_fences();
+    }
 }
 
 void Renderer::draw()
@@ -81,6 +126,8 @@ void Renderer::init_managers()
     m_shaderManager = std::make_unique<ShaderManager>();
     m_pipelineManager = std::make_unique<PipelineManager>(m_shaderManager.get());
     m_sceneManager = std::make_unique<SceneManager>();
+    m_deletionQueue = std::make_unique<DeletionQueue>();
+    m_imGuiRenderer = std::make_unique<ImGuiRenderer>(m_deletionQueue.get(), m_shaderManager.get());
 
     FE_LOG(LogRenderer, INFO, "Renderer systems initialization completed.");
 }
@@ -97,6 +144,7 @@ void Renderer::init_render_context()
     info.sceneManager = m_sceneManager.get();
     info.pipelineManager = m_pipelineManager.get();
     info.shaderManager = m_shaderManager.get();
+    info.imGuiRenderer = m_imGuiRenderer.get();
     
     info.renderSurface.width = 1920;
     info.renderSurface.height = 1080;
@@ -110,6 +158,13 @@ void Renderer::init_render_context()
     Utils::init(m_renderContext.get());
 
     FE_LOG(LogRenderer, INFO, "Render context initialization completed.");
+}
+
+void Renderer::create_pipelines()
+{
+    m_pipelineManager->create_pipelines(m_renderPassContainer.get());
+    m_imGuiRenderer->set_render_target_format(rhi::Format::B8G8R8A8_UNORM);
+    m_imGuiRenderer->create_pipeline();
 }
 
 void Renderer::create_main_swap_chain()
@@ -150,6 +205,9 @@ void Renderer::begin_frame()
     m_uploadSemaphore = nullptr;
     m_submitContexts.clear();
     m_pipelineBarriersByPassName.clear();
+
+    if (g_frameNumber > 3)
+        m_deletionQueue->destroy_objects();
 
     record_predraw_cmds();    
 }

@@ -14,6 +14,7 @@ class CommandManager;
 class SceneManager;
 class SynchronizationManager;
 class ShaderManager;
+class ImGuiRenderer;
 
 struct RenderContextInfo
 {
@@ -25,6 +26,7 @@ struct RenderContextInfo
     SynchronizationManager* syncManager = nullptr;
     ShaderManager* shaderManager = nullptr;
     RenderGraph* renderGraph = nullptr;
+    ImGuiRenderer* imGuiRenderer = nullptr;
 };
 
 class RenderContext
@@ -39,6 +41,7 @@ public:
         FE_CHECK(m_info.syncManager);
         FE_CHECK(m_info.shaderManager);
         FE_CHECK(m_info.renderGraph);
+        FE_CHECK(m_info.imGuiRenderer);
     }
 
     const RenderSurface& render_surface() const { return m_info.renderSurface; }
@@ -49,6 +52,7 @@ public:
     SynchronizationManager* sync_manager() const { return m_info.syncManager; }
     ShaderManager* shader_manager() const { return m_info.shaderManager; }
     RenderGraph* render_graph() const { return m_info.renderGraph; }
+    ImGuiRenderer* imgui_renderer() const { return m_info.imGuiRenderer; }
 
     void set_main_swap_chain(rhi::SwapChain* mainSwapChain) { m_info.renderSurface.mainSwapChain = mainSwapChain; }
 

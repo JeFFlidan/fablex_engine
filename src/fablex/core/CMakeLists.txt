@@ -10,4 +10,4 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${CORE_SRC})
 add_library(core STATIC ${CORE_SRC})
 
 target_include_directories(core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../)
-target_link_libraries(core fmt json lz4)
+target_link_libraries(core fmt json lz4 imgui)

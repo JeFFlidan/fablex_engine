@@ -9,7 +9,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${RENDERER_SRC})
 
 add_library(renderer STATIC ${RENDERER_SRC})
 
-target_link_libraries(renderer core engine rhi dxc meshopt)
+target_link_libraries(renderer core engine rhi dxc meshopt imgui)
 
 target_include_directories(renderer 
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../

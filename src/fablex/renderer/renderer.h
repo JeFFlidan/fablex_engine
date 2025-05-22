@@ -10,6 +10,8 @@
 #include "synchronization_manager.h"
 #include "shader_manager.h"
 #include "resource_layout_tracker.h"
+#include "deletion_queue.h"
+#include "imgui_renderer.h"
 #include "render_context.h"
 #include "core/window.h"
 
@@ -28,6 +30,7 @@ public:
     Renderer(const RendererInfo& rendererInfo);
     ~Renderer();
 
+    void predraw();
     void draw();
 
 private:
@@ -64,6 +67,8 @@ private:
     std::unique_ptr<SceneManager> m_sceneManager = nullptr;
     std::unique_ptr<SynchronizationManager> m_syncManager = nullptr;
     std::unique_ptr<ShaderManager> m_shaderManager = nullptr;
+    std::unique_ptr<DeletionQueue> m_deletionQueue = nullptr;
+    std::unique_ptr<ImGuiRenderer> m_imGuiRenderer = nullptr;
     std::unique_ptr<RenderContext> m_renderContext = nullptr;
 
     Window* m_window = nullptr;
@@ -88,6 +93,7 @@ private:
     void init_rhi();
     void init_managers();
     void init_render_context();
+    void create_pipelines();
     void create_main_swap_chain();
 
     void acquire_next_image();
