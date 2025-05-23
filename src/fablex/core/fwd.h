@@ -4,5 +4,8 @@ namespace fe
 {
 
 class Window;
+class Property;
+class Attribute;
+class Object;
 
 }

@@ -37,6 +37,7 @@ public:
     uint64 get_class_size() const { return m_classSize; }
     uint64 get_class_alignment() const { return m_classAlignment; }
     AllocatorHandler get_allocator_handler() const { return m_allocatorHandler; }
+    const TypeInfo* get_base_type_info() const { return m_baseTypeInfo; }
 
     bool is_a(const TypeInfo* typeInfo) const;
     bool is_exactly(const TypeInfo* typeInfo) const;

@@ -22,6 +22,7 @@ void OutlinerWindow::draw(engine::World* world)
     if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_anyItemHovered)
     {
         m_lastSelectedEntity = nullptr;
+        m_renamedEntity = nullptr;
         m_selectedEntities.clear();
     }
 
@@ -61,9 +62,6 @@ void OutlinerWindow::draw_node(engine::Entity* entity)
             m_renamedEntity = nullptr;
         }
 
-        if (!ImGui::IsItemActive() && !ImGui::IsItemHovered())
-            m_renamedEntity = nullptr;
-
         isNodeOpened = ImGui::TreeNodeEx("##hidden", flags, "");
     }
     else
@@ -84,10 +82,7 @@ void OutlinerWindow::draw_node(engine::Entity* entity)
         }
     }
 
-    if (ImGui::IsKeyPressed(ImGuiKey_F2) 
-        && m_selectedEntities.size() == 1 
-        && m_selectedEntities.contains(entity)
-    )
+    if (ImGui::IsKeyPressed(ImGuiKey_F2) && entity == m_lastSelectedEntity)
     {
         m_renamedEntity = entity;
     }
@@ -115,21 +110,21 @@ void OutlinerWindow::handle_click(engine::Entity* entity)
     {
         if (m_selectedEntities.contains(entity))
         {
-            m_selectedEntities.erase(entity);
+            deselect_entity(entity);
             m_lastSelectedEntity = nullptr;     // TEMP
         }
         else
         {
             m_lastSelectedEntity = entity;
-            m_selectedEntities.insert(entity);
+            select_entity(entity);
             select_children(entity);
         }
     }
     else
     {
         m_selectedEntities.clear();
-        m_selectedEntities.insert(entity);
         m_lastSelectedEntity = entity;
+        select_entity(entity);
         select_children(entity);
     }
 }
@@ -146,7 +141,7 @@ void OutlinerWindow::handle_shift_selection()
         if (it1 > it2) std::swap(it1, it2);
         for (auto it = it1; it <= it2; ++it)
         {
-            m_selectedEntities.insert(*it);
+            select_entity((*it));
             select_children((*it));
         }
 
@@ -158,13 +153,29 @@ void OutlinerWindow::handle_shift_selection()
 void OutlinerWindow::select_children(engine::Entity* entity)
 {
     for (engine::Entity* child : entity->get_children())
-        m_selectedEntities.insert(child);
+        select_entity(child);
 }
 
 void OutlinerWindow::deselect_children(engine::Entity* entity)
 {
     for (engine::Entity* child : entity->get_children())
-        m_selectedEntities.erase(child);
+        deselect_entity(child);
+}
+
+void OutlinerWindow::select_entity(engine::Entity* entity)
+{
+    if (m_selectedEntities.contains(entity))
+        return;
+
+    m_selectedEntities.insert(entity);
+}
+
+void OutlinerWindow::deselect_entity(engine::Entity* entity)
+{
+    if (!m_selectedEntities.contains(entity))
+        return;
+
+    m_selectedEntities.erase(entity);
 }
 
 }

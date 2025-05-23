@@ -1,7 +1,6 @@
 #pragma once
 
-#include "engine/fwd.h"
-#include "core/math.h"
+#include "common.h"
 
 namespace fe::editor
 {
@@ -9,7 +8,7 @@ namespace fe::editor
 class ViewportWindow
 {
 public:
-    void draw() const;
+    void draw(const EntitySet& entitySet) const;
     
     void set_camera(engine::Entity* camera);
 

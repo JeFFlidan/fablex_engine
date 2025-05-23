@@ -7,8 +7,8 @@ namespace fe::engine
 FE_DEFINE_OBJECT(LightComponent, ShaderEntityComponent);
 FE_BEGIN_PROPERTY_REGISTER(LightComponent)
 {
-    FE_REGISTER_PROPERTY(LightComponent, color, EditAnywhere());
-    FE_REGISTER_PROPERTY(LightComponent, intensity, EditAnywhere());
+    FE_REGISTER_PROPERTY(LightComponent, color, EditAnywhere(), Color());
+    FE_REGISTER_PROPERTY(LightComponent, intensity, EditAnywhere(), ClampMin(0.0f), ClampMax(1000.0f));
 }
 FE_END_PROPERTY_REGISTER(LightComponent)
 

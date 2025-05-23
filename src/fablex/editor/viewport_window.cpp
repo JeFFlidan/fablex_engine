@@ -1,13 +1,13 @@
 #include "viewport_window.h"
 #include "core/input.h"
 #include "renderer/imgui_interop_editor.h"
-#include "core/logger.h"
+
 #include "imgui.h"
 
 namespace fe::editor
 {
 
-void ViewportWindow::draw() const
+void ViewportWindow::draw(const EntitySet& entitySet) const
 {
     ImGui::Begin("Viewport");
 

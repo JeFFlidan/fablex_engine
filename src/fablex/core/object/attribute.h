@@ -27,4 +27,33 @@ struct Transient : public Attribute
     FE_DEFINE_ATTRIBUTE(Transient)
 };
 
+struct Color : public Attribute
+{
+    FE_DEFINE_ATTRIBUTE(Color);
+};
+
+struct ClampMin : public Attribute
+{
+    FE_DEFINE_ATTRIBUTE(ClampMin);
+    constexpr ClampMin(float inMin) : min(inMin) { }
+
+    float min = 0.0f;
+};
+
+struct ClampMax : public Attribute
+{
+    FE_DEFINE_ATTRIBUTE(ClampMax);
+    constexpr ClampMax(float inMax) : max(inMax) { }
+
+    float max = 0.0f;
+};
+
+struct SliderSpeed : public Attribute
+{
+    FE_DEFINE_ATTRIBUTE(SliderSpeed);
+    constexpr SliderSpeed(float inSpeed) : speed(inSpeed) { }
+
+    float speed = 1.0f;
+};
+
 }

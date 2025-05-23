@@ -216,27 +216,26 @@ constexpr auto setup_attributes(Attrs&&... attrs)
     virtual bool has_attribute(const char* attrName) const override                             \
     {                                                                                           \
         constexpr static auto attributes = setup_attributes(__VA_ARGS__);                       \
-        bool result = false;                                                                    \
-        std::apply([&](const auto&... args)                                                     \
+        return std::apply([&](const auto&... args)                                              \
         {                                                                                       \
-            ((                                                                                  \
-                result = strcmp(attrName, args.get_name()) == 0                                 \
-            ), ...);                                                                            \
+            return ( (strcmp(attrName, args.get_name()) == 0) || ... );                         \
         }, attributes);                                                                         \
-        return result;                                                                          \
     }                                                                                           \
     virtual const void* get_attribute(const char* attrName) const override                      \
     {                                                                                           \
         constexpr static auto attributes = setup_attributes(__VA_ARGS__);                       \
-        const void* result = nullptr;                                                           \
-        std::apply([&](const auto&... args)                                                     \
-        {                                                                                       \
-            ((                                                                                  \
-                result = strcmp(attrName, args.get_name()) == 0 ? &args : nullptr               \
-            ), ...);                                                                            \
-        }, attributes);                                                                         \
-        return result;                                                                          \
-    }                                                                                           \
+        return std::apply(                                                                      \
+            [&](auto const&... args)                                                            \
+            {                                                                                   \
+                const void* res = nullptr;                                                      \
+                (( strcmp(attrName, args.get_name()) == 0                                       \
+                        && (res = &args, true) )                                                \
+                 || ...);                                                                       \
+                return res;                                                                     \
+            },                                                                                  \
+            attributes                                                                          \
+        );                                                                                      \
+    }
 
 #define FE_REGISTER_PROPERTY(TypeName, PropertyName, ...)                                           \
     class PropertyRegistrator_##PropertyName : public PropertyImpl<decltype(TypeName::PropertyName)>\
