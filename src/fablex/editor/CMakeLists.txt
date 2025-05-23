@@ -10,7 +10,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${EDITOR_SRC})
 add_library(editor STATIC ${EDITOR_SRC})
 
 target_include_directories(editor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../)
-target_link_libraries(editor core renderer)
+target_link_libraries(editor core renderer engine)
 
 target_include_directories(editor 
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../

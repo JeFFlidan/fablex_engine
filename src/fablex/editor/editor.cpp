@@ -1,21 +1,22 @@
 #include "editor.h"
-#include "core/logger.h"
+#include "core/macro.h"
+#include "core/window.h"
+#include "engine/entity/world.h"
 
 #include "imgui.h"
+
+#ifdef WIN32
 #include "imgui_impl_win32.h"
+#endif // WIN32
 
 namespace fe::editor
 {
 
-Editor::Editor(Window* window) : m_window(window)
+Editor::Editor()
 {
-    FE_CHECK(m_window);
-
     ImGui::CreateContext();
 
-#ifdef WIN32
-    ImGui_ImplWin32_Init(m_window->get_info().win32Window.hWnd);
-#endif // WIN32
+    m_dockingWindow = std::make_unique<DockingWindow>();
 }
 
 Editor::~Editor()
@@ -33,11 +34,30 @@ void Editor::draw()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    m_dockingWindow->draw();
+
     ImGui::Begin("Hello, ImGui!");
     ImGui::Text("Simple Window");
     ImGui::End();
 
     ImGui::Render();
+}
+
+void Editor::set_world(engine::World* world)
+{
+    FE_CHECK(world);
+    m_world = world;
+}
+
+void Editor::set_window(Window* window)
+{
+#ifdef WIN32
+    if (m_window)
+        ImGui_ImplWin32_Shutdown();
+
+    m_window = window;
+    ImGui_ImplWin32_Init(m_window->get_info().win32Window.hWnd);
+#endif // WIN32
 }
 
 }

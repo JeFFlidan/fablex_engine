@@ -15,6 +15,7 @@ public:
     void update();
 
     void set_window(Window* window) { m_window = window; }
+    World* get_world() const { return m_world.get(); }
 
     void configure_test_scene();
     void configure_sponza();
