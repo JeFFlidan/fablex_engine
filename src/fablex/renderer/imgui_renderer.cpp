@@ -3,11 +3,13 @@
 #include "shader_manager.h"
 #include "globals.h"
 #include "resource_metadata.h"
+#include "imgui_interop_editor.h"
 #include "utils.h"
+
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
-
 #include "shaders/shader_interop_renderer.h"
+
 #include "imgui.h"
 
 namespace fe::renderer
@@ -189,7 +191,10 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
             scissor.right = (int32)clipMax.x;
             scissor.bottom = (int32)clipMax.y;
 
-            pushConstants.texture = imCmd->GetTexID();
+            if (imCmd->GetTexID() == VIEWPORT_IMAGE_DESCRIPTOR)
+                pushConstants.texture = m_viewportTextureDescriptor;
+            else
+                pushConstants.texture = imCmd->GetTexID();
 
             rhi::push_constants(cmd, m_pipeline, &pushConstants);
             rhi::set_scissors(cmd, {scissor});

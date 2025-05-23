@@ -5,6 +5,6 @@
 namespace fe::renderer
 {
 
-constexpr uint32 VIEWPORT_IMAGE_DESCRIPTOR = 24102004;
+constexpr uint64 VIEWPORT_IMAGE_DESCRIPTOR = 24102004;
 
 }

@@ -19,11 +19,22 @@ struct MouseState
     MouseButton pressedButton{MouseButton::UNKNOWN};
 };
 
+struct ViewportState
+{
+    bool isHovered = false;
+    Float2 min = Float2(0, 0);
+    Float2 max = Float2(0, 0);
+    float width = 0;
+    float height = 0;
+};
+
 class Input
 {
 public:
-    static void set_mouse_state(MouseState mouseState){ m_mouseState = mouseState; }
-    static void set_cursor_position(float x, float y) { m_mouseState.position = Float2(x, y); }
+    static void set_mouse_state(MouseState mouseState){ s_mouseState = mouseState; }
+    static void set_viewport_state(ViewportState viewportState) { s_viewportState = viewportState; }
+    static const ViewportState& get_viewport_state() { return s_viewportState; }
+    static void set_cursor_position(float x, float y) { s_mouseState.position = Float2(x, y); }
 
     static bool is_mouse_button_pressed(MouseButton mouseButton)
     {
@@ -44,8 +55,8 @@ public:
         #endif // WIN32
     }
 
-    static Float2 get_position() { return m_mouseState.position; }
-    static Float2 get_delta_position() { return m_mouseState.deltaPosition; }
+    static Float2 get_position() { return s_mouseState.position; }
+    static Float2 get_delta_position() { return s_mouseState.deltaPosition; }
 
     static bool is_key_pressed(Key key)
     {
@@ -58,7 +69,8 @@ public:
     }
 
 private:
-    inline static MouseState m_mouseState;
+    inline static MouseState s_mouseState;
+    inline static ViewportState s_viewportState;
 };
 
 }

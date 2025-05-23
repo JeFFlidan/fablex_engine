@@ -22,16 +22,16 @@ void SwapChainPass::execute(rhi::CommandBuffer* cmd)
 {
     FE_CHECK(cmd);
     
-    set_viewport_and_scissor_by_window(cmd);
-
     SwapChainPushConstants pushConstants;
     fill_push_constants(pushConstants);
 
-    bind_pipeline(cmd);
-    push_constants(cmd, &pushConstants);
-    rhi::draw(cmd, 6);
-
+    m_renderContext->imgui_renderer()->set_viewport_texture_descriptor(pushConstants.resultTexture.descriptor);
     m_renderContext->imgui_renderer()->draw(cmd);
+    
+    // set_viewport_and_scissor_by_window(cmd);
+    // bind_pipeline(cmd);
+    // push_constants(cmd, &pushConstants);
+    // rhi::draw(cmd, 6);
 }
 
 }

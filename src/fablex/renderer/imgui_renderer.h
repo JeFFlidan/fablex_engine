@@ -28,6 +28,11 @@ public:
         m_renderTargetFormat = format;
     }
 
+    void set_viewport_texture_descriptor(uint32 desciptor)
+    {
+        m_viewportTextureDescriptor = desciptor;
+    }
+
     bool is_font_texture_created() const
     {
         return m_fontTexture && m_fontTextureView;
@@ -39,6 +44,7 @@ private:
 
     rhi::Pipeline* m_pipeline = nullptr;
     rhi::Format m_renderTargetFormat = rhi::Format::UNDEFINED;
+    uint32 m_viewportTextureDescriptor = ~0u;
 
     std::vector<rhi::Buffer*> m_vertexBuffers;
     std::vector<rhi::Buffer*> m_indexBuffers;

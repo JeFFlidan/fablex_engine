@@ -70,8 +70,8 @@ void EditorCameraComponent::update_matrices()
     Vector atBase = Vector4::create(0.0f, 0.0f, 1.0f, 0.0f);
     Vector upBase = Vector4::create(0.0f, 1.0f, 0.0f, 0.0f);
 
-    float width = window->get_info().width;
-    float height = window->get_info().height;
+    float width = Input::get_viewport_state().width;
+    float height = Input::get_viewport_state().height;
 
     Matrix worldTransform(m_entity->get_world_transform());
     eye = Vector3::transform(eyeBase, worldTransform);

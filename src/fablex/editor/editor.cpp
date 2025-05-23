@@ -17,6 +17,7 @@ Editor::Editor()
     ImGui::CreateContext();
 
     m_dockingWindow = std::make_unique<DockingWindow>();
+    m_viewportWindow = std::make_unique<ViewportWindow>();
 }
 
 Editor::~Editor()
@@ -35,18 +36,13 @@ void Editor::draw()
     ImGui::NewFrame();
 
     m_dockingWindow->draw();
+    m_viewportWindow->draw();
 
     ImGui::Begin("Hello, ImGui!");
     ImGui::Text("Simple Window");
     ImGui::End();
 
     ImGui::Render();
-}
-
-void Editor::set_world(engine::World* world)
-{
-    FE_CHECK(world);
-    m_world = world;
 }
 
 void Editor::set_window(Window* window)
@@ -58,6 +54,18 @@ void Editor::set_window(Window* window)
     m_window = window;
     ImGui_ImplWin32_Init(m_window->get_info().win32Window.hWnd);
 #endif // WIN32
+}
+
+void Editor::set_world(engine::World* world)
+{
+    FE_CHECK(world);
+    m_world = world;
+}
+
+void Editor::set_camera(engine::Entity* camera)
+{
+    FE_CHECK(camera);
+    m_camera = camera;
 }
 
 }
