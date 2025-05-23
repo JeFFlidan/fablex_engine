@@ -129,8 +129,14 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
     rhi::Buffer* vertexBuffer = get_vertex_buffer(vertexSize);
     rhi::Buffer* indexBuffer = get_index_buffer(indexSize);
 
+    FE_CHECK(vertexBuffer);
+    FE_CHECK(indexBuffer);
+
     ImDrawVert* vertexDst = static_cast<ImDrawVert*>(vertexBuffer->mappedData);
     ImDrawIdx* indexDst = static_cast<ImDrawIdx*>(indexBuffer->mappedData);
+
+    FE_CHECK(vertexDst);
+    FE_CHECK(indexDst);
 
     for (uint32 i = 0; i != drawData->CmdListsCount; ++i)
     {

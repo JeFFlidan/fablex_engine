@@ -31,6 +31,30 @@ Key UtilsWin32::parse_key(WPARAM wParam)
             return Key::LEFT_ALT;
         case VK_CONTROL:
             return Key::LEFT_CTRL;
+        case VK_F1:
+            return Key::F1;
+        case VK_F2:
+            return Key::F2;
+        case VK_F3:
+            return Key::F3;
+        case VK_F4:
+            return Key::F4;
+        case VK_F5:
+            return Key::F5;
+        case VK_F6:
+            return Key::F6;
+        case VK_F7:
+            return Key::F7;
+        case VK_F8:
+            return Key::F8;
+        case VK_F9:
+            return Key::F9;
+        case VK_F10:
+            return Key::F10;
+        case VK_F11:
+            return Key::F11;
+        case VK_F12:
+            return Key::F12;
         case 0x30:
             return Key::_0;
         case 0x31:
@@ -134,6 +158,30 @@ uint8 UtilsWin32::parse_key(Key key)
             return VK_MENU;
         case Key::LEFT_CTRL:
             return VK_CONTROL;
+        case Key::F1:
+            return VK_F1;
+        case Key::F2:
+            return VK_F2;
+        case Key::F3:
+            return VK_F3;
+        case Key::F4:
+            return VK_F4;
+        case Key::F5:
+            return VK_F5;
+        case Key::F6:
+            return VK_F6;
+        case Key::F7:
+            return VK_F7;
+        case Key::F8:
+            return VK_F8;
+        case Key::F9:
+            return VK_F9;
+        case Key::F10:
+            return VK_F10;
+        case Key::F11:
+            return VK_F11;
+        case Key::F12:
+            return VK_F12;
         case Key::_0:
             return 0x30;
         case Key::_1:

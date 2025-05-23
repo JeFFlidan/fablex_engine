@@ -29,6 +29,8 @@ public:
     EntityManager& get_entity_manager() { return m_entityManager; }
     const EntityManager& get_entity_manager() const { return m_entityManager; }
 
+    const std::vector<Entity*>& get_entities() const { return m_entityManager.get_entities(); }
+
 private:
     EntityManager m_entityManager;
 };

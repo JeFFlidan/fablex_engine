@@ -55,7 +55,19 @@ enum class Key : uint64
     _8 = 1ULL << 43,
     _9 = 1ULL << 44,
     _0 = 1ULL << 45,
-    ENTER = 1ULL << 46
+    ENTER = 1ULL << 46,
+    F1 = 1ULL << 47,
+    F2 = 1ULL << 48,
+    F3 = 1ULL << 49,
+    F4 = 1ULL << 50,
+    F5 = 1ULL << 51,
+    F6 = 1ULL << 52,
+    F7 = 1ULL << 53,
+    F8 = 1ULL << 54,
+    F9 = 1ULL << 55,
+    F10 = 1ULL << 56,
+    F11 = 1ULL << 57,
+    F12 = 1ULL << 58
 };
 
 enum class MouseButton

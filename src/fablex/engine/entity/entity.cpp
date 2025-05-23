@@ -42,6 +42,7 @@ Entity::~Entity()
 
 Entity* Entity::create_child()
 {
+    FE_CHECK(m_world);
     Entity* child = m_children.emplace_back(m_world->create_entity());
     child->set_root(this);
     return child;

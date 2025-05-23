@@ -296,6 +296,12 @@ void Engine::configure_sponza()
     lightEntity->set_name("Sun");
     lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
     lightEntity->set_rotation(Float3(1, 0, 0), -30);
+
+    engine::Entity* entity = lightEntity->create_child()->create_child();
+    entity->create_child();
+    entity->create_child();
+
+    cameraEntity->create_child()->create_child();
 }
 
 void Engine::create_default_material()

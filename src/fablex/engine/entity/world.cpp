@@ -9,12 +9,16 @@ FE_DEFINE_OBJECT(World, Object);
 
 Entity* World::create_entity()
 {
-    return m_entityManager.create_entity();
+    engine::Entity* entity = m_entityManager.create_entity();
+    entity->on_world_set(this);
+    return entity;
 }
 
 Entity* World::create_entity(const TypeInfo* typeInfo)
 {
-    return m_entityManager.create_entity(typeInfo);
+    engine::Entity* entity = m_entityManager.create_entity(typeInfo);
+    entity->on_world_set(this);
+    return entity;
 }
 
 void World::remove_entity(Entity* entity)

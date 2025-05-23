@@ -16,7 +16,11 @@ DeletionQueue::~DeletionQueue()
 void DeletionQueue::add(const DeletionHandler& deletionHandler)
 {
     if (m_deletionHandlersPerFrame.size() < g_frameIndex + 1)
-        m_deletionHandlersPerFrame.emplace_back();
+    {
+        uint32 arrayToCreateCount = g_frameIndex + 1 - m_deletionHandlersPerFrame.size();
+        for (uint32 i = 0; i != arrayToCreateCount; ++i)
+            m_deletionHandlersPerFrame.emplace_back();
+    }
 
     m_deletionHandlersPerFrame.at(g_frameIndex).push_back(deletionHandler);
 }

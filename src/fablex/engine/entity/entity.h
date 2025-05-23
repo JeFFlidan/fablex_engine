@@ -34,6 +34,8 @@ public:
         return static_cast<T*>(create_child(T::get_static_type_info()));
     }
 
+    const std::vector<engine::Entity*>& get_children() const { return m_children; }
+
     Component* create_component(const TypeInfo* typeInfo);
     
     template<typename T>

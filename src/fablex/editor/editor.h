@@ -2,6 +2,7 @@
 
 #include "docking_window.h"
 #include "viewport_window.h"
+#include "outliner_window.h"
 
 #include "core/fwd.h"
 #include "engine/fwd.h"
@@ -30,6 +31,7 @@ private:
 
     std::unique_ptr<DockingWindow> m_dockingWindow = nullptr;
     std::unique_ptr<ViewportWindow> m_viewportWindow = nullptr;
+    std::unique_ptr<OutlinerWindow> m_outlinerWindow = nullptr;
 };
 
 }
