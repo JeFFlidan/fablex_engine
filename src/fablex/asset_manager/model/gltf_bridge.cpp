@@ -278,6 +278,7 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
                 mesh.indexCount = indexCount;
                 mesh.indexOffset = indexOffset;
                 mesh.materialUUID = outImportResult.materials[primitive.material]->get_uuid();
+                mesh.materialIndex = primitive.material;
 
                 std::string materialName = gltfModel.materials[primitive.material].name;
                 MaterialSlot materialSlot = {materialName, mesh.materialUUID};

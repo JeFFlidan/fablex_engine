@@ -37,6 +37,7 @@ struct Mesh
     uint32 indexCount = 0;
     uint32 indexOffset = 0;
     UUID materialUUID = 0;
+    uint32 materialIndex = 0;
 };
 
 struct MaterialSlot

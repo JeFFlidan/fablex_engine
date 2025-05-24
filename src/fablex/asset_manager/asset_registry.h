@@ -29,11 +29,14 @@ public:
     // The path can be either relative or absolute 
     static const AssetData* get_asset_data_by_path(const std::string& assetPath);
 
+    static const std::vector<AssetData*>& get_assets_data_by_type(Type assetType);
+
 private:
     inline static std::mutex s_mutex;
     inline static PoolAllocator<AssetData, 1024> s_assetDataPool;
     inline static std::unordered_map<UUID, AssetData*> s_assetDataByUUID;
     inline static std::unordered_map<std::string, AssetData*> s_assetDataByPath;
+    inline static std::unordered_map<Type, std::vector<AssetData*>> s_assetsDataByType;
     inline static std::vector<uint64> s_assetCounters;
 
     static bool is_uuid_ambiguous(UUID uuid, const std::string& assetPath);

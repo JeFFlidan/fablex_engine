@@ -128,21 +128,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         }
 
         if (engine::MaterialComponent* materialComponent = entity->get_component<engine::MaterialComponent>())
-        {
-            for (UUID materialUUID : materialComponent->get_material_uuids())
-            {
-                uint64 index = m_gpuMaterials.size();
-                m_gpuMaterials.emplace_back(new GPUMaterial(asset::AssetManager::get_material(materialUUID)));
-                GPUMaterial* gpuMaterial = m_gpuMaterials.back().get();
-
-                m_gpuResourcesLookup[materialUUID] = index;
-    
-                TaskComposer::execute(taskGroup, [this, gpuMaterial](TaskExecutionInfo execInfo)
-                {
-                    gpuMaterial->build(this, cmd_recorder(rhi::QueueType::GRAPHICS));
-                });
-            }
-        }
+            add_materials(materialComponent->material_uuids(), taskGroup);
 
         if (engine::EditorCameraComponent* cameraComponent = entity->get_component<engine::EditorCameraComponent>())
         {
@@ -156,7 +142,11 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         }
     }
 
+    for (engine::MaterialComponent* materialComponent : m_pendingMaterials)
+        add_materials(materialComponent->material_uuids(), taskGroup);
+
     m_pendingEntities.clear();
+    m_pendingMaterials.clear();
 
     TaskComposer::wait(taskGroup);
 
@@ -358,7 +348,7 @@ void SceneManager::init_callbacks()
 {
     EventManager::subscribe<engine::EntityCreatedEvent>([this](const engine::EntityCreatedEvent& event)
     {
-        m_pendingEntities.push_back(event.get_entity());
+        m_pendingEntities.insert(event.get_entity());
     });
 
     EventManager::subscribe<asset::CopyTextureIntoGPURequest>([this](const asset::CopyTextureIntoGPURequest& event)
@@ -378,6 +368,11 @@ void SceneManager::init_callbacks()
         }
 
         gpuTexture->create(initInfo.mipMaps.size());
+    });
+
+    EventManager::subscribe<engine::MaterialUpdatedEvent>([this](const auto& event)
+    {
+        m_pendingMaterials.insert(event.material_component());
     });
 }
 
@@ -436,6 +431,26 @@ void SceneManager::create_samplers()
     samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
     samplerInfo.filter = rhi::Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST;
     createSampler(SAMPLER_MINIMUM_NEAREST_CLAMP, samplerInfo);
+}
+
+void SceneManager::add_materials(const std::vector<UUID>& materialUUIDs, TaskGroup& taskGroup)
+{
+    for (UUID materialUUID : materialUUIDs)
+    {
+        if (m_gpuResourcesLookup.contains(materialUUID))
+            continue;
+
+        uint64 index = m_gpuMaterials.size();
+        m_gpuMaterials.emplace_back(new GPUMaterial(asset::AssetManager::get_material(materialUUID)));
+        GPUMaterial* gpuMaterial = m_gpuMaterials.back().get();
+
+        m_gpuResourcesLookup[materialUUID] = index;
+
+        TaskComposer::execute(taskGroup, [this, gpuMaterial](TaskExecutionInfo execInfo)
+        {
+            gpuMaterial->build(this, cmd_recorder(rhi::QueueType::GRAPHICS));
+        });
+    }
 }
 
 GPUModel* SceneManager::get_gpu_model(UUID modelUUID) const
@@ -506,7 +521,7 @@ void SceneManager::allocate_storage_buffers()
             if (buffer->size < cpuEntriesSize)
             {
                 uint64 currentBufferSize = buffer->size;
-
+                            FE_LOG(LogDefault, INFO, "REALLOC: {}", debugName);
                 rhi::destroy_buffer(buffer);
 
                 uint64 newSize = calc_buffer_size(currentBufferSize, cpuEntriesSize);

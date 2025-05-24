@@ -6,6 +6,7 @@
 #include "command_recorder.h"
 #include "common.h"
 
+#include "core/fwd.h"
 #include "engine/entity/entity.h"
 #include "engine/components/fwd.h"
 #include "shaders/shader_interop_renderer.h"
@@ -69,7 +70,8 @@ private:
 
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
 
-    EntityArray m_pendingEntities;
+    std::unordered_set<engine::Entity*> m_pendingEntities;
+    std::unordered_set<engine::MaterialComponent*> m_pendingMaterials;
     
     std::mutex m_gpuPendingTexturesMutex;
     std::vector<GPUPendingTexture> m_pendingTextures;
@@ -113,6 +115,8 @@ private:
     void init_callbacks();
     void load_resources();
     void create_samplers();
+
+    void add_materials(const std::vector<UUID>& materialUUIDs, TaskGroup& taskGroup);
 
     GPUModel* get_gpu_model(UUID modelUUID) const;
     GPUTexture* get_gpu_texture(UUID textureUUID) const;

@@ -15,6 +15,7 @@ public:
     GPUModelInstance(engine::Entity* entity);
 
     void fill_shader_model_instance(SceneManager* sceneManager, ShaderModelInstance& outModelInstance) const;
+    engine::MaterialComponent* material_component() const { return m_materialComponent; }
 
 private:
     engine::Entity* m_entity = nullptr;

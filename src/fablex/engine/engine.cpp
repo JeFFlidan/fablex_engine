@@ -281,8 +281,7 @@ void Engine::configure_sponza()
     auto matComponent = modelEntity->create_component<MaterialComponent>();
     matComponent->add_material(opaqueMaterial1);
 
-    for (auto material : importResult.materials)
-        matComponent->add_material(material);
+    matComponent->init(modelComponent->get_model());
 
     Entity* cameraEntity = m_world->create_entity();
     cameraEntity->set_name("Camera");

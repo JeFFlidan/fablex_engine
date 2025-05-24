@@ -66,14 +66,14 @@ public:
     template<typename T>
     bool is_exactly() const
     {
-        FE_COMPILE_CHECK((std::is_base_of_v<Object, T>));
+        // FE_COMPILE_CHECK((std::is_base_of_v<Object, T>));    // Does not work as expected
         return is_exactly(T::get_static_type_info());
     }
 
     template<typename T>
     bool is_a() const
     {
-        FE_COMPILE_CHECK((std::is_base_of_v<Object, T>));
+        // FE_COMPILE_CHECK((std::is_base_of_v<Object, T>));    // Does not work as expected
         return is_a(T::get_static_type_info());
     }
 

@@ -1,5 +1,15 @@
 #include "utils.h"
+
+#include "engine/components/material_component.h"
+#include "engine/components/model_component.h"
+#include "engine/entity/entity.h"
+
 #include "core/object.h"
+
+#include "asset_manager/asset_registry.h"
+#include "asset_manager/json_serialization.h"
+#include "asset_manager/model/model.h"
+
 #include "imgui.h"
 
 namespace fe::editor
@@ -97,9 +107,58 @@ void Utils::draw_properties_ui(const PropertyArray& properties, Object* object)
             }
             case PropertyType::ARRAY:
             {
-                FE_LOG(LogEditor, ERROR, "Array property UI is not implemented.");
+                // FE_LOG(LogDefault, INFO, "DRAW ARRAY");
+                draw_material_component(object);
                 break;
             }
+        }
+    }
+}
+
+// Must not do this, but for now have no ideas how to draw this component in another way
+void Utils::draw_material_component(Object* materialComponentObj)
+{
+    if (!materialComponentObj->is_a<engine::MaterialComponent>())
+        return;
+
+    auto materialComponent = reinterpret_cast<engine::MaterialComponent*>(materialComponentObj);
+    FE_CHECK(materialComponent);
+    FE_CHECK(materialComponent->get_entity());
+
+    auto modelComponent = materialComponent->get_entity()->get_component<engine::ModelComponent>();
+    FE_CHECK(modelComponent);
+
+    auto model = modelComponent->get_model();
+    FE_CHECK(model);
+
+    const auto& allMaterials = asset::AssetRegistry::get_assets_data_by_type(asset::Type::MATERIAL);
+
+    for (uint32 i = 0; i != model->material_slots().size(); ++i)
+    {
+        const asset::MaterialSlot& materialSlot = model->material_slots()[i];
+        const UUID selectedMaterialUUID = materialComponent->material_uuids()[i];
+
+        const asset::AssetData* selectedMaterialData = asset::AssetRegistry::get_asset_data_by_uuid(selectedMaterialUUID);
+        const asset::AssetData* newSelectedMaterialData = selectedMaterialData;
+
+        if (ImGui::BeginCombo(materialSlot.name.c_str(), selectedMaterialData->name.c_str()))
+        {
+            for (const asset::AssetData* matData : allMaterials)
+            {
+                if (ImGui::Selectable(matData->name.c_str(), matData == selectedMaterialData))
+                {
+                    newSelectedMaterialData = matData;
+                    EventManager::enqueue_event(engine::MaterialUpdatedEvent(materialComponent));
+                }
+
+                if (matData == selectedMaterialData)
+                    ImGui::SetItemDefaultFocus();
+            }
+
+            ImGui::EndCombo();
+
+            if (!materialComponent->set_material(newSelectedMaterialData->uuid, i))
+                FE_LOG(LogEditor, ERROR, "Material index {} is invalid.", i);
         }
     }
 }

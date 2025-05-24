@@ -32,9 +32,10 @@ void AssetRegistry::init()
             assetData->path = filePath;
             assetData->uuid = archive.get_uuid();
             assetData->type = archive.get_object_type<Type>();
-            FE_LOG(LogDefault, INFO, "AssetType: {}", (uint32)assetData->type);
+
             s_assetDataByUUID[assetData->uuid] = assetData;
             s_assetDataByPath[assetData->path] = assetData;
+            s_assetsDataByType[assetData->type].push_back(assetData);
         }
     );
 
@@ -56,6 +57,7 @@ void AssetRegistry::register_asset(Asset* asset)
 
     s_assetDataByUUID[assetData->uuid] = assetData;
     s_assetDataByPath[assetData->path] = assetData;
+    s_assetsDataByType[assetData->type].push_back(assetData);
 
     increase_type_counter(asset->get_type());
 }
@@ -72,6 +74,10 @@ void AssetRegistry::unregister_asset(UUID uuid)
     }
 
     decrease_type_counter(it->second->type);
+
+    auto& assetsArray = s_assetsDataByType[it->second->type];
+    auto vecIt = std::find(assetsArray.begin(), assetsArray.end(), it->second);
+    assetsArray.erase(vecIt);
 
     s_assetDataByPath.erase(s_assetDataByPath.find(it->second->path));
     s_assetDataPool.free(it->second);
@@ -101,6 +107,11 @@ const AssetData* AssetRegistry::get_asset_data_by_uuid(UUID uuid)
     }
 
     return it->second;
+}
+
+const std::vector<AssetData*>& AssetRegistry::get_assets_data_by_type(Type assetType)
+{
+    return s_assetsDataByType[assetType];
 }
 
 const AssetData* AssetRegistry::get_asset_data_by_path(const std::string& assetPath)

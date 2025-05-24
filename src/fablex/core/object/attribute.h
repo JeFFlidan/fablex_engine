@@ -56,4 +56,12 @@ struct SliderSpeed : public Attribute
     float speed = 1.0f;
 };
 
+struct Type : public Attribute
+{
+    FE_DEFINE_ATTRIBUTE(AssetType);
+    constexpr Type(const char* inType) : type(inType) { }
+    
+    const char* type = nullptr;
+};
+
 }
