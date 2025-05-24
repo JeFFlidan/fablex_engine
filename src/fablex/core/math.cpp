@@ -136,36 +136,29 @@ float to_float(half value)
 }
 
 Float3 to_euler(const Float4& quat, AngleUnit angleUnit)
-{
-    float pitch = 0;
-    float yaw = 0;
-    float roll = 0;
+{   
+    // https://github.com/microsoft/DirectXMath/issues/8
 
-    // pitch
+    Matrix rotationMatrix = Matrix::rotation(Quat(quat));
+    
+    Float4 up = Vector(rotationMatrix.data.r[0]);
+    Float4 right = Vector(rotationMatrix.data.r[1]);
+    Float4 forward = Vector(rotationMatrix.data.r[2]);
+
+    float cy = sqrtf(forward.z * forward.z + forward.x * forward.x);
+    
+    float pitch = atan2f(-forward.y, cy);
+    float yaw = 0.0f, roll = 0.0f;
+
+    if (cy > 16.0f * FLT_EPSILON)
     {
-        const float x = quat.w * quat.w - quat.x * quat.x - quat.y * quat.y + quat.z * quat.z;
-        const float y = 2.0f * (quat.y * quat.z + quat.w * quat.x);
-
-        if (is_nearly_equal(Float2(x, y), Float2(0, 0)))
-            pitch = 2.0f * std::atan2(quat.x, quat.w);
-        else
-            pitch = std::atan2(y, x);
+        yaw = atan2f(forward.x, forward.z);
+        roll = atan2f(up.y, right.y);
     }
-
-    // yaw
+    else
     {
-        yaw = std::asin(std::clamp(-2.0f * (quat.x * quat.z - quat.w * quat.y), -1.0f, 1.0f));
-    }
-
-    // roll
-    {
-        const float x = quat.w * quat.w + quat.x * quat.x - quat.y * quat.y - quat.z * quat.z;
-        const float y = 2.0f * (quat.x * quat.y + quat.w * quat.z);
-
-        if (is_nearly_equal(Float2(x, y), Float2(0, 0)))
-            roll = 0;
-        else
-            roll = std::atan2(y, x);
+        yaw = 0.0f;
+        roll = atan2f(-right.x, up.x);
     }
 
     switch (angleUnit)

@@ -37,7 +37,7 @@ void PropertiesWindow::draw(engine::Entity* selectedEntity)
 
         if (ImGui::DragFloat3("Rotation", &rotation.x, 0.2f, -10000.0f, 10000.0f))
         {
-            Float3 rotationDelta = prevRotation - rotation;
+            Float3 rotationDelta = rotation - prevRotation;
             m_selectedEntity->set_rotation(rotationDelta);
         }
 

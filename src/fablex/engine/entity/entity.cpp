@@ -155,7 +155,7 @@ void Entity::serialize(Archive& archive) const
         archive << component->get_type_info()->get_name();
         component->serialize(archive);
     }
-    
+
     archive << m_children.size();
     for (Entity* entity : m_children)
     {
@@ -185,7 +185,6 @@ void Entity::deserialize(Archive& archive)
 
     for (uint32 i = 0; i != tagCount; ++i)
     {
-        FE_LOG(LogDefault, INFO, "DESEIALIZE TAG: {}", tagCount);
         uint64 tag;
         archive >> tag;
         m_tags.insert(tag); 
