@@ -86,7 +86,7 @@ SceneManager::~SceneManager()
 void SceneManager::upload(rhi::CommandBuffer* cmd)
 {
     set_cmd(cmd);
-    
+
     if (m_deleteHandlersPerFrame.size() < g_frameIndex + 1)
         m_deleteHandlersPerFrame.emplace_back();
 
@@ -527,7 +527,6 @@ void SceneManager::allocate_storage_buffers()
             if (buffer->size < cpuEntriesSize)
             {
                 uint64 currentBufferSize = buffer->size;
-                            FE_LOG(LogDefault, INFO, "REALLOC: {}", debugName);
                 rhi::destroy_buffer(buffer);
 
                 uint64 newSize = calc_buffer_size(currentBufferSize, cpuEntriesSize);
@@ -664,7 +663,7 @@ rhi::Buffer* SceneManager::create_uma_uniform_buffer(uint64 size) const
 void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
 {
     uint64 instanceSize = rhi::get_acceleration_structure_instance_size();
-    uint64 objectCount = m_entitiesForTLAS.size() * 2;
+    uint64 objectCount = m_entitiesForTLAS.size() + 1 * 2;
     
     if (!m_TLAS || m_TLAS->info.tlas.count < objectCount)
     {
@@ -704,7 +703,10 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
     )
     {
         if (m_uploadBuffersForTLAS.size() < g_frameIndex + 1)
-            m_uploadBuffersForTLAS.emplace_back();
+            m_uploadBuffersForTLAS.push_back(nullptr);
+
+        if (m_uploadBuffersForTLAS.at(g_frameIndex))
+            rhi::destroy_buffer(m_uploadBuffersForTLAS.at(g_frameIndex));
 
         rhi::BufferInfo bufferInfo;
         bufferInfo.bufferUsage = rhi::ResourceUsage::TRANSFER_SRC;

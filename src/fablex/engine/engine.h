@@ -22,16 +22,19 @@ public:
     void configure_test_scene();
     void configure_sponza();
 
+    void create_project(const std::string& projectPath);
+    bool load_project(const std::string& projectPath);
+
 private:
     std::unique_ptr<World> m_world;
     Window* m_window;
 
+    void subscribe_to_events();
+
+    void create_default_model();
     void create_default_material();
     void create_camera();
     void create_sun();
-
-    bool load_project(const std::string& projectPath);
-
 };
 
 }

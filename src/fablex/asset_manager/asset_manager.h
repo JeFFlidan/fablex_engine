@@ -31,6 +31,8 @@ public:
     static Texture* get_texture(UUID uuid);
     static Material* get_material(UUID uuid);
     
+    static Model* get_default_model() { FE_CHECK(s_defaultModel); return s_defaultModel; }
+    static Texture* get_default_texture() { FE_CHECK(s_defaultTexture); return s_defaultTexture; }
     static Material* get_default_material() { FE_CHECK(s_defaultMaterial); return s_defaultMaterial; }
 
     template<typename T>
@@ -67,6 +69,8 @@ public:
 
 private:
     inline static AssetStorage s_assetStorage;
+    inline static Model* s_defaultModel = nullptr;
+    inline static Texture* s_defaultTexture = nullptr;
     inline static Material* s_defaultMaterial = nullptr;
 
     template<typename T>

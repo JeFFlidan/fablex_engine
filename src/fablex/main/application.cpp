@@ -50,7 +50,8 @@ Application::Application()
     m_renderer = std::make_unique<renderer::Renderer>(rendererInfo);
 
     // m_engine->configure_test_scene();
-    m_engine->configure_sponza();
+    // m_engine->configure_sponza();
+    m_engine->create_project("empty");
 
     FE_LOG(LogApplication, INFO, "Application initialization completed.");
 }

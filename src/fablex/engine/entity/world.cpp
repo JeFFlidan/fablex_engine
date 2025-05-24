@@ -13,6 +13,7 @@ Entity* World::create_entity()
 {
     engine::Entity* entity = m_entityManager.create_entity();
     entity->on_world_set(this);
+    entity->init();
     return entity;
 }
 
@@ -20,6 +21,7 @@ Entity* World::create_entity(const TypeInfo* typeInfo)
 {
     engine::Entity* entity = m_entityManager.create_entity(typeInfo);
     entity->on_world_set(this);
+    entity->init();
     return entity;
 }
 

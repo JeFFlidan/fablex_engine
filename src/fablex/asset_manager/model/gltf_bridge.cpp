@@ -174,7 +174,7 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
 
     TaskComposer::wait(loadingContext.taskGroup);
 
-    if (inImportContext.generateMaterials)
+    if (inImportContext.generateMaterials && !gltfModel.materials.empty())
     {
         for (auto& material : gltfModel.materials)
         {
@@ -225,7 +225,8 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
     }
     else 
     {
-        outImportResult.materials.resize(gltfModel.materials.size(), AssetManager::get_default_material());
+        uint32 materialCount = gltfModel.materials.empty() ? 1 : gltfModel.materials.size();
+        outImportResult.materials.resize(materialCount, AssetManager::get_default_material());
     }
 
     // From WickedEngine
@@ -271,16 +272,18 @@ bool GLTFBridge::import(const ModelImportContext& inImportContext, ModelImportRe
                 const tinygltf::BufferView& bufferView = gltfModel.bufferViews[accessor.bufferView];
                 const tinygltf::Buffer& buffer = gltfModel.buffers[bufferView.buffer];
 
+                uint32 materialIndex = primitive.material < 0 ? 0 : primitive.material;
+
                 int stride = accessor.ByteStride(bufferView);
                 size_t indexCount = accessor.count;
                 size_t indexOffset = modelProxy.indices.size();
                 modelProxy.indices.resize(indexCount + indexOffset);
                 mesh.indexCount = indexCount;
                 mesh.indexOffset = indexOffset;
-                mesh.materialUUID = outImportResult.materials[primitive.material]->get_uuid();
-                mesh.materialIndex = primitive.material;
+                mesh.materialUUID = outImportResult.materials[materialIndex]->get_uuid();
+                mesh.materialIndex = materialIndex;
 
-                std::string materialName = gltfModel.materials[primitive.material].name;
+                std::string materialName = primitive.material < 0 ? "Default" : gltfModel.materials[materialIndex].name;
                 MaterialSlot materialSlot = {materialName, mesh.materialUUID};
 
                 if (std::find(materialSlots.begin(), materialSlots.end(), materialSlot) == materialSlots.end())

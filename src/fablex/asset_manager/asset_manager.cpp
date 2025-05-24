@@ -82,6 +82,13 @@ bool AssetManager::import_model(const ModelImportContext& inImportContext, Model
         EventManager::enqueue_event(AssetImportedEvent<Model>(model));
     }
 
+    if (outImportResult.models.size() == 1)
+    {
+        Model* model = outImportResult.models[0];
+        if (has_flag(model->get_flags(), AssetFlag::USE_AS_DEFAULT))
+            s_defaultModel = model;
+    }
+
     return true;
 }
 
@@ -92,6 +99,9 @@ bool AssetManager::import_texture(const TextureImportContext& inImportContext, T
 
     configure_imported_asset(outImportResult.texture, inImportContext);
     EventManager::enqueue_event(AssetImportedEvent<Texture>(outImportResult.texture));
+
+    if (has_flag(outImportResult.texture->get_flags(), AssetFlag::USE_AS_DEFAULT))
+        s_defaultTexture = outImportResult.texture;
 
     return true;
 }
@@ -140,14 +150,38 @@ void AssetManager::load_assets(TaskGroup& taskGroup)
                 switch ((Type)assetType)
                 {
                 case Type::MODEL:
-                    get_model(assetData->uuid);
+                {
+                    Model* model = get_model(assetData->uuid);
+
+                    if (has_flag(model->get_flags(), AssetFlag::USE_AS_DEFAULT))
+                    {
+                        s_defaultModel = model;
+                    }
+
                     break;
+                }
                 case Type::TEXTURE:
-                    get_texture(assetData->uuid);
+                {
+                    Texture* texture = get_texture(assetData->uuid);
+
+                    if (has_flag(texture->get_flags(), AssetFlag::USE_AS_DEFAULT))
+                    {
+                        s_defaultTexture = texture;
+                    }
+
                     break;
+                }
                 case Type::MATERIAL:
-                    get_material(assetData->uuid);
+                {
+                    Material* material = get_material(assetData->uuid);
+
+                    if (has_flag(material->get_flags(), AssetFlag::USE_AS_DEFAULT))
+                    {
+                        s_defaultMaterial = material;
+                    }
+
                     break;
+                }
                 default:
                     FE_CHECK(0);
                 }

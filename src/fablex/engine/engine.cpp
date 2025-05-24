@@ -1,11 +1,14 @@
 #include "engine.h"
-#include "asset_manager/asset_manager.h"
-#include "asset_manager/material/opaque_material_settings.h"
-#include "core/file_system/file_system.h"
+#include "events.h"
+#include "entities/model_entity.h"
 #include "components/model_component.h"
 #include "components/editor_camera_component.h"
 #include "components/light_components.h"
 #include "components/material_component.h"
+
+#include "asset_manager/asset_manager.h"
+#include "asset_manager/material/opaque_material_settings.h"
+#include "core/file_system/file_system.h"
 #include "core/task_composer.h"
 
 namespace fe::engine
@@ -17,6 +20,8 @@ Engine::Engine()
     asset::AssetRegistry::init();
 
     m_world = std::make_unique<World>();
+
+    subscribe_to_events();
 }
 
 void Engine::update()
@@ -266,34 +271,14 @@ void Engine::configure_sponza()
     matComponent->init(modelComponent->get_model());
 }
 
-void Engine::create_default_material()
+void Engine::create_project(const std::string& projectPath)
 {
-    asset::OpaqueMaterialCreateInfo createInfo;
-    createInfo.roughness = 0.7;
-    createInfo.metallic = 0.0;
-    createInfo.baseColor = Float4(0.65, 0.65, 0.65, 1);
-    createInfo.name = "DefaultGray";
-    createInfo.projectDirectory = FileSystem::get_project_path();
-    createInfo.flags |= asset::AssetFlag::USE_AS_DEFAULT;
-    asset::AssetManager::create_material(createInfo);
-}
+    FileSystem::create_project_directory(projectPath);
 
-void Engine::create_camera()
-{
-    Entity* cameraEntity = m_world->create_entity();
-    cameraEntity->set_name("Camera");
-    EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
-    cameraComponent->mouseSensitivity = 0.12f;
-    cameraComponent->movementSpeed = 50;
-    cameraEntity->set_position(Float3(0, 30, 0));
-}
-
-void Engine::create_sun()
-{
-    Entity* lightEntity = m_world->create_entity();
-    lightEntity->set_name("Sun");
-    lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
-    lightEntity->set_rotation(Float3(1, 0, 0), -30);
+    create_default_material();
+    create_default_model();
+    create_sun();
+    create_camera();
 }
 
 // For now all resources will be loaded to the memory when project is opened
@@ -322,6 +307,55 @@ bool Engine::load_project(const std::string& projectPath)
     TaskComposer::wait(taskGroup);
 
     return true;
+}
+
+void Engine::subscribe_to_events()
+{
+    EventManager::subscribe<ModelEntityCreationRequest>([this](const auto&)
+    {
+        m_world->create_entity(ModelEntity::get_static_type_info());
+    });
+}
+
+void Engine::create_default_model()
+{
+    asset::ModelImportContext importContext;
+    importContext.projectDirectory = FileSystem::get_project_path();
+    importContext.originalFilePath = "content/sphere.glb";
+    importContext.flags = asset::AssetFlag::USE_AS_DEFAULT;
+    
+    asset::ModelImportResult importResult;
+    asset::AssetManager::import_model(importContext, importResult);
+}
+
+void Engine::create_default_material()
+{
+    asset::OpaqueMaterialCreateInfo createInfo;
+    createInfo.roughness = 0.7;
+    createInfo.metallic = 0.0;
+    createInfo.baseColor = Float4(0.65, 0.65, 0.65, 1);
+    createInfo.name = "DefaultGray";
+    createInfo.projectDirectory = FileSystem::get_project_path();
+    createInfo.flags |= asset::AssetFlag::USE_AS_DEFAULT;
+    asset::AssetManager::create_material(createInfo);
+}
+
+void Engine::create_camera()
+{
+    Entity* cameraEntity = m_world->create_entity();
+    cameraEntity->set_name("Camera");
+    EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
+    cameraComponent->mouseSensitivity = 0.12f;
+    cameraComponent->movementSpeed = 50;
+    cameraEntity->set_position(Float3(0, 30, 0));
+}
+
+void Engine::create_sun()
+{
+    Entity* lightEntity = m_world->create_entity();
+    lightEntity->set_name("Sun");
+    lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
+    lightEntity->set_rotation(Float3(1, 0, 0), -30);
 }
 
 }

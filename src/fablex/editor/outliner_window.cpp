@@ -1,5 +1,6 @@
 #include "outliner_window.h"
 #include "engine/entity/world.h"
+#include "engine/events.h"
 
 #include "imgui.h"
 
@@ -24,6 +25,16 @@ void OutlinerWindow::draw(engine::World* world)
         m_lastSelectedEntity = nullptr;
         m_renamedEntity = nullptr;
         m_selectedEntities.clear();
+    }
+
+    if (ImGui::BeginPopupContextWindow(
+        "OutlinerContextMenu",
+        ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight
+    ))
+    {
+        if (ImGui::MenuItem("Create Model Entity"))
+            EventManager::enqueue_event(engine::ModelEntityCreationRequest());
+        ImGui::EndPopup();
     }
 
     handle_shift_selection();
