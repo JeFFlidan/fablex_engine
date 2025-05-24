@@ -1666,6 +1666,17 @@ private:
     }
 } static g_device;
 
+void set_debug_name(std::string name, VkObjectType type, uint64 handle)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.pObjectName = name.c_str();
+    info.objectType = type;
+    info.objectHandle = handle;
+
+    VK_CHECK(vkSetDebugUtilsObjectNameEXT(g_device.device, &info));
+}
+
 class Allocator
 {
 public:
@@ -1759,6 +1770,27 @@ public:
         m_accelerationStructureBindlessPool.init(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 32);
 
         m_zeroDescriptorPool.init();
+
+        set_debug_name("SampledImageBindlessDescriptorSet", VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64)m_imageBindlessPool.set);
+        set_debug_name("SampledImageBindlessDescriptorPool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64)m_imageBindlessPool.pool);
+        
+        set_debug_name("StorageImageBindlessDescriptorSet", VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64)m_storageImageBindlessPool.set);
+        set_debug_name("StorageImageBindlessDescriptorPool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64)m_storageImageBindlessPool.pool);
+        
+        set_debug_name("StorageBufferBindlessDescriptorSet", VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64)m_storageBufferBindlessPool.set);
+        set_debug_name("StorageBufferBindlessDescriptorPool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64)m_storageBufferBindlessPool.pool);
+        
+        set_debug_name("UniformTexelBufferBindlessDescriptorSet", VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64)m_uniformTexelBufferBindlessPool.set);
+        set_debug_name("UniformTexelBufferBindlessDescriptorPool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64)m_uniformTexelBufferBindlessPool.pool);
+        
+        set_debug_name("StorageTexelBufferBindlessDescriptorSet", VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64)m_storageTexelBufferBindlessPool.set);
+        set_debug_name("StorageTexelBufferBindlessDescriptorPool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64)m_storageTexelBufferBindlessPool.pool);
+
+        set_debug_name("SamplerBindlessDescriptorSet", VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64)m_samplerBindlessPool.set);
+        set_debug_name("SamplerBindlessDescriptorPool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64)m_samplerBindlessPool.pool);
+        
+        set_debug_name("AccelerationStructureBindlessDescriptorSet", VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64)m_accelerationStructureBindlessPool.set);
+        set_debug_name("AccelerationStructureBindlessDescriptorPool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64)m_accelerationStructureBindlessPool.pool);
     }
 
     void cleanup()
@@ -2220,7 +2252,7 @@ private:
         void free(uint32 descriptorIndex)
         {
             std::scoped_lock<std::mutex> locker(mutex);
-            if (descriptorIndex > 0)
+            if (descriptorIndex > 0 && descriptorIndex != s_undefinedDescriptor)
                 freePlaces.push_back(descriptorIndex);
         }
     };
