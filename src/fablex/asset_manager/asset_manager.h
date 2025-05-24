@@ -6,6 +6,7 @@
 #include "asset_registry.h"
 #include "model/model.h"
 #include "texture/texture.h"
+#include "core/fwd.h"
 #include "core/pool_allocator.h"
 #include "core/file_system/archive.h"
 
@@ -57,6 +58,7 @@ public:
 
     static bool is_asset_loaded(UUID assetUUID);
 
+    static void load_assets(TaskGroup& taskGroup);
     static void save_assets();
     static void save_asset(UUID uuid);
 

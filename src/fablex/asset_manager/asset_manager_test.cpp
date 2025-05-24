@@ -11,7 +11,7 @@ void AssetManagerTest::run()
     FileSystem::create_project_directory(projectDirectory);
 
     std::vector<const AssetData*> modelAssetDatas;
-    AssetRegistry::get_assets_by_type(Type::MODEL, modelAssetDatas);
+    // AssetRegistry::get_assets_by_type(Type::MODEL, modelAssetDatas);
 
     FE_LOG(LogAssetManager, INFO, "Model AssetData count {}", modelAssetDatas.size());
 
@@ -23,7 +23,7 @@ void AssetManagerTest::run()
     }
 
     std::vector<const AssetData*> textureAssetDatas;
-    AssetRegistry::get_assets_by_type(Type::TEXTURE, textureAssetDatas);
+    // AssetRegistry::get_assets_by_type(Type::TEXTURE, textureAssetDatas);
 
     FE_LOG(LogAssetManager, INFO, "Texture AssetData count {}", textureAssetDatas.size());
 

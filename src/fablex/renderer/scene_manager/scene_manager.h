@@ -65,7 +65,6 @@ private:
     struct GPUPendingTexture
     {
         std::unique_ptr<GPUTexture> gpuTexture;
-        rhi::TextureInitInfo initInfo;
     };
 
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;

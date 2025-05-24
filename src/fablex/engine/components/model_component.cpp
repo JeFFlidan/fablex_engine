@@ -1,6 +1,7 @@
 #include "model_component.h"
 #include "engine/entity/entity.h"
 #include "core/primitives/sphere.h"
+#include "core/file_system/archive.h"
 #include "asset_manager/asset_manager.h"
 
 namespace fe::engine
@@ -54,6 +55,20 @@ void ModelComponent::fill_shader_instance_data(ShaderModelInstance& outModelInst
     outModelInstance.transform.set_transfrom(remapMat * transformMat);
     outModelInstance.rawTransform.set_transfrom(m_entity->get_world_transform());
     outModelInstance.transformInverseTranspose.set_transfrom(transformMat.transpose().inverse());
+}
+
+void ModelComponent::serialize(Archive& archive) const
+{
+    Component::serialize(archive);
+
+    archive << m_modelUUID;
+}
+
+void ModelComponent::deserialize(Archive& archive)
+{
+    Component::deserialize(archive);
+
+    archive >> m_modelUUID;
 }
 
 }

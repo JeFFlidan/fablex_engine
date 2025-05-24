@@ -89,8 +89,7 @@ public:
 template<typename T>
 T* create_object()
 {
-    FE_COMPILE_CHECK((std::is_base_of_v<Object, T>));
-    return (T*)TypeManager::create_object_by_name(T::get_static_type_info().get_str_name());
+    return (T*)TypeManager::create_object_by_name(T::get_static_type_info()->get_str_name());
 }
 
 inline Object* create_object(Name name)

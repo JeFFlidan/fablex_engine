@@ -53,8 +53,6 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
     const uint8* data = static_cast<const uint8*>(inImportContext.data);
     uint64 dataSize = inImportContext.dataSize;
 
-    rhi::TextureInitInfo gpuTextureInitInfo;
-
     if (extension == "basis")
     {
         // TODO
@@ -87,11 +85,11 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
         textureProxy.bcFormat = rhi::is_format_block_compressed(textureProxy.format) 
             ? textureProxy.format : rhi::Format::UNDEFINED;
 
-        gpuTextureInitInfo.mipMaps.reserve(ddsTextureInfo.num_mips);
-        gpuTextureInitInfo.buffer = create_upload_buffer(ddsTextureInfo.size_bytes);
+        textureProxy.mipmaps.reserve(ddsTextureInfo.num_mips);
+        textureProxy.uploadBuffer = create_upload_buffer(ddsTextureInfo.size_bytes, inImportContext.name);
 
         uint32 bufferOffset = 0;
-        uint8* bufferMappedData = (uint8*)gpuTextureInitInfo.buffer->mappedData;
+        uint8* bufferMappedData = (uint8*)textureProxy.uploadBuffer->mappedData;
 
         for (uint32 mip = 0; mip != ddsTextureInfo.num_mips; ++mip)
         {
@@ -123,7 +121,7 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
                     );
                 }
             }
-            rhi::MipMap& mipMap = gpuTextureInitInfo.mipMaps.emplace_back();
+            rhi::MipMap& mipMap = textureProxy.mipmaps.emplace_back();
             mipMap.layer = 0;   // TEMP
             mipMap.offset = bufferOffset;
 
@@ -135,7 +133,7 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
         int width = 0, height = 0, channels = 0;
 
         // stbi has no mipmaps, but I need one default mipmap to describe what value to copy from the upload buffer
-        gpuTextureInitInfo.mipMaps.emplace_back();
+        textureProxy.mipmaps.emplace_back();
 
         if (stbi_is_16_bit_from_memory(data, dataSize))
         {
@@ -147,8 +145,8 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
             textureProxy.depth = 1;
             textureProxy.is16Bit = true;
 
-            gpuTextureInitInfo.buffer = create_upload_buffer(textureSize);
-            void* uploadBufferData = gpuTextureInitInfo.buffer->mappedData;
+            textureProxy.uploadBuffer = create_upload_buffer(textureSize, inImportContext.name);
+            void* uploadBufferData = textureProxy.uploadBuffer->mappedData;
 
             switch (channels)
             {
@@ -192,7 +190,7 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
                     textureProxy.format = rhi::Format::R16G16B16A16_UNORM;
                     textureProxy.bcFormat = rhi::Format::BC3_UNORM;
                     textureProxy.mapping = { rhi::ComponentSwizzle::R, rhi::ComponentSwizzle::G, rhi::ComponentSwizzle::B, rhi::ComponentSwizzle::A };
-                    memcpy(textureProxy.data.data(), textureData, textureSize);
+                    memcpy(uploadBufferData, textureData, textureSize);
                     break;
                 }
             }
@@ -209,8 +207,8 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
             textureProxy.depth = 1;
             textureProxy.is16Bit = false;
 
-            gpuTextureInitInfo.buffer = create_upload_buffer(textureSize);
-            void* uploadBufferData = gpuTextureInitInfo.buffer->mappedData;
+            textureProxy.uploadBuffer = create_upload_buffer(textureSize, inImportContext.name);
+            void* uploadBufferData = textureProxy.uploadBuffer->mappedData;
 
             switch (channels)
             {
@@ -262,9 +260,6 @@ bool TextureBridge::load_texture(const TextureImportFromMemoryContext& inImportC
             stbi_image_free(textureData);
         }
     }
-
-    CopyTextureIntoGPURequest request(outImportResult.texture, gpuTextureInitInfo);
-    EventManager::trigger_event(request);
 
     return true;
 }
@@ -321,7 +316,7 @@ rhi::Format TextureBridge::dds_format_to_internal(ddsktx_format ddsKtxFormat)
     }
 }
 
-rhi::Buffer* TextureBridge::create_upload_buffer(uint32 bufferSize)
+rhi::Buffer* TextureBridge::create_upload_buffer(uint32 bufferSize, const std::string& textureName)
 {
     rhi::BufferInfo bufferInfo;
     bufferInfo.bufferUsage = rhi::ResourceUsage::TRANSFER_SRC;
@@ -329,6 +324,8 @@ rhi::Buffer* TextureBridge::create_upload_buffer(uint32 bufferSize)
     bufferInfo.size = bufferSize;
     rhi::Buffer* buffer;
     rhi::create_buffer(&buffer, &bufferInfo);
+
+    rhi::set_name(buffer, textureName + "UploadBuffer");
 
     return buffer;
 }

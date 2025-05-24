@@ -18,7 +18,7 @@ private:
     static bool load_texture(const TextureImportFromMemoryContext& inImportContext, TextureImportResult& outImportResult);
 
     static rhi::Format dds_format_to_internal(ddsktx_format ddsKtxFormat);
-    static rhi::Buffer* create_upload_buffer(uint32 bufferSize);
+    static rhi::Buffer* create_upload_buffer(uint32 bufferSize, const std::string& textureName);
 
     template<typename TextureFormat>
     static uint64 get_texture_size(int width, int height, int channelCount)

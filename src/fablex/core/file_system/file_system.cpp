@@ -69,6 +69,22 @@ void FileSystem::create_project_directory(std::string projectPath)
     std::filesystem::create_directories(m_projectPath);
 }
 
+void FileSystem::set_project_path(std::string projectPath)
+{
+    if (is_relative(projectPath))
+        m_projectPath = get_absolute_path(projectPath);
+    else
+        m_projectPath = projectPath;
+}
+
+bool FileSystem::is_project_existed(std::string projectPath)
+{
+    if (is_relative(projectPath))
+        projectPath = get_absolute_path(projectPath);
+
+    return exists(projectPath);
+}
+
 FileStream* FileSystem::open(const std::string& strPath, const char* mode)
 {
     std::filesystem::path path = std::filesystem::path(strPath);

@@ -10,6 +10,7 @@
 #include "core/primitives/sphere.h"
 #include "core/task_composer.h"
 #include "asset_manager/asset_manager.h"
+#include "asset_manager/events.h"
 #include "shaders/shader_interop_renderer.h"
 
 namespace fe::renderer
@@ -35,7 +36,7 @@ SceneManager::SceneManager()
 
     allocate_arrays();
     init_callbacks();
-    load_resources();
+    // load_resources();
     create_samplers();
 }
 
@@ -157,9 +158,9 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
-        for (auto& [texture, initInfo] : m_pendingTextures)
+        for (auto& [texture] : m_pendingTextures)
         {
-            texture->build(cmd_recorder(rhi::QueueType::GRAPHICS), initInfo);
+            texture->build(cmd_recorder(rhi::QueueType::GRAPHICS));
         }
     });
 
@@ -235,11 +236,8 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::wait(taskGroup);
 
-    for (auto& [texture, initInfo] : m_pendingTextures)
+    for (auto& [texture] : m_pendingTextures)
     {
-        rhi::Buffer* buffer = initInfo.buffer;
-        add_delete_handler([buffer](){ rhi::destroy_buffer(buffer); });
-
         UUID textureUUID = texture->texture_asset()->get_uuid();
         uint64 index = m_gpuTextures.size();
         m_gpuTextures.push_back(std::move(texture));
@@ -351,23 +349,28 @@ void SceneManager::init_callbacks()
         m_pendingEntities.insert(event.get_entity());
     });
 
-    EventManager::subscribe<asset::CopyTextureIntoGPURequest>([this](const asset::CopyTextureIntoGPURequest& event)
+    EventManager::subscribe<asset::AssetLoadedEvent<asset::Texture>>([this](const auto& event)
     {
-        asset::Texture* textureAsset = event.get_texture();
-        const rhi::TextureInitInfo& initInfo = event.get_texture_init_info();
+        asset::Texture* textureAsset = event.get_handle();
+        if (m_gpuResourcesLookup.contains(textureAsset->get_uuid()))
+            return;
 
-        GPUTexture* gpuTexture = nullptr;
+        GPUPendingTexture& createInfo = m_pendingTextures.emplace_back();
+        createInfo.gpuTexture = std::make_unique<GPUTexture>(textureAsset);
+        
+        createInfo.gpuTexture->create();
+    });
 
-        {
-            std::scoped_lock<std::mutex> locker(m_gpuPendingTexturesMutex);
-            GPUPendingTexture& createInfo = m_pendingTextures.emplace_back();
-            createInfo.gpuTexture = std::make_unique<GPUTexture>(textureAsset);
-            createInfo.initInfo = initInfo;
+    EventManager::subscribe<asset::AssetImportedEvent<asset::Texture>>([this](const auto& event)
+    {
+        asset::Texture* textureAsset = event.get_handle();
+        if (m_gpuResourcesLookup.contains(textureAsset->get_uuid()))
+            return;
 
-            gpuTexture = createInfo.gpuTexture.get();
-        }
-
-        gpuTexture->create(initInfo.mipMaps.size());
+        GPUPendingTexture& createInfo = m_pendingTextures.emplace_back();
+        createInfo.gpuTexture = std::make_unique<GPUTexture>(textureAsset);
+        
+        createInfo.gpuTexture->create();
     });
 
     EventManager::subscribe<engine::MaterialUpdatedEvent>([this](const auto& event)
@@ -376,11 +379,14 @@ void SceneManager::init_callbacks()
     });
 }
 
+// This function is not used now because I don't need builtin textures.
+// Have to think how to handle builtin resource storing when open new project.
 void SceneManager::load_resources()
 {
     asset::TextureImportContext blueNoiseImportContext;
     blueNoiseImportContext.originalFilePath = "content/BlueNoise3DIndependent.dds";
     blueNoiseImportContext.projectDirectory = " ";
+    blueNoiseImportContext.flags = asset::AssetFlag::TRANSIENT;
 
     asset::TextureImportResult blueNoiseImportResult;
 

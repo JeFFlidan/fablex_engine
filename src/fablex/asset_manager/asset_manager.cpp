@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "model/model_bridge.h"
 #include "texture/texture_bridge.h"
+#include "core/task_composer.h"
 #include <unordered_set>
 
 namespace fe::asset
@@ -81,12 +82,6 @@ bool AssetManager::import_model(const ModelImportContext& inImportContext, Model
         EventManager::enqueue_event(AssetImportedEvent<Model>(model));
     }
 
-    for (Texture* texture : outImportResult.textures)
-    {
-        configure_imported_asset(texture, inImportContext);
-        EventManager::enqueue_event(AssetImportedEvent<Texture>(texture));
-    }
-
     return true;
 }
 
@@ -132,6 +127,37 @@ bool AssetManager::is_asset_loaded(UUID assetUUID)
     return s_assetStorage.get_asset(assetUUID);
 }
 
+void AssetManager::load_assets(TaskGroup& taskGroup)
+{
+    TaskGroup localTaskGroup;
+
+    for (uint32 assetType = 0; assetType != std::to_underlying(Type::COUNT); ++assetType)
+    {
+        for (auto assetData : AssetRegistry::get_assets_data_by_type((Type)assetType))
+        {
+            TaskComposer::execute(localTaskGroup, [assetType, assetData](TaskExecutionInfo execInfo)
+            {
+                switch ((Type)assetType)
+                {
+                case Type::MODEL:
+                    get_model(assetData->uuid);
+                    break;
+                case Type::TEXTURE:
+                    get_texture(assetData->uuid);
+                    break;
+                case Type::MATERIAL:
+                    get_material(assetData->uuid);
+                    break;
+                default:
+                    FE_CHECK(0);
+                }
+            });
+        }
+    }
+
+    TaskComposer::wait(localTaskGroup);
+}
+
 void AssetManager::save_assets()
 {
     s_assetStorage.save_assets();
@@ -162,6 +188,8 @@ void AssetManager::configure_imported_asset(Asset* asset, const ImportContext& i
 {
     asset->m_originalFilePath = importContext.originalFilePath;
     asset->m_assetPath = generate_path(importContext.projectDirectory, asset->get_name());
+    asset->m_assetFlag = importContext.flags;
+
     AssetRegistry::register_asset(asset);
     s_assetStorage.add_asset(asset);
 }
@@ -169,6 +197,8 @@ void AssetManager::configure_imported_asset(Asset* asset, const ImportContext& i
 void AssetManager::configure_created_asset(Asset* asset, const CreateInfo& createInfo)
 {
     asset->m_assetPath = generate_path(createInfo.projectDirectory, asset->get_name());
+    asset->m_assetFlag = createInfo.flags;
+    
     AssetRegistry::register_asset(asset);
     s_assetStorage.add_asset(asset);
 }

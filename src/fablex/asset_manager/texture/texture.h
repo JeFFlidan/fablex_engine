@@ -112,8 +112,8 @@ public:
         m_saturation = saturation;
     }
 
-    const std::vector<uint8>& data() const { return m_data; }
-    uint64 size() const { return m_data.size(); }
+    rhi::Buffer* upload_buffer() const { return m_uploadBuffer; }
+    uint64 size() const { return m_uploadBuffer->size; }
     uint64 width() const { return m_width; }
     uint64 height() const { return m_height; }
     uint64 depth() const { return m_depth; }
@@ -124,12 +124,13 @@ public:
     rhi::Format format() const { return m_format; }
     rhi::Format bc_format() const { return m_bcFormat; }
     const rhi::ComponentMapping& component_mapping() const { return m_mapping; }
+    const std::vector<rhi::MipMap>& mipmaps() const { return m_mipmaps; }
     float brightness() const { return m_brightness; }
     float saturation() const { return m_saturation; }
     bool is_16bit() const { return m_is16Bit; }
 
 protected:
-    std::vector<uint8> m_data;
+    rhi::Buffer* m_uploadBuffer = nullptr;
     uint64 m_width = 0;
     uint64 m_height = 0;
     uint64 m_depth = 0;
@@ -140,6 +141,7 @@ protected:
     rhi::Format m_format = rhi::Format::UNDEFINED;
     rhi::Format m_bcFormat = rhi::Format::UNDEFINED;
     rhi::ComponentMapping m_mapping;
+    std::vector<rhi::MipMap> m_mipmaps;
     float m_brightness = 1.0f;
     float m_saturation = 1.0f;
     bool m_is16Bit = false;
@@ -152,49 +154,31 @@ FE_DEFINE_ASSET_POOL_SIZE(Texture, 256);
 struct TextureProxy
 {
     TextureProxy(Texture* texture) :
-        data(texture->m_data),
+        uploadBuffer(texture->m_uploadBuffer),
         width(texture->m_width),
         height(texture->m_height),
         depth(texture->m_depth),
         format(texture->m_format),
         bcFormat(texture->m_bcFormat),
         mapping(texture->m_mapping),
+        mipmaps(texture->m_mipmaps),
         is16Bit(texture->m_is16Bit)
     {
 
     }
 
-    std::vector<uint8>& data;
+    rhi::Buffer*& uploadBuffer;
     uint64& width;
     uint64& height;
     uint64& depth;
     rhi::Format& format;
     rhi::Format& bcFormat;
     rhi::ComponentMapping& mapping;
+    std::vector<rhi::MipMap>& mipmaps;
     bool& is16Bit;
 };
 
 #endif // FE_TEXTURE_PROXY
-
-struct CopyTextureIntoGPURequest : public IEvent
-{
-public:
-    FE_DECLARE_EVENT(CopyTextureIntoGPURequest);
-
-    CopyTextureIntoGPURequest(Texture* texture, const rhi::TextureInitInfo& info)
-        : m_texture(texture), m_initInfo(info) { }
-
-    const rhi::TextureInitInfo& get_texture_init_info() const  
-    { 
-        return m_initInfo; 
-    }
-
-    Texture* get_texture() const { return m_texture; }
-
-private:
-    Texture* m_texture;
-    rhi::TextureInitInfo m_initInfo;
-};
 
 }
 

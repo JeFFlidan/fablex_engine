@@ -95,6 +95,9 @@ public:
         return false;
     }
 
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
+
 private:
     std::string m_name = "undefined";
 

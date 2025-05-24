@@ -22,6 +22,9 @@ public:
     bool set_material(UUID materialUUID, uint32 index);
 
     const std::vector<UUID>& material_uuids() const { return m_materialUUIDs; }
+
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
     
 protected:
     std::vector<UUID> m_materialUUIDs;

@@ -23,6 +23,9 @@ public:
 
     void fill_shader_instance_data(ShaderModelInstance& outModelInstance) const;
 
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
+
 protected:
     UUID m_modelUUID = UUID::INVALID;
 };

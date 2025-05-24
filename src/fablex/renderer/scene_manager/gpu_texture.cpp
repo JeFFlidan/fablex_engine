@@ -16,9 +16,10 @@ GPUTexture::~GPUTexture()
 {
     rhi::destroy_texture_view(m_textureView);
     rhi::destroy_texture(m_texture);
+    rhi::destroy_buffer(m_textureAsset->upload_buffer());
 }
 
-void GPUTexture::create(uint32 mipLevels)
+void GPUTexture::create()
 {
     rhi::TextureInfo textureInfo;
     textureInfo.width = m_textureAsset->width();
@@ -28,7 +29,7 @@ void GPUTexture::create(uint32 mipLevels)
     textureInfo.format = m_textureAsset->format();
     textureInfo.layersCount = 1;
     textureInfo.memoryUsage = rhi::MemoryUsage::GPU;
-    textureInfo.mipLevels = mipLevels;
+    textureInfo.mipLevels = m_textureAsset->mipmaps().size();
     textureInfo.textureUsage = rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_DST;
     textureInfo.samplesCount = rhi::SampleCount::BIT_1;
     rhi::create_texture(&m_texture, &textureInfo);
@@ -39,17 +40,20 @@ void GPUTexture::create(uint32 mipLevels)
     textureViewInfo.baseLayer = 0;
     textureViewInfo.layerCount = 1;
     textureViewInfo.baseMipLevel = 0;
-    textureViewInfo.mipLevels = mipLevels;
+    textureViewInfo.mipLevels = m_textureAsset->mipmaps().size();
     rhi::create_texture_view(&m_textureView, &textureViewInfo, m_texture);
 
     rhi::set_name(m_texture, m_textureAsset->get_name());
     rhi::set_name(m_textureView, m_textureAsset->get_name() + "View");
 }
 
-void GPUTexture::build(const CommandRecorder& cmdRecorder, const rhi::TextureInitInfo& initInfo)
+void GPUTexture::build(const CommandRecorder& cmdRecorder)
 {
     cmdRecorder.record([&](rhi::CommandBuffer* cmd)
     {
+        rhi::TextureInitInfo initInfo;
+        initInfo.buffer = m_textureAsset->upload_buffer();
+        initInfo.mipMaps = m_textureAsset->mipmaps();
         rhi::init_texture(cmd, m_texture, &initInfo);
     });
 }

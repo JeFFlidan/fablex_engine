@@ -30,11 +30,9 @@ protected:
     void set_texture(ShaderMaterial& outShaderMaterial, uint32 textureSlot, Texture* textureAsset) const;
 };
 
-using MaterialSettingsHandle = std::unique_ptr<MaterialSettings>;
-
 struct MaterialCreateInfo : public CreateInfo
 {
-    using InitHandler = std::function<MaterialSettingsHandle()>;
+    using InitHandler = std::function<MaterialSettings*()>;
 
     MaterialType type;
     InitHandler initHandler;

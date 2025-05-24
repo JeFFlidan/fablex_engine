@@ -22,6 +22,7 @@ struct ImportContext
 {
     std::string originalFilePath;
     std::string projectDirectory;
+    AssetFlag flags = AssetFlag::UNDEFINED;
 };
 
 FE_DEFINE_LOG_CATEGORY(LogAssetManager);

@@ -7,6 +7,8 @@
 namespace fe
 {
 
+class Window;
+
 struct KeyboardState
 {
     Key keys = Key::UNKNOWN;
@@ -68,9 +70,13 @@ public:
 #endif // WIN32
     }
 
+    static void set_main_window(Window* window) { FE_CHECK(window); s_mainWindow = window; }
+    static Window* get_main_window() { return s_mainWindow;}
+
 private:
     inline static MouseState s_mouseState;
     inline static ViewportState s_viewportState;
+    inline static Window* s_mainWindow = nullptr;
 };
 
 }

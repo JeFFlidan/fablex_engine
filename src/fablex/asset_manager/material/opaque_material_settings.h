@@ -82,7 +82,7 @@ struct OpaqueMaterialCreateInfo : MaterialCreateInfo
         type = MaterialType::OPAQUE;
         initHandler = [&]()
         {
-            auto settings = std::make_unique<OpaqueMaterialSettings>();
+            auto settings = create_object<OpaqueMaterialSettings>();
             settings->init(*this);
             return std::move(settings);
         };

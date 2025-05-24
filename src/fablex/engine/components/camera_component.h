@@ -31,9 +31,6 @@ public:
     Float4x4 inverseProjection;
     Float4x4 inverseViewProjection;
 
-    // TEMP???
-    Window* window = nullptr;
-
     virtual void serialize(Archive& archive) const override;
     virtual void deserialize(Archive& archive) override;
 };

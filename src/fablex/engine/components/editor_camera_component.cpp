@@ -9,7 +9,6 @@ FE_DEFINE_OBJECT(EditorCameraComponent, CameraComponent);
 
 void EditorCameraComponent::update(float deltaTime)
 {
-    FE_CHECK(window);
     FE_CHECK(m_entity);
 
     read_input(deltaTime);

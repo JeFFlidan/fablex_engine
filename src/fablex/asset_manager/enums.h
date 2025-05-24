@@ -19,6 +19,7 @@ enum class AssetFlag : uint64
 {
     UNDEFINED = 0,
     USE_AS_DEFAULT = 1 << 0,
+    TRANSIENT = 1 << 2,
 };
 
 }

@@ -43,7 +43,6 @@ Archive::Archive(const std::string& path, Mode mode)
         m_data.resize(m_header.decompressedSize);
         uint64 offset = sizeof(Header) + m_header.thumbnailCompressedSize;
         Utils::decompress(fileData, m_data, offset);
-        FE_LOG(LogDefault, INFO, "Data size: {}", m_data.size());
 
         break;
     }

@@ -3,6 +3,8 @@
 #include "core/types.h"
 #include "core/uuid.h"
 #include "core/math.h"
+#include "core/logger.h"
+#include "core/name.h"
 #include <string>
 
 namespace fe
@@ -236,6 +238,12 @@ public:
         return *this;
     }
 
+    Archive& operator<<(Name name)
+    {
+        (*this) << name.to_string();
+        return *this;
+    }
+
     template<typename T>
     Archive& operator<<(const std::vector<T>& data)
     {
@@ -447,7 +455,7 @@ public:
         uint64 len;
         (*this) >> len;
         outData.resize(len);
-        
+
         for (uint32 i = 0; i != len; ++i)
             (*this) >> outData[i];
 

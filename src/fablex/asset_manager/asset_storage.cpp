@@ -1,6 +1,7 @@
 #include "asset_storage.h"
 #include "common.h"
 #include "core/file_system/archive.h"
+#include "core/task_composer.h"
 
 namespace fe::asset
 {
@@ -49,15 +50,22 @@ void AssetStorage::save_asset(UUID uuid) const
 
 void AssetStorage::save_assets() const
 {
+    TaskGroup taskGroup;
+
     for (auto [uuid, asset] : m_assetByUUID)
     {
-        if (!asset->is_dirty())
+        if (!asset->is_dirty() || has_flag(asset->get_flags(), AssetFlag::TRANSIENT))
             continue;
 
-        Archive archive;
-        asset->serialize(archive);
-        archive.save(asset->get_path());
+        TaskComposer::execute(taskGroup, [asset](TaskExecutionInfo)
+        {
+            Archive archive;
+            asset->serialize(archive);
+            archive.save(asset->get_path());
+        });
     }
+
+    TaskComposer::wait(taskGroup);
 }
 
 }

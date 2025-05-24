@@ -18,6 +18,7 @@ void Model::serialize(Archive& archive) const
 
     archive << m_indices;
     archive << m_vertexPositions;
+    archive << m_vertexNormals;
     archive << m_vertexTangents;
     archive << m_vertexUVSet0;
     archive << m_vertexUVSet1;
@@ -32,6 +33,7 @@ void Model::serialize(Archive& archive) const
         archive << mesh.indexCount;
         archive << mesh.indexOffset;
         archive << mesh.materialUUID;
+        archive << mesh.materialIndex;
     }
 
     archive << m_materialSlots.size();
@@ -51,6 +53,7 @@ void Model::deserialize(Archive& archive)
 
     archive >> m_indices;
     archive >> m_vertexPositions;
+    archive >> m_vertexNormals;
     archive >> m_vertexTangents;
     archive >> m_vertexUVSet0;
     archive >> m_vertexUVSet1;
@@ -68,6 +71,7 @@ void Model::deserialize(Archive& archive)
         archive >> mesh.indexCount;
         archive >> mesh.indexOffset;
         archive >> mesh.materialUUID;
+        archive >> mesh.materialIndex;
     }
 
     archive >> size;

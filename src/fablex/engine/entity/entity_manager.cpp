@@ -35,8 +35,13 @@ Entity* EntityManager::create_entity()
 
 Entity* EntityManager::create_entity(const TypeInfo* typeInfo)
 {
-    FE_CHECK_MSG(0, "Entity derived types are not currently supported!");
-    return nullptr;
+    if (typeInfo->is_exactly(Entity::get_static_type_info()))
+        return create_entity();
+
+    Entity* entity = static_cast<Entity*>(TypeManager::create_object(typeInfo));
+    m_entitiesToCreate.push_back(entity);
+
+    return entity;
 }
 
 void EntityManager::remove_entity(Entity* entity)

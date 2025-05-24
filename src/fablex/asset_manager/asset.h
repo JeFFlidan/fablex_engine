@@ -29,6 +29,7 @@ public:
 
     bool is_dirty() const { return m_isDirty; }
     UUID get_uuid() const { return m_uuid; }
+    AssetFlag get_flags() const { return m_assetFlag; }
     const std::string& get_name() const { return m_name; }
     const std::string& get_path() const { return m_assetPath; }
     const std::string& get_original_file_path() const { return m_originalFilePath; }

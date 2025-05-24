@@ -47,7 +47,9 @@ public:
 
     // Creates directory using random name if projectPath is empty. The passed project path must be a relative path to the engine root.
     static void create_project_directory(std::string projectPath = "");
+    static void set_project_path(std::string projectPath);
     static std::string get_project_path() { return m_projectPath; }
+    static bool is_project_existed(std::string projectPath);
 
     static FileStream* open(const std::string& strPath, const char* mode);
     static bool close(FileStream* stream);

@@ -1,6 +1,7 @@
 #include "texture.h"
 #include "core/file_system/archive.h"
 #include "rhi/json_serialization.h"
+#include "rhi/rhi.h"
 
 namespace fe::asset
 {
@@ -16,8 +17,13 @@ FE_END_PROPERTY_REGISTER(Texture);
 void Texture::serialize(Archive& archive) const
 {
     Asset::serialize(archive);
+    FE_CHECK(m_uploadBuffer);
+    archive << m_uploadBuffer->size;
+    uint8* typedData = static_cast<uint8*>(m_uploadBuffer->mappedData);
 
-    archive << m_data;
+    for (uint32 i = 0; i != m_uploadBuffer->size; ++i)
+        archive << typedData[i];
+
     archive << m_width;
     archive << m_height;
     archive << m_depth;
@@ -31,6 +37,14 @@ void Texture::serialize(Archive& archive) const
     archive << to_string(m_mapping.g);
     archive << to_string(m_mapping.b);
     archive << to_string(m_mapping.a);
+
+    archive << m_mipmaps.size();
+    for (auto& mipmap : m_mipmaps)
+    {
+        archive << mipmap.layer;
+        archive << mipmap.offset;
+    }
+
     archive << m_brightness;
     archive << m_saturation;
     archive << m_is16Bit;
@@ -40,7 +54,18 @@ void Texture::deserialize(Archive& archive)
 {
     Asset::deserialize(archive);
 
-    archive >> m_data;
+    rhi::BufferInfo bufferInfo;
+    archive >> bufferInfo.size;
+    bufferInfo.bufferUsage = rhi::ResourceUsage::TRANSFER_SRC;
+    bufferInfo.memoryUsage = rhi::MemoryUsage::CPU;
+    rhi::create_buffer(&m_uploadBuffer, &bufferInfo);
+    rhi::set_name(m_uploadBuffer, get_name() + "UploadBuffer");
+
+    uint8* typedData = static_cast<uint8*>(m_uploadBuffer->mappedData);
+
+    for (uint32 i = 0; i != m_uploadBuffer->size; ++i)
+        archive >> typedData[i];
+
     archive >> m_width;
     archive >> m_height;
     archive >> m_depth;
@@ -76,6 +101,16 @@ void Texture::deserialize(Archive& archive)
 
     archive >> result;
     to_enum(result, m_mapping.a);
+
+    uint64 mipmapCount = 0;
+    archive >> mipmapCount;
+    m_mipmaps.reserve(mipmapCount);
+    for (uint32 i = 0; i != mipmapCount; ++i)
+    {
+        rhi::MipMap& mipmap = m_mipmaps.emplace_back();
+        archive >> mipmap.layer;
+        archive >> mipmap.offset;
+    }
 
     archive >> m_brightness;
     archive >> m_saturation;

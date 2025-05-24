@@ -51,4 +51,18 @@ bool MaterialComponent::set_material(UUID materialUUID, uint32 index)
     return true;
 }
 
+void MaterialComponent::serialize(Archive& archive) const
+{
+    Component::serialize(archive);
+
+    archive << m_materialUUIDs;
+}
+
+void MaterialComponent::deserialize(Archive& archive)
+{
+    Component::deserialize(archive);
+
+    archive >> m_materialUUIDs;
+}
+
 }

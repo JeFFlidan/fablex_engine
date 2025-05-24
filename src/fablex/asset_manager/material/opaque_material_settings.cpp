@@ -37,6 +37,7 @@ void OpaqueMaterialSettings::serialize(Archive& archive) const
     archive << m_roughnessTextureUUID;
     archive << m_metallicTextureUUID;
     archive << m_ambientOcclusionTextureUUID;
+    archive << m_armTextureUUID;
     archive << m_baseColor;
     archive << m_roughness;
     archive << m_metallic;
@@ -51,6 +52,7 @@ void OpaqueMaterialSettings::deserialize(Archive& archive)
     archive >> m_roughnessTextureUUID;
     archive >> m_metallicTextureUUID;
     archive >> m_ambientOcclusionTextureUUID;
+    archive >> m_armTextureUUID;
     archive >> m_baseColor;
     archive >> m_roughness;
     archive >> m_metallic;

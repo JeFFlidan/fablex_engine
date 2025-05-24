@@ -14,8 +14,8 @@ public:
     GPUTexture(asset::Texture* textureAsset);
     ~GPUTexture();
     
-    void create(uint32 mipLevels);
-    void build(const CommandRecorder& cmdRecorder, const rhi::TextureInitInfo& initInfo);
+    void create();
+    void build(const CommandRecorder& cmdRecorder);
 
     asset::Texture* texture_asset() const { return m_textureAsset; }
     rhi::Texture* texture() const { return m_texture; }

@@ -1,5 +1,6 @@
 #include "light_components.h"
 #include "engine/entity/entity.h"
+#include "core/file_system/archive.h"
 
 namespace fe::engine
 {
@@ -25,6 +26,22 @@ void LightComponent::fill_shader_data(ShaderEntity& outShaderEntity) const
 
     outShaderEntity.set_color(Float4(color * intensity));
     outShaderEntity.position = m_entity->get_position();
+}
+
+void LightComponent::serialize(Archive& archive) const
+{
+    ShaderEntityComponent::serialize(archive);
+
+    archive << color;
+    archive << intensity;
+}
+
+void LightComponent::deserialize(Archive& archive)
+{
+    ShaderEntityComponent::deserialize(archive);
+
+    archive >> color;
+    archive >> intensity;
 }
 
 void DirectionalLightComponent::fill_shader_data(ShaderEntity& outShaderEntity) const

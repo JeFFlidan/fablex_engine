@@ -1,7 +1,9 @@
 #include "application.h"
 #include "core/core.h"
+#include "core/input.h"
 #include "core/file_system/file_system.h"
 #include "core/file_system/archive_test.h"
+#include "asset_manager/asset_manager.h"
 #include "asset_manager/asset_manager_test.h"
 
 FE_DEFINE_LOG_CATEGORY(LogApplication)
@@ -30,6 +32,8 @@ Application::Application()
     windowCreateInfo.height = 1080;
     m_mainWindow = std::make_unique<Window>();
     m_mainWindow->init(windowCreateInfo);
+
+    Input::set_main_window(m_mainWindow.get());
 
     load_engine_config();
 
@@ -75,6 +79,9 @@ void Application::execute()
         EventManager::dispatch_events();
         m_renderer->draw();
     }
+
+    asset::AssetManager::save_assets();
+    m_engine->save_world();
 
     m_mainWindow->close();
 }

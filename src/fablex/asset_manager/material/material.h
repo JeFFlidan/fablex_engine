@@ -48,11 +48,11 @@ public:
     template<typename T>
     T* material_settings() const
     {
-        return static_cast<T*>(m_materialSettings.get());
+        return static_cast<T*>(m_materialSettings);
     }
     
 protected:
-    MaterialSettingsHandle m_materialSettings = nullptr;
+    MaterialSettings* m_materialSettings = nullptr;
 };
 
 FE_DEFINE_ASSET_POOL_SIZE(Material, 256);

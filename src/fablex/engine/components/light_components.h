@@ -18,6 +18,9 @@ public:
     virtual void fill_shader_data(ShaderEntity& outShaderEntity) const override;
     
     virtual bool is_light_source() const override { return true; }
+
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
 };
 
 class DirectionalLightComponent : public LightComponent

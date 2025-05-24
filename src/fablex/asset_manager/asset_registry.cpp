@@ -14,6 +14,7 @@ void AssetRegistry::init()
         s_assetDataPool.free(assetData);
     
     s_assetDataByUUID.clear();
+    s_assetsDataByType.clear();
     s_assetCounters.resize(get_asset_type_count(), 0);
 
     FileSystem::for_each_file(
@@ -23,7 +24,7 @@ void AssetRegistry::init()
         {
             std::string filePath = dirEntry.path().string();
             Archive archive(filePath, Archive::Mode::READ_HEADER_ONLY);
-            FE_LOG(LogDefault, INFO, "UUID: {}", archive.get_uuid());
+            
             if (is_uuid_ambiguous(archive.get_uuid(), filePath))
                 return;
 
@@ -32,7 +33,6 @@ void AssetRegistry::init()
             assetData->path = filePath;
             assetData->uuid = archive.get_uuid();
             assetData->type = archive.get_object_type<Type>();
-
             s_assetDataByUUID[assetData->uuid] = assetData;
             s_assetDataByPath[assetData->path] = assetData;
             s_assetsDataByType[assetData->type].push_back(assetData);
@@ -82,17 +82,6 @@ void AssetRegistry::unregister_asset(UUID uuid)
     s_assetDataByPath.erase(s_assetDataByPath.find(it->second->path));
     s_assetDataPool.free(it->second);
     s_assetDataByUUID.erase(it);
-}
-
-void AssetRegistry::get_assets_by_type(Type inAssetType, std::vector<const AssetData*>& outAssets)
-{
-    std::scoped_lock<std::mutex> locker(s_mutex);
-
-    outAssets.reserve(s_assetCounters.at(std::to_underlying(inAssetType)));
-
-    for (auto [uuid, assetData] : s_assetDataByUUID)
-        if (assetData->type == inAssetType)
-            outAssets.push_back(assetData);
 }
 
 const AssetData* AssetRegistry::get_asset_data_by_uuid(UUID uuid)

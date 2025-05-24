@@ -25,6 +25,16 @@ void Engine::update()
     m_world->update_camera_entities();
 }
 
+void Engine::save_world()
+{
+    std::string worldName = "world.felevel";
+    std::string path = FileSystem::get_absolute_path(FileSystem::get_project_path(), worldName);
+
+    Archive archive;
+    m_world->serialize(archive);
+    archive.save(path);
+}
+
 void Engine::configure_test_scene()
 {
     std::string projectDirectory = "projects/3d_model_rendering";
@@ -175,7 +185,6 @@ void Engine::configure_test_scene()
     EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
     cameraComponent->mouseSensitivity = 0.12f;
     cameraComponent->movementSpeed = 50;
-    cameraComponent->window = m_window;
 
     Entity* lightEntity = m_world->create_entity();
     lightEntity->set_name("Sun");
@@ -215,49 +224,22 @@ void Engine::configure_test_scene()
 
 void Engine::configure_sponza()
 {
-    std::string projectDirectory = "projects/3d_model_rendering";
+    std::string projectDirectory = "projects/sponza";
+    
+    if (load_project(projectDirectory))
+        return;
+
     FileSystem::create_project_directory(projectDirectory);
 
     create_default_material();
-
-    std::vector<std::string> texturePaths = {
-        "content/streaky-metal1_albedo.png",
-        "content/streaky-metal1_ao.png",
-        "content/streaky-metal1_metallic.png",
-        "content/streaky-metal1_normal.png",
-        "content/streaky-metal1_roughness.png",
-        "content/rocky-rugged-terrain_1_albedo.png",
-        "content/rocky-rugged-terrain_1_roughness.png",
-        "content/rocky-rugged-terrain_1_metallic.png",
-        "content/rocky-rugged-terrain_1_normal.png"
-    };
-
-    std::mutex mutex;
-    std::unordered_map<std::string, asset::Texture*> textureByPath;
-
-    TaskGroup textureTaskGroup; 
-
-    for (auto& texturePath : texturePaths)
-    {
-        TaskComposer::execute(textureTaskGroup, [&mutex, &textureByPath, texturePath, projectDirectory](TaskExecutionInfo execInfo)
-        {
-            asset::TextureImportContext textureImportContext;
-            textureImportContext.projectDirectory = projectDirectory;
-            textureImportContext.originalFilePath = FileSystem::get_absolute_path(texturePath);
-            asset::TextureImportResult importResult;
-            asset::AssetManager::import_texture(textureImportContext, importResult);
-            std::scoped_lock<std::mutex> locker(mutex);
-            textureByPath[texturePath] = importResult.texture;
-        });
-    }
-
-    TaskComposer::wait(textureTaskGroup);
+    create_camera();
+    create_sun();
 
     asset::ModelImportContext importContext;
     importContext.originalFilePath = FileSystem::get_absolute_path("content/sponza.glb");
     importContext.projectDirectory = projectDirectory;
     importContext.generateMaterials = true;
-    // importContext.mergeMeshes = true;
+    
     asset::ModelImportResult importResult;
 
     asset::AssetManager::import_model(importContext, importResult);
@@ -282,25 +264,6 @@ void Engine::configure_sponza()
     matComponent->add_material(opaqueMaterial1);
 
     matComponent->init(modelComponent->get_model());
-
-    Entity* cameraEntity = m_world->create_entity();
-    cameraEntity->set_name("Camera");
-    EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
-    cameraComponent->mouseSensitivity = 0.12f;
-    cameraComponent->movementSpeed = 50;
-    cameraComponent->window = m_window;
-    cameraEntity->set_position(Float3(0, 100, 0));
-
-    Entity* lightEntity = m_world->create_entity();
-    lightEntity->set_name("Sun");
-    lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
-    lightEntity->set_rotation(Float3(1, 0, 0), -30);
-
-    engine::Entity* entity = lightEntity->create_child()->create_child();
-    entity->create_child();
-    entity->create_child();
-
-    cameraEntity->create_child()->create_child();
 }
 
 void Engine::create_default_material()
@@ -313,6 +276,52 @@ void Engine::create_default_material()
     createInfo.projectDirectory = FileSystem::get_project_path();
     createInfo.flags |= asset::AssetFlag::USE_AS_DEFAULT;
     asset::AssetManager::create_material(createInfo);
+}
+
+void Engine::create_camera()
+{
+    Entity* cameraEntity = m_world->create_entity();
+    cameraEntity->set_name("Camera");
+    EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
+    cameraComponent->mouseSensitivity = 0.12f;
+    cameraComponent->movementSpeed = 50;
+    cameraEntity->set_position(Float3(0, 30, 0));
+}
+
+void Engine::create_sun()
+{
+    Entity* lightEntity = m_world->create_entity();
+    lightEntity->set_name("Sun");
+    lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
+    lightEntity->set_rotation(Float3(1, 0, 0), -30);
+}
+
+// For now all resources will be loaded to the memory when project is opened
+// Must change this logic in the future to make it smarter
+bool Engine::load_project(const std::string& projectPath)
+{
+    if (!FileSystem::is_project_existed(projectPath))
+        return false;
+
+    FileSystem::set_project_path(projectPath);
+    asset::AssetRegistry::init();
+
+    std::string worldName = "world.felevel";
+    std::string worldPath = FileSystem::get_absolute_path(FileSystem::get_project_path(), worldName);
+
+    TaskGroup taskGroup;
+
+    TaskComposer::execute(taskGroup, [&](TaskExecutionInfo)
+    {
+        Archive archive(worldPath);
+        m_world->deserialize(archive);
+    });
+
+    asset::AssetManager::load_assets(taskGroup);
+
+    TaskComposer::wait(taskGroup);
+
+    return true;
 }
 
 }

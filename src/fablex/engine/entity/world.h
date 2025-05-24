@@ -31,6 +31,9 @@ public:
 
     const std::vector<Entity*>& get_entities() const { return m_entityManager.get_entities(); }
 
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
+
 private:
     EntityManager m_entityManager;
 };

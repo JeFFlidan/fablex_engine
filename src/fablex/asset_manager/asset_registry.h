@@ -23,7 +23,6 @@ public:
     static void init();
     static void register_asset(Asset* asset);
     static void unregister_asset(UUID uuid);
-    static void get_assets_by_type(Type inAssetType, std::vector<const AssetData*>& outAssets);
     static const AssetData* get_asset_data_by_uuid(UUID uuid);
 
     // The path can be either relative or absolute 
