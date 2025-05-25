@@ -57,7 +57,10 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
         switch (entity.get_type())
         {
         case SHADER_ENTITY_TYPE_POINT_LIGHT:
+        {
+            calculate_point_light(entity, surface, lightingResult);
             break;
+        }
         case SHADER_ENTITY_TYPE_SPOT_LIGHT:
             break;
         case SHADER_ENTITY_TYPE_DIRECTIONAL_LIGHT:

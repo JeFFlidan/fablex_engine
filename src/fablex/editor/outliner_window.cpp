@@ -32,8 +32,11 @@ void OutlinerWindow::draw(engine::World* world)
         ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight
     ))
     {
-        if (ImGui::MenuItem("Create Model Entity"))
+        if (ImGui::MenuItem("Create Model"))
             EventManager::enqueue_event(engine::ModelEntityCreationRequest());
+
+        if (ImGui::MenuItem("Point Light"))
+            EventManager::enqueue_event(engine::PointLightEntityCreationRequest());
 
         ImGui::EndPopup();
     }

@@ -32,4 +32,18 @@ public:
     virtual void fill_shader_data(ShaderEntity& outShaderEntity) const override;
 };
 
+class PointLightComponent : public LightComponent
+{
+    FE_DECLARE_OBJECT(PointLightComponent);
+    FE_DECLARE_PROPERTY_REGISTER(PointLightComponent);
+
+public:
+    float attenuationRadius = 128.0f;
+
+    virtual void fill_shader_data(ShaderEntity& outShaderEntity) const override;
+
+    virtual void serialize(Archive& archive) const override;
+    virtual void deserialize(Archive& archive) override;
+};
+
 }

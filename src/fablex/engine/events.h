@@ -12,6 +12,12 @@ public:
     FE_DECLARE_EVENT(ModelCreationRequest);
 };
 
+class PointLightEntityCreationRequest : public IEvent
+{
+public:
+    FE_DECLARE_EVENT(PointLightEntityCreationRequest);
+};
+
 class EntityRemovalRequest : public IEvent
 {
 public:

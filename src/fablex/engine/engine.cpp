@@ -314,6 +314,12 @@ void Engine::subscribe_to_events()
         m_world->create_entity(ModelEntity::get_static_type_info());
     });
 
+    EventManager::subscribe<PointLightEntityCreationRequest>([this](const auto&)
+    {
+        Entity* entity = m_world->create_entity();
+        entity->create_component<PointLightComponent>();
+    });
+
     EventManager::subscribe<EntityRemovalRequest>([this](const auto& event)
     {
         m_world->remove_entity(event.entity());

@@ -20,6 +20,13 @@ FE_BEGIN_PROPERTY_REGISTER(DirectionalLightComponent)
 }
 FE_END_PROPERTY_REGISTER(DirectionalLightComponent)
 
+FE_DEFINE_OBJECT(PointLightComponent, LightComponent);
+FE_BEGIN_PROPERTY_REGISTER(PointLightComponent)
+{
+    FE_REGISTER_PROPERTY(PointLightComponent, attenuationRadius, EditAnywhere(), ClampMin(1.0f), ClampMax(10000.0f));
+}
+FE_END_PROPERTY_REGISTER(PointLightComponent)
+
 void LightComponent::fill_shader_data(ShaderEntity& outShaderEntity) const
 {
     outShaderEntity.init();
@@ -53,6 +60,26 @@ void DirectionalLightComponent::fill_shader_data(ShaderEntity& outShaderEntity) 
 
     outShaderEntity.set_type(SHADER_ENTITY_TYPE_DIRECTIONAL_LIGHT);
     outShaderEntity.set_direction(direction);
+}
+
+void PointLightComponent::fill_shader_data(ShaderEntity& outShaderEntity) const
+{
+    LightComponent::fill_shader_data(outShaderEntity);
+    
+    outShaderEntity.set_attenuation_radius(attenuationRadius);
+    outShaderEntity.set_type(SHADER_ENTITY_TYPE_POINT_LIGHT);
+}
+
+void PointLightComponent::serialize(Archive& archive) const
+{
+    LightComponent::serialize(archive);
+    archive << attenuationRadius;
+}
+
+void PointLightComponent::deserialize(Archive& archive)
+{
+    LightComponent::deserialize(archive);
+    archive >> attenuationRadius;
 }
 
 }
