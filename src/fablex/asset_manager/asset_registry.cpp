@@ -57,7 +57,9 @@ void AssetRegistry::register_asset(Asset* asset)
 
     s_assetDataByUUID[assetData->uuid] = assetData;
     s_assetDataByPath[assetData->path] = assetData;
-    s_assetsDataByType[assetData->type].push_back(assetData);
+
+    if (!has_flag(asset->get_flags(), AssetFlag::TRANSIENT))
+        s_assetsDataByType[assetData->type].push_back(assetData);
 
     increase_type_counter(asset->get_type());
 }
@@ -115,6 +117,21 @@ const AssetData* AssetRegistry::get_asset_data_by_path(const std::string& assetP
     }
 
     return it->second;
+}
+
+void AssetRegistry::rename_asset(UUID uuid, const std::string& newPath)
+{
+    std::scoped_lock<std::mutex> locker(s_mutex);
+
+    auto it = s_assetDataByUUID.find(uuid);
+    if (it == s_assetDataByUUID.end())
+    {
+        FE_LOG(LogAssetManager, ERROR, "AssetRegistry::rename_asset(): Failed to rename asset with UUID {}.", uuid);
+        return;
+    }
+
+    it->second->name = FileSystem::get_file_name(newPath);
+    it->second->path = newPath;
 }
 
 bool AssetRegistry::is_uuid_ambiguous(UUID uuid, const std::string& assetPath)

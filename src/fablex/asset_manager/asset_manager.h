@@ -64,6 +64,8 @@ public:
     static void save_assets();
     static void save_asset(UUID uuid);
 
+    static void rename_asset(UUID uuid, const std::string& newName);
+
     static bool is_model_format_supported(const std::string& extension);
     static bool is_texture_format_supported(const std::string& extension);
 

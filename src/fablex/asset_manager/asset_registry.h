@@ -30,6 +30,8 @@ public:
 
     static const std::vector<AssetData*>& get_assets_data_by_type(Type assetType);
 
+    static void rename_asset(UUID uuid, const std::string& newPath);
+
 private:
     inline static std::mutex s_mutex;
     inline static PoolAllocator<AssetData, 1024> s_assetDataPool;

@@ -490,6 +490,25 @@ FileStream* FileSystem::create_read_stream(const std::string& path, uint64& outS
     return stream;
 }
 
+std::string FileSystem::rename_file(const std::string& oldAbsolutePath, const std::string& newName)
+{
+    if (is_absolute(newName))
+    {
+        if (exists(oldAbsolutePath))
+            std::filesystem::rename(oldAbsolutePath, newName);
+
+        return newName;
+    }
+
+    std::filesystem::path oldPath(oldAbsolutePath);
+    std::filesystem::path newPath = oldPath.parent_path() / (newName + oldPath.extension().string());
+
+    if (exists(oldAbsolutePath))
+        std::filesystem::rename(oldPath, newPath);
+    
+    return newPath.string();
+}
+
 uint64 FileSystem::get_last_write_time(const std::string& absolutePath)
 {
     auto time = std::filesystem::last_write_time(absolutePath.c_str());

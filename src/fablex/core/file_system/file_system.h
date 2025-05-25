@@ -97,6 +97,9 @@ public:
     static std::string save_file_dialog(const std::vector<std::string>& extensions = {});
     static std::string open_directory_dialog();
 
+    // If newName is not an absolute path, only filename will be changed
+    static std::string rename_file(const std::string& oldAbsolutePath, const std::string& newName);
+
 private:
     inline static std::string s_rootPath = "";
     inline static std::string s_projectPath = "";

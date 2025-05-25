@@ -7,5 +7,6 @@ class Model;
 class Texture;
 class Material;
 class AssetManager;
+struct AssetData;
 
 }

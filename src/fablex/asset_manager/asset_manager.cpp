@@ -2,6 +2,7 @@
 #include "model/model_bridge.h"
 #include "texture/texture_bridge.h"
 #include "core/task_composer.h"
+#include "core/file_system/file_system.h"
 #include <unordered_set>
 
 namespace fe::asset
@@ -202,6 +203,22 @@ void AssetManager::save_assets()
 void AssetManager::save_asset(UUID uuid)
 {
     s_assetStorage.save_asset(uuid);
+}
+
+void AssetManager::rename_asset(UUID uuid, const std::string& newName)
+{
+    AssetRegistry::rename_asset(uuid, newName);
+    Asset* asset = s_assetStorage.get_asset(uuid);
+    FE_CHECK(asset);
+
+    std::string oldName = asset->m_name;
+
+    asset->m_assetPath = FileSystem::rename_file(asset->m_assetPath, newName);
+    asset->m_name = FileSystem::get_file_name(asset->m_assetPath);
+
+    AssetRegistry::rename_asset(uuid, asset->m_assetPath);
+
+    FE_LOG(LogAssetManager, SUCCESS, "Renamed asset from {} to {}", oldName, asset->m_name);
 }
 
 bool AssetManager::is_model_format_supported(const std::string& extension)

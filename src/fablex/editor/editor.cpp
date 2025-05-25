@@ -21,6 +21,7 @@ Editor::Editor()
     m_viewportWindow = std::make_unique<ViewportWindow>();
     m_outlinerWindow = std::make_unique<OutlinerWindow>();
     m_propertiesWindow = std::make_unique<PropertiesWindow>();
+    m_contentBrowser = std::make_unique<ContentBrowser>();
     m_toolbar = std::make_unique<Toolbar>();
 }
 
@@ -43,6 +44,7 @@ void Editor::draw()
     m_outlinerWindow->draw(m_world);
     m_viewportWindow->draw(m_outlinerWindow->selected_entities());
     m_propertiesWindow->draw(m_outlinerWindow->last_selected_entity());
+    m_contentBrowser->draw();
     m_toolbar->draw(FileSystem::get_project_path());
 
     ImGui::Render();

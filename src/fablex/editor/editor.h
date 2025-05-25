@@ -5,6 +5,7 @@
 #include "outliner_window.h"
 #include "properties_window.h"
 #include "toolbar.h"
+#include "content_browser.h"
 
 #include "core/fwd.h"
 #include "engine/fwd.h"
@@ -35,6 +36,7 @@ private:
     std::unique_ptr<ViewportWindow> m_viewportWindow = nullptr;
     std::unique_ptr<OutlinerWindow> m_outlinerWindow = nullptr;
     std::unique_ptr<PropertiesWindow> m_propertiesWindow = nullptr;
+    std::unique_ptr<ContentBrowser> m_contentBrowser = nullptr;
     std::unique_ptr<Toolbar> m_toolbar = nullptr;
 };
 
