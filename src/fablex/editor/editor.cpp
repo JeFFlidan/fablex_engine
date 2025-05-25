@@ -1,4 +1,6 @@
 #include "editor.h"
+#include "events.h"
+
 #include "core/macro.h"
 #include "core/window.h"
 #include "engine/entity/world.h"
@@ -23,6 +25,8 @@ Editor::Editor()
     m_propertiesWindow = std::make_unique<PropertiesWindow>();
     m_contentBrowser = std::make_unique<ContentBrowser>();
     m_toolbar = std::make_unique<Toolbar>();
+
+    subscribe_to_events();
 }
 
 Editor::~Editor()
@@ -46,6 +50,14 @@ void Editor::draw()
     m_propertiesWindow->draw(m_outlinerWindow->last_selected_entity());
     m_contentBrowser->draw();
     m_toolbar->draw(FileSystem::get_project_path());
+
+    for (auto it = m_extraWindows.begin(); it != m_extraWindows.end(); )
+    {
+        if (!(*it)->draw())
+            it = m_extraWindows.erase(it);
+        else
+            ++it;
+    }
 
     ImGui::Render();
 }
@@ -71,6 +83,14 @@ void Editor::set_camera(engine::Entity* camera)
 {
     FE_CHECK(camera);
     m_camera = camera;
+}
+
+void Editor::subscribe_to_events()
+{
+    EventManager::subscribe<WindowCreationRequest>([&](const auto& event)
+    {
+        m_extraWindows.push_back(event.create_window());
+    });
 }
 
 }

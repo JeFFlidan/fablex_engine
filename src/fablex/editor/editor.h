@@ -6,6 +6,7 @@
 #include "properties_window.h"
 #include "toolbar.h"
 #include "content_browser.h"
+#include "window_ui.h"
 
 #include "core/fwd.h"
 #include "engine/fwd.h"
@@ -38,6 +39,10 @@ private:
     std::unique_ptr<PropertiesWindow> m_propertiesWindow = nullptr;
     std::unique_ptr<ContentBrowser> m_contentBrowser = nullptr;
     std::unique_ptr<Toolbar> m_toolbar = nullptr;
+
+    std::vector<std::unique_ptr<WindowUI>> m_extraWindows;
+
+    void subscribe_to_events();
 };
 
 }

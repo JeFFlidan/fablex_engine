@@ -1,7 +1,13 @@
 #include "content_browser.h"
+#include "material_window.h"
+#include "events.h"
+
 #include "asset_manager/asset_manager.h"
+#include "asset_manager/material/opaque_material_settings.h"
+
 #include "core/task_composer.h"
 #include "core/file_system/file_system.h"
+
 #include "renderer/utils.h"
 
 #include "imgui.h"
@@ -85,11 +91,37 @@ void ContentBrowser::draw()
         for (const asset::AssetData* assetData : allAssetData)
         {
             ImGui::PushID(assetData->name.c_str());
-    
+
             ImGui::ImageButton(assetData->name.c_str(), iconDescriptor, ImVec2(thumbnailSize, thumbnailSize));
+
+            if (ImGui::BeginPopupContextItem("##RenamePopup"))
+            {
+                if (ImGui::MenuItem("Rename"))
+                {
+                    m_renamingAsset = assetData;
+                    strcpy_s(m_renameBuffer, assetData->name.c_str());
+                }
+                ImGui::EndPopup();
+            }
+
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
-                
+                switch (assetType)
+                {
+                case asset::Type::MATERIAL:
+                {
+                    asset::Material* material = asset::AssetManager::get_material(assetData->uuid);
+                    FE_CHECK(material);
+
+                    EventManager::enqueue_event(WindowCreationRequest([material]{
+                        return std::make_unique<MaterialWindow>(material);
+                    }));
+
+                    break;
+                }
+                default:
+                    break;
+                }
             }
 
             if (m_renamingAsset == assetData)
@@ -116,23 +148,28 @@ void ContentBrowser::draw()
             else
             {
                 ImGui::TextWrapped("%s", assetData->name.c_str());
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-                    ImGui::OpenPopup("##RenamePopup");
-
-                if (ImGui::BeginPopup("##RenamePopup"))
-                {
-                    if (ImGui::MenuItem("Rename"))
-                    {
-                        m_renamingAsset = assetData;
-                        strcpy_s(m_renameBuffer, assetData->name.c_str());
-                    }
-                    ImGui::EndPopup();
-                }
             }
     
             ImGui::NextColumn();
     
             ImGui::PopID();
+        }
+
+        if (m_currentFolder == ContentFolder::MATERIALS && ImGui::BeginPopupContextWindow(
+            "ContentBrowserContextMenu",
+            ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight
+        ))
+        {
+            if (ImGui::MenuItem("Create Material"))
+            {
+                asset::OpaqueMaterialCreateInfo createInfo;
+                createInfo.name = "NewMaterial";
+                createInfo.roughness = 1.0;
+                asset::AssetManager::create_material(createInfo);
+            }
+
+
+            ImGui::EndPopup();
         }
     }
 

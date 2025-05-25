@@ -33,6 +33,13 @@ public:
     void set_ambient_occlusion_texture(Texture* ambientOcclusionTexture);
     void set_arm_texture(Texture* armTexture);
 
+    void set_base_color(UUID uuid) { m_baseColorTextureUUID = uuid; }
+    void set_normal(UUID uuid) { m_normalTextureUUID = uuid; }
+    void set_roughness(UUID uuid) { m_roughnessTextureUUID = uuid; }
+    void set_metallic(UUID uuid) { m_metallicTextureUUID = uuid; }
+    void set_ambient_occlusion(UUID uuid) { m_ambientOcclusionTextureUUID = uuid; }
+    void set_arm(UUID uuid) { m_armTextureUUID = uuid;}
+
     void set_base_color(const Float4& baseColor) { m_baseColor = baseColor; }
     void set_roughness(float roughness) { m_roughness = roughness; }
     void set_metallic(float metallic) { m_metallic = metallic; }
