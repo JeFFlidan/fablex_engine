@@ -30,17 +30,4 @@ protected:
     std::vector<UUID> m_materialUUIDs;
 };
 
-class MaterialUpdatedEvent : public IEvent
-{
-public:
-    FE_DECLARE_EVENT(MaterialSelectedEvent);
-
-    MaterialUpdatedEvent(MaterialComponent* component) : m_component(component) { }
-
-    MaterialComponent* material_component() const { return m_component; }
-
-private:
-    MaterialComponent* m_component;
-};
-
 }

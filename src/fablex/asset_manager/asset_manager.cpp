@@ -26,6 +26,7 @@ void AssetManager::init()
         {
             ModelImportResult importResult;
             import_model(event.get_import_context(), importResult);
+            FE_LOG(LogAssetManager, SUCCESS, "Imported model {}", event.get_import_context().originalFilePath);
         }
     );
 
@@ -34,6 +35,7 @@ void AssetManager::init()
         {
             TextureImportResult importResult;
             import_texture(event.get_import_context(), importResult);
+            FE_LOG(LogAssetManager, SUCCESS, "Imported texture {}", event.get_import_context().originalFilePath);
         }
     );
 }

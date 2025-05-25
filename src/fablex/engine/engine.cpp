@@ -30,16 +30,6 @@ void Engine::update()
     m_world->update_camera_entities();
 }
 
-void Engine::save_world()
-{
-    std::string worldName = "world.felevel";
-    std::string path = FileSystem::get_absolute_path(FileSystem::get_project_path(), worldName);
-
-    Archive archive;
-    m_world->serialize(archive);
-    archive.save(path);
-}
-
 void Engine::configure_test_scene()
 {
     std::string projectDirectory = "projects/3d_model_rendering";
@@ -271,9 +261,9 @@ void Engine::configure_sponza()
     matComponent->init(modelComponent->get_model());
 }
 
-void Engine::create_project(const std::string& projectPath)
+void Engine::create_project(const std::string& projectName)
 {
-    FileSystem::create_project_directory(projectPath);
+    FileSystem::create_project(projectName);
 
     create_default_material();
     create_default_model();
@@ -309,11 +299,29 @@ bool Engine::load_project(const std::string& projectPath)
     return true;
 }
 
+void Engine::save_project()
+{
+    save_world();
+    asset::AssetManager::save_assets();
+
+    FE_LOG(LogDefault, INFO, "Saved project '{}'.", FileSystem::get_project_name());
+}
+
 void Engine::subscribe_to_events()
 {
     EventManager::subscribe<ModelEntityCreationRequest>([this](const auto&)
     {
         m_world->create_entity(ModelEntity::get_static_type_info());
+    });
+
+    EventManager::subscribe<EntityRemovalRequest>([this](const auto& event)
+    {
+        m_world->remove_entity(event.entity());
+    });
+
+    EventManager::subscribe<ProjectSavingRequest>([this](const auto&)
+    {
+        save_project();
     });
 }
 
@@ -356,6 +364,16 @@ void Engine::create_sun()
     lightEntity->set_name("Sun");
     lightEntity->create_component<DirectionalLightComponent>()->intensity = 3.5;
     lightEntity->set_rotation(Float3(1, 0, 0), -30);
+}
+
+void Engine::save_world()
+{
+    std::string worldName = "world.felevel";
+    std::string path = FileSystem::get_absolute_path(FileSystem::get_project_path(), worldName);
+
+    Archive archive;
+    m_world->serialize(archive);
+    archive.save(path);
 }
 
 }

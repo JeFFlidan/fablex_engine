@@ -34,8 +34,12 @@ void OutlinerWindow::draw(engine::World* world)
     {
         if (ImGui::MenuItem("Create Model Entity"))
             EventManager::enqueue_event(engine::ModelEntityCreationRequest());
+
         ImGui::EndPopup();
     }
+
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete))
+        remove_selected_entities();
 
     handle_shift_selection();
 
@@ -87,8 +91,20 @@ void OutlinerWindow::draw_node(engine::Entity* entity)
         
         if (ImGui::BeginPopupContextItem())
         {
+            if (!m_selectedEntities.contains(entity))
+                m_selectedEntities.clear();
+
             if (ImGui::MenuItem("Rename"))
                 m_renamedEntity = entity;
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Remove"))
+            {
+                EventManager::enqueue_event(engine::EntityRemovalRequest(entity));
+                remove_selected_entities();
+            }
+
             ImGui::EndPopup();
         }
     }
@@ -187,6 +203,14 @@ void OutlinerWindow::deselect_entity(engine::Entity* entity)
         return;
 
     m_selectedEntities.erase(entity);
+}
+
+void OutlinerWindow::remove_selected_entities()
+{
+    for (engine::Entity* entity : m_selectedEntities)
+        EventManager::enqueue_event(engine::EntityRemovalRequest(entity));
+
+    m_selectedEntities.clear();
 }
 
 }

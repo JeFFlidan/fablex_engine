@@ -36,6 +36,7 @@ public:
     void destroy_BLASes();
 
     void add_instance(engine::Entity* entity);
+    void remove_instance(engine::Entity* entity);
 
     void fill_shader_model(ShaderModel& outShaderModel) const;
     

@@ -49,8 +49,6 @@ Application::Application()
     rendererInfo.window = m_mainWindow.get();
     m_renderer = std::make_unique<renderer::Renderer>(rendererInfo);
 
-    // m_engine->configure_test_scene();
-    // m_engine->configure_sponza();
     m_engine->create_project("empty");
 
     FE_LOG(LogApplication, INFO, "Application initialization completed.");
@@ -80,9 +78,6 @@ void Application::execute()
         EventManager::dispatch_events();
         m_renderer->draw();
     }
-
-    asset::AssetManager::save_assets();
-    m_engine->save_world();
 
     m_mainWindow->close();
 }

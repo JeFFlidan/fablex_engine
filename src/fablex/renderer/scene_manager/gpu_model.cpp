@@ -519,6 +519,19 @@ void GPUModel::add_instance(engine::Entity* entity)
     m_instances.push_back(entity);
 }
 
+void GPUModel::remove_instance(engine::Entity* entity)
+{
+    FE_CHECK(entity);
+    
+    auto it = std::find_if(m_instances.begin(), m_instances.end(), 
+        [&](const GPUModelInstance& instance)
+        {
+            return entity == instance.entity();
+        });
+
+    m_instances.erase(it);
+}
+
 void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
 {
     outShaderModel.indexBuffer = srv_indices();

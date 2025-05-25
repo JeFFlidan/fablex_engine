@@ -1,14 +1,20 @@
 #include "utils.h"
 
+#include "engine/events.h"
+#include "engine/entity/entity.h"
+#include "engine/entities/model_entity.h"
+#include "engine/components/events.h"
 #include "engine/components/material_component.h"
 #include "engine/components/model_component.h"
-#include "engine/entity/entity.h"
 
 #include "core/object.h"
+#include "core/file_system/file_system.h"
 
 #include "asset_manager/asset_registry.h"
+#include "asset_manager/asset_manager.h"
 #include "asset_manager/json_serialization.h"
 #include "asset_manager/model/model.h"
+#include "asset_manager/events.h"
 
 #include "imgui.h"
 
@@ -50,7 +56,8 @@ void Utils::draw_properties_ui(const PropertyArray& properties, Object* object)
             }
             case PropertyType::UUID:
             {
-
+                draw_model_component(object);
+                break;
             }
             case PropertyType::FLOAT:
             {
@@ -115,6 +122,36 @@ void Utils::draw_properties_ui(const PropertyArray& properties, Object* object)
     }
 }
 
+void Utils::send_save_request()
+{
+    EventManager::enqueue_event(engine::ProjectSavingRequest());
+}
+
+void Utils::import_files(const std::string& currProjectDir)
+{
+    std::vector<std::string> paths;
+    FileSystem::open_files_dialog(SUPPORTED_FILES, paths);
+
+    for (const std::string& path : paths)
+    {
+        if (is_model_file(path))
+        {
+            asset::ModelImportContext importContext;
+            importContext.generateMaterials = true;
+            importContext.projectDirectory = currProjectDir;
+            importContext.originalFilePath = path;
+            EventManager::enqueue_event(asset::AssetImportRequestEvent(importContext));
+        }
+        if (is_texture_file(path))
+        {
+            asset::TextureImportContext importContext;
+            importContext.originalFilePath = path;
+            importContext.projectDirectory = currProjectDir;
+            EventManager::enqueue_event(asset::AssetImportRequestEvent(importContext));
+        }
+    }
+}
+
 // Must not do this, but for now have no ideas how to draw this component in another way
 void Utils::draw_material_component(Object* materialComponentObj)
 {
@@ -161,6 +198,78 @@ void Utils::draw_material_component(Object* materialComponentObj)
                 FE_LOG(LogEditor, ERROR, "Material index {} is invalid.", i);
         }
     }
+}
+
+void Utils::draw_model_component(Object* modelComponentObj)
+{
+    if (!modelComponentObj->is_a<engine::ModelComponent>())
+        return;
+
+    auto modelComponent = static_cast<engine::ModelComponent*>(modelComponentObj);
+    FE_CHECK(modelComponent);
+
+    const auto& allModels = asset::AssetRegistry::get_assets_data_by_type(asset::Type::MODEL);
+    auto prevAssetData = asset::AssetRegistry::get_asset_data_by_uuid(modelComponent->get_model_uuid());
+    auto selectedAssetData = prevAssetData;
+
+    if (ImGui::BeginCombo("Model", modelComponent->get_model()->get_name().c_str()))
+    {
+        for (auto assetData : allModels)
+        {
+            if (ImGui::Selectable(assetData->name.c_str(), assetData == prevAssetData))
+                selectedAssetData = assetData;
+
+            if (selectedAssetData == prevAssetData)
+                ImGui::SetItemDefaultFocus();
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (selectedAssetData == prevAssetData)
+        return;
+
+    asset::Model* oldModel = asset::AssetManager::get_model(prevAssetData->uuid);
+    asset::Model* currModel = asset::AssetManager::get_model(selectedAssetData->uuid);
+
+    if (modelComponent->get_entity()->is_a<engine::ModelEntity>())
+    {
+        engine::ModelEntity* entity = static_cast<engine::ModelEntity*>(modelComponent->get_entity());
+        entity->set_model(currModel);
+        EventManager::enqueue_event(engine::ModelComponentUpdatedEvent(entity, oldModel, currModel));
+    }
+    else
+    {
+        auto matComponent = modelComponent->get_entity()->get_component<engine::MaterialComponent>();
+        modelComponent->set_model(currModel);
+        matComponent->init(currModel);
+
+        EventManager::enqueue_event(engine::ModelComponentUpdatedEvent(modelComponent->get_entity(), oldModel, currModel));
+    }
+}
+
+bool Utils::is_model_file(const std::string& name)
+{
+    static std::unordered_set<std::string> extensions = {
+        "gltf",
+        "glb"
+    };
+
+    return extensions.contains(FileSystem::get_file_extension(name));
+}
+
+bool Utils::is_texture_file(const std::string& name)
+{
+    static std::unordered_set<std::string> extensions = {
+        "png",
+        "jpg",
+        "tiff",
+        "dds",
+        "tga",
+        "hdr"
+    };
+
+    return extensions.contains(FileSystem::get_file_extension(name));
 }
 
 }

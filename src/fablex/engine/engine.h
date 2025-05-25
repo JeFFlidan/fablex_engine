@@ -14,15 +14,14 @@ public:
 
     void update();
 
-    void save_world();
-
     void set_window(Window* window) { m_window = window; }
     World* get_world() const { return m_world.get(); }
 
     void configure_test_scene();
     void configure_sponza();
 
-    void create_project(const std::string& projectPath);
+    void create_project(const std::string& projectName);
+    void save_project();
     bool load_project(const std::string& projectPath);
 
 private:
@@ -35,6 +34,8 @@ private:
     void create_default_material();
     void create_camera();
     void create_sun();
+
+    void save_world();
 };
 
 }

@@ -20,4 +20,18 @@ private:
     Entity* m_entity = nullptr;
 };
 
+// Must be triggered, no enqueue
+class EntityRemovedEvent : public IEvent
+{
+public:
+    FE_DECLARE_EVENT(EntityDestroyedEvent);
+
+    EntityRemovedEvent(Entity* entity) : m_entity(entity) { }
+
+    Entity* entity() const { return m_entity; }
+
+private:
+    Entity* m_entity = nullptr;
+};
+
 }

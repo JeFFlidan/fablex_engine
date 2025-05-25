@@ -70,11 +70,15 @@ private:
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
 
     std::unordered_set<engine::Entity*> m_pendingEntities;
-    std::unordered_set<engine::MaterialComponent*> m_pendingMaterials;
+    std::unordered_set<engine::MaterialComponent*> m_pendingMaterialComponents;
+    std::vector<engine::ModelComponent*> m_pendingModelComponents;
     
     std::mutex m_gpuPendingTexturesMutex;
     std::vector<GPUPendingTexture> m_pendingTextures;
+    std::vector<asset::Model*> m_pendingModels; 
+    std::vector<asset::Material*> m_pendingMaterials;
 
+    std::vector<engine::ModelComponent*> m_modelComponents;
     std::vector<engine::ShaderEntityComponent*> m_shaderEntityComponents;
 
     uint64 m_lightComponentCount = 0;
@@ -111,11 +115,13 @@ private:
     BufferArray m_uploadBuffersForTLAS;
 
     void allocate_arrays();
-    void init_callbacks();
+    void subscribe_to_events();
     void load_resources();
     void create_samplers();
 
-    void add_materials(const std::vector<UUID>& materialUUIDs, TaskGroup& taskGroup);
+    void add_gpu_model(asset::Model* model, TaskGroup& taskGroup);
+    void add_gpu_material(UUID materialUUID, TaskGroup& taskGroup);
+    void add_gpu_materials(const std::vector<UUID>& materialUUIDs, TaskGroup& taskGroup);
 
     GPUModel* get_gpu_model(UUID modelUUID) const;
     GPUTexture* get_gpu_texture(UUID textureUUID) const;

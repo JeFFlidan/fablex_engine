@@ -6,17 +6,19 @@ namespace fe::engine
 
 void EntityManager::update()
 {
-    for (Entity* entity : m_entitiesToDestroy)
+    for (Entity* entity : m_entitiesToRemove)
     {
         auto it = std::find(m_entities.begin(), m_entities.end(), entity);
         if (it != m_entities.end())
         {
+            EventManager::trigger_event(EntityRemovedEvent(entity));
+            
             m_entities.erase(it);
             m_allocator.free(entity);
         }
     }
 
-    m_entitiesToDestroy.clear();
+    m_entitiesToRemove.clear();
 
     for (Entity* entity : m_entitiesToCreate)
     {
@@ -46,7 +48,7 @@ Entity* EntityManager::create_entity(const TypeInfo* typeInfo)
 
 void EntityManager::remove_entity(Entity* entity)
 {
-    m_entitiesToDestroy.push_back(entity);
+    m_entitiesToRemove.push_back(entity);
 }
 
 }

@@ -11,7 +11,7 @@ FE_DEFINE_OBJECT(ModelComponent, Component);
 
 FE_BEGIN_PROPERTY_REGISTER(ModelComponent)
 {
-    FE_REGISTER_PROPERTY(ModelComponent, m_modelUUID);
+    FE_REGISTER_PROPERTY(ModelComponent, m_modelUUID, EditAnywhere());
 }
 FE_END_PROPERTY_REGISTER(ModelComponent)
 

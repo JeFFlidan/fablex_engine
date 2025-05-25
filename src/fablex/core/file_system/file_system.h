@@ -43,12 +43,14 @@ public:
 
     static void init(const std::string& rootPath);
 
-    static const std::string& get_root_path() { return m_rootPath; }
+    static const std::string& get_root_path() { return s_rootPath; }
 
     // Creates directory using random name if projectPath is empty. The passed project path must be a relative path to the engine root.
     static void create_project_directory(std::string projectPath = "");
+    static void create_project(const std::string& projectName);
     static void set_project_path(std::string projectPath);
-    static std::string get_project_path() { return m_projectPath; }
+    static std::string get_project_path() { return s_projectPath; }
+    static std::string get_project_name();
     static bool is_project_existed(std::string projectPath);
 
     static FileStream* open(const std::string& strPath, const char* mode);
@@ -90,12 +92,19 @@ public:
         DirectoryIteratorType iteratorType = DirectoryIteratorType::DEFAULT
     );
 
+    static std::string open_file_dialog(const std::vector<std::string>& extensions = {});
+    static void open_files_dialog(const std::vector<std::string>& extensions, std::vector<std::string>& outFiles);
+    static std::string save_file_dialog(const std::vector<std::string>& extensions = {});
+    static std::string open_directory_dialog();
+
 private:
-    inline static std::string m_rootPath = "";
-    inline static std::string m_projectPath = "";
+    inline static std::string s_rootPath = "";
+    inline static std::string s_projectPath = "";
 
     static void read_internal(FileStream* stream, const std::string& path, uint8* data, uint64 size);
     static FileStream* create_read_stream(const std::string& path, uint64& outSize);
+
+    static std::string build_filter_string(const std::vector<std::string>& extensions, const std::string& description = "Files");
 };
 
 }

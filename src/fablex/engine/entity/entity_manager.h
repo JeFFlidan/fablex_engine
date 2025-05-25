@@ -31,7 +31,7 @@ private:
     
     std::vector<Entity*> m_entities;
     std::vector<Entity*> m_entitiesToCreate;
-    std::vector<Entity*> m_entitiesToDestroy;
+    std::vector<Entity*> m_entitiesToRemove;
 };
 
 }

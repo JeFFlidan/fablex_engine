@@ -29,6 +29,7 @@ private:
     void deselect_children(engine::Entity* entity);
     void select_entity(engine::Entity* entity);
     void deselect_entity(engine::Entity* entity);
+    void remove_selected_entities();
 };
 
 }

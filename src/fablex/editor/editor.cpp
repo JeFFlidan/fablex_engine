@@ -2,6 +2,7 @@
 #include "core/macro.h"
 #include "core/window.h"
 #include "engine/entity/world.h"
+#include "core/file_system/file_system.h"
 
 #include "imgui.h"
 
@@ -20,6 +21,7 @@ Editor::Editor()
     m_viewportWindow = std::make_unique<ViewportWindow>();
     m_outlinerWindow = std::make_unique<OutlinerWindow>();
     m_propertiesWindow = std::make_unique<PropertiesWindow>();
+    m_toolbar = std::make_unique<Toolbar>();
 }
 
 Editor::~Editor()
@@ -41,6 +43,7 @@ void Editor::draw()
     m_outlinerWindow->draw(m_world);
     m_viewportWindow->draw(m_outlinerWindow->selected_entities());
     m_propertiesWindow->draw(m_outlinerWindow->last_selected_entity());
+    m_toolbar->draw(FileSystem::get_project_path());
 
     ImGui::Render();
 }

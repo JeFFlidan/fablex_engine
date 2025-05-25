@@ -14,4 +14,13 @@ using PropertyArray = std::vector<Property*>;
 
 FE_DEFINE_LOG_CATEGORY(LogEditor);
 
+const std::vector<std::string> SUPPORTED_FILES = {
+    "png",
+    "jpg",
+    "tga",
+    "dds",
+    "gltf",
+    "glb"
+};
+
 }

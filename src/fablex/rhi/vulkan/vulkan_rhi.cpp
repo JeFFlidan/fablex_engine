@@ -2252,7 +2252,7 @@ private:
         void free(uint32 descriptorIndex)
         {
             std::scoped_lock<std::mutex> locker(mutex);
-            if (descriptorIndex > 0 && descriptorIndex != s_undefinedDescriptor)
+            if (descriptorIndex != s_undefinedDescriptor)
                 freePlaces.push_back(descriptorIndex);
         }
     };

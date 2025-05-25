@@ -1,9 +1,19 @@
 #include "file_system.h"
 #include "core/macro.h"
-#include "core/logger.h"
+// #include "core/logger.h"
+// #include "core/platform/platform.h"
 #include <random>
+#include <fstream>
 
-FE_DEFINE_LOG_CATEGORY(LogFileSystem)
+// TEMP
+#ifdef WIN32
+#include <windows.h>
+#include <commdlg.h>
+#include <shlobj.h>
+#endif // WIN32
+
+// Will return logging in file system when rename log category because current does not work with WinApi GDI 
+// FE_DEFINE_LOG_CATEGORY(LogFileSystem)
 
 namespace fe
 {
@@ -51,30 +61,48 @@ uint64 FileStream::size() const
 
 void FileSystem::init(const std::string& rootPath)
 {
-    m_rootPath = rootPath;
+    s_rootPath = rootPath;
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(1, 10000);
 
     int num = dist(gen);
-    m_projectPath = get_absolute_path(std::string("untitled") + std::to_string(num));
+    s_projectPath = get_absolute_path(std::string("untitled") + std::to_string(num));
 }
 
 void FileSystem::create_project_directory(std::string projectPath)
 {
     if (!projectPath.empty())
-        m_projectPath = get_absolute_path(projectPath);
+        s_projectPath = get_absolute_path(projectPath);
 
-    std::filesystem::create_directories(m_projectPath);
+    std::filesystem::create_directories(s_projectPath);
+}
+
+void FileSystem::create_project(const std::string& projectName)
+{
+    std::string projectPath = s_rootPath + "/" + "projects" + "/" + projectName;
+    std::filesystem::create_directories(projectPath);
+
+    s_projectPath = projectPath;
+
+    std::string filePath = s_projectPath + "/" + projectName + ".aaproj";
+    std::ofstream file(filePath);
+    file.close();
 }
 
 void FileSystem::set_project_path(std::string projectPath)
 {
     if (is_relative(projectPath))
-        m_projectPath = get_absolute_path(projectPath);
+        s_projectPath = get_absolute_path(projectPath);
     else
-        m_projectPath = projectPath;
+        s_projectPath = projectPath;
+}
+
+std::string FileSystem::get_project_name()
+{
+    std::filesystem::path path(s_projectPath);
+    return path.filename().string();
 }
 
 bool FileSystem::is_project_existed(std::string projectPath)
@@ -90,17 +118,17 @@ FileStream* FileSystem::open(const std::string& strPath, const char* mode)
     std::filesystem::path path = std::filesystem::path(strPath);
 
     if (!path.is_absolute())
-        path = m_rootPath / path;
+        path = s_rootPath / path;
 
     if (!std::filesystem::exists(path) && strcmp(mode, "wb") != 0)
     {
-        FE_LOG(LogFileSystem, ERROR, "Path {} is invlaid", path.string().c_str());
+        // FE_LOG(LogFileSystem, ERROR, "Path {} is invlaid", path.string().c_str());
         return nullptr;
     }
 
     if (!path.has_extension())
     {
-        FE_LOG(LogFileSystem, ERROR, "File from path {} has no extension", path.string().c_str());
+        // FE_LOG(LogFileSystem, ERROR, "File from path {} has no extension", path.string().c_str());
         return nullptr;
     }
 
@@ -109,7 +137,7 @@ FileStream* FileSystem::open(const std::string& strPath, const char* mode)
 
     if (!file)
     {
-        FE_LOG(LogFileSystem, ERROR, "File is invalid after opening {}", strPath);
+        // FE_LOG(LogFileSystem, ERROR, "File is invalid after opening {}", strPath);
         return nullptr;
     }
 
@@ -120,7 +148,7 @@ bool FileSystem::close(FileStream* stream)
 {
     if (!stream || !stream->is_valid())
     {
-        FE_LOG(LogFileSystem, ERROR, "close(): FileStream is invalid.");
+        // FE_LOG(LogFileSystem, ERROR, "close(): FileStream is invalid.");
         
         if (stream)
             delete stream;
@@ -241,7 +269,7 @@ std::string FileSystem::get_file_extension(const std::string& path)
 
 std::string FileSystem::get_relative_path(const std::string& path)
 {
-    std::filesystem::path relativePath = std::filesystem::relative(path, m_rootPath);
+    std::filesystem::path relativePath = std::filesystem::relative(path, s_rootPath);
     return relativePath.string().c_str();
 }
 
@@ -253,7 +281,7 @@ std::string FileSystem::get_relative_path(const std::string& rootPath, const std
 
 std::string FileSystem::get_absolute_path(const std::string& path)
 {
-    std::filesystem::path basePath(m_rootPath);
+    std::filesystem::path basePath(s_rootPath);
     std::filesystem::path targetPath(path);
     return (basePath / targetPath).string();
 }
@@ -299,13 +327,13 @@ void FileSystem::for_each_file(
 {
     if (is_relative(path))
     {
-        FE_LOG(LogFileSystem, ERROR, "FileSystem::for_each_file(): Path {} is relative.", path);
+        // FE_LOG(LogFileSystem, ERROR, "FileSystem::for_each_file(): Path {} is relative.", path);
         return;
     }
 
     if (!exists(path))
     {
-        FE_LOG(LogFileSystem, ERROR, "FileSystem::for_each_file(): Path {} does not exist.", path);
+        // FE_LOG(LogFileSystem, ERROR, "FileSystem::for_each_file(): Path {} does not exist.", path);
         return;
     }
 
@@ -343,6 +371,101 @@ void FileSystem::for_each_file(
 
 }
 
+std::string FileSystem::open_file_dialog(const std::vector<std::string>& extensions)
+{
+    std::string filterStr = build_filter_string(extensions, "Files");
+
+    char fileName[MAX_PATH] = {};
+
+    OPENFILENAMEA ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFilter = filterStr.c_str();
+    ofn.lpstrFile = fileName;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    ofn.lpstrTitle = "Open File";
+
+    if (GetOpenFileNameA(&ofn))
+        return std::string(fileName);
+
+    return {};
+}
+
+void FileSystem::open_files_dialog(const std::vector<std::string>& extensions, std::vector<std::string>& outFiles)
+{
+    std::string filterStr = build_filter_string(extensions, "Files");
+
+    char buffer[4096] = {};
+
+    OPENFILENAMEA ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFilter = filterStr.c_str();
+    ofn.lpstrFile = buffer;
+    ofn.nMaxFile = sizeof(buffer);
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
+    ofn.lpstrTitle = "Open Files";
+
+    outFiles.clear();
+
+    if (GetOpenFileNameA(&ofn))
+    {
+        char* ptr = buffer;
+        std::string directory = ptr;
+        ptr += directory.size() + 1;
+
+        if (*ptr == '\0')
+        {
+            outFiles.push_back(directory);
+        }
+        else
+        {
+            while (*ptr)
+            {
+                outFiles.push_back(directory + "\\" + ptr);
+                ptr += strlen(ptr) + 1;
+            }
+        }
+    }
+}
+
+std::string FileSystem::save_file_dialog(const std::vector<std::string>& extensions)
+{
+    std::string filterStr = build_filter_string(extensions, "Files");;
+
+    char fileName[MAX_PATH] = {};
+
+    OPENFILENAMEA ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFilter = filterStr.c_str();
+    ofn.lpstrFile = fileName;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+    ofn.lpstrTitle = "Save File";
+
+    if (GetSaveFileNameA(&ofn))
+        return std::string(fileName);
+
+    return {};
+}
+
+std::string FileSystem::open_directory_dialog()
+{
+    BROWSEINFO browseInfo = {};
+    browseInfo.lpszTitle = "Select Folder";
+    browseInfo.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+
+    LPITEMIDLIST itemIdList = SHBrowseForFolder(&browseInfo);
+    if (!itemIdList)
+        return {};
+
+    char folderPath[MAX_PATH];
+    if (!SHGetPathFromIDListA(itemIdList, folderPath))
+        return {};
+
+    CoTaskMemFree(itemIdList);
+    return std::string(folderPath);
+}
+
 void FileSystem::read_internal(FileStream* stream, const std::string& path, uint8* data, uint64 size)
 {
     size_t readElements = stream->read(data, sizeof(uint8), size);
@@ -360,7 +483,7 @@ FileStream* FileSystem::create_read_stream(const std::string& path, uint64& outS
     outSize = stream->size();
     if (!outSize)
     {
-        FE_LOG(LogFileSystem, ERROR, "File {} is empty", path.c_str());
+        // FE_LOG(LogFileSystem, ERROR, "File {} is empty", path.c_str());
         return nullptr;
     }
 
@@ -371,6 +494,55 @@ uint64 FileSystem::get_last_write_time(const std::string& absolutePath)
 {
     auto time = std::filesystem::last_write_time(absolutePath.c_str());
     return std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+}
+
+std::string FileSystem::build_filter_string(const std::vector<std::string>& extensions, const std::string& description)
+{
+    if (extensions.empty())
+    {
+        // Default "All Files" filter string
+        std::string filterString = "All Files";
+        filterString.push_back('\0');
+        filterString += "*.*";
+        filterString.push_back('\0');
+        filterString.push_back('\0');
+        return filterString;
+    }
+
+    std::ostringstream descStream;
+    std::ostringstream extStream;
+
+    descStream << description << " (";
+
+    bool first = true;
+    for (const auto& ext : extensions)
+    {
+        if (!first) descStream << ", ";
+        descStream << "*." << ext;
+        first = false;
+    }
+    descStream << ")";
+
+    first = true;
+    for (const auto& ext : extensions)
+    {
+        if (!first) extStream << ";";
+        extStream << "*." << ext;
+        first = false;
+    }
+
+    std::string filterString;
+    filterString += descStream.str();
+    filterString.push_back('\0');
+    filterString += extStream.str();
+    filterString.push_back('\0');
+    filterString += "All Files";
+    filterString.push_back('\0');
+    filterString += "*.*";
+    filterString.push_back('\0');
+    filterString.push_back('\0');
+
+    return filterString;
 }
 
 }
