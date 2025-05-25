@@ -75,7 +75,7 @@ public:
     void translate(const Float3& deltaPosition);
     void set_position(const Float3& position) { m_position = position; }
     void set_scale(const Float3& scale) { m_scale = scale; }
-    void set_rotation(const Quat& rotation) { m_rotation = rotation; }
+    void set_rotation(const Quat& newRotation);
     void set_rotation(const Float3& eulerAngles, AngleUnit angleUnit = AngleUnit::DEGREES);
 
     // Quaternion rotation

@@ -7,6 +7,7 @@
 #include "core/file_system/file_system.h"
 
 #include "imgui.h"
+#include "ImGuizmo.h"
 
 #ifdef WIN32
 #include "imgui_impl_win32.h"
@@ -41,8 +42,11 @@ void Editor::draw()
     io.DisplaySize.x = static_cast<float>(m_window->get_info().width);
     io.DisplaySize.y = static_cast<float>(m_window->get_info().height);
 
-    ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
+    ImGui_ImplWin32_NewFrame();
+
+    m_viewportWindow->set_camera(m_camera);
 
     m_dockingWindow->draw();
     m_outlinerWindow->draw(m_world);

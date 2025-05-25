@@ -16,6 +16,7 @@ public:
 
     void set_window(Window* window) { m_window = window; }
     World* get_world() const { return m_world.get(); }
+    Entity* get_camera() const { return m_cameraEntity; }
 
     void configure_test_scene();
     void configure_sponza();
@@ -26,7 +27,8 @@ public:
 
 private:
     std::unique_ptr<World> m_world;
-    Window* m_window;
+    Window* m_window = nullptr;
+    Entity* m_cameraEntity = nullptr;
 
     void subscribe_to_events();
 

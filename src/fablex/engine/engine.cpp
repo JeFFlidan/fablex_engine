@@ -350,12 +350,12 @@ void Engine::create_default_material()
 
 void Engine::create_camera()
 {
-    Entity* cameraEntity = m_world->create_entity();
-    cameraEntity->set_name("Camera");
-    EditorCameraComponent* cameraComponent = cameraEntity->create_component<EditorCameraComponent>();
+    m_cameraEntity = m_world->create_entity();
+    m_cameraEntity->set_name("Camera");
+    EditorCameraComponent* cameraComponent = m_cameraEntity->create_component<EditorCameraComponent>();
     cameraComponent->mouseSensitivity = 0.12f;
     cameraComponent->movementSpeed = 50;
-    cameraEntity->set_position(Float3(0, 30, 0));
+    m_cameraEntity->set_position(Float3(0, 30, 0));
 }
 
 void Engine::create_sun()

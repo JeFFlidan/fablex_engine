@@ -73,6 +73,7 @@ void Application::execute()
 
         Core::update();
         m_renderer->predraw();
+        m_editor->set_camera(m_engine->get_camera());
         m_editor->draw();
         m_engine->update();
         EventManager::dispatch_events();

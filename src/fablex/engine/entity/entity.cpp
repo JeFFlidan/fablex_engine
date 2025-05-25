@@ -116,6 +116,13 @@ void Entity::translate(const Float3& deltaPosition)
     m_position.z += deltaPosition.z;
 }
 
+void Entity::set_rotation(const Quat& newRotation)
+{
+    Quat oldRotationInv = newRotation.inverse();
+    Quat deltaRotation = newRotation * oldRotationInv;
+    m_rotation = deltaRotation * m_rotation;
+}
+
 void Entity::set_rotation(const Float3& eulerAngles, AngleUnit angleUnit)
 {
     // Take from WickedEngine. Maybe, I will change this in the future
