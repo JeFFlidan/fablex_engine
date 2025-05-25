@@ -21,6 +21,8 @@ Editor::Editor()
 {
     ImGui::CreateContext();
 
+    ImGui::LoadIniSettingsFromDisk(FileSystem::get_absolute_path("configs/editor.ini").c_str());
+
     m_dockingWindow = std::make_unique<DockingWindow>();
     m_viewportWindow = std::make_unique<ViewportWindow>();
     m_outlinerWindow = std::make_unique<OutlinerWindow>();

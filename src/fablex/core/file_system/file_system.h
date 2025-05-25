@@ -99,6 +99,7 @@ public:
 
     // If newName is not an absolute path, only filename will be changed
     static std::string rename_file(const std::string& oldAbsolutePath, const std::string& newName);
+    static void create_directories(std::string path);
 
 private:
     inline static std::string s_rootPath = "";

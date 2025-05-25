@@ -431,6 +431,9 @@ ShaderManager::ShaderManager()
     
     ShaderCache::init();
     m_taskGroup = TaskComposer::allocate_task_group();
+
+    FileSystem::create_directories("intermediate/shader_cache/spirv");
+    FileSystem::create_directories("intermediate/shader_cache/metadata");
     
     FE_LOG(LogShaderCompiler, INFO, "Shader Compiler initialization completed.");
 }

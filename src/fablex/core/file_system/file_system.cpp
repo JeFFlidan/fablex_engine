@@ -505,8 +505,19 @@ std::string FileSystem::rename_file(const std::string& oldAbsolutePath, const st
 
     if (exists(oldAbsolutePath))
         std::filesystem::rename(oldPath, newPath);
-    
+
     return newPath.string();
+}
+
+void FileSystem::create_directories(std::string path)
+{
+    if (is_relative(path))
+        path = get_absolute_path(path);
+
+    if (exists(path))
+        return;
+
+    std::filesystem::create_directories(path);
 }
 
 uint64 FileSystem::get_last_write_time(const std::string& absolutePath)
