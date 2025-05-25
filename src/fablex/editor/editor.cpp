@@ -1,5 +1,6 @@
 #include "editor.h"
 #include "events.h"
+#include "utils.h"
 
 #include "core/macro.h"
 #include "core/window.h"
@@ -27,7 +28,11 @@ Editor::Editor()
     m_contentBrowser = std::make_unique<ContentBrowser>();
     m_toolbar = std::make_unique<Toolbar>();
 
+    Utils::setup_dark_theme();
     subscribe_to_events();
+    load_fonts();
+
+    FE_CHECK(m_inconsolataMedium);
 }
 
 Editor::~Editor()
@@ -46,6 +51,8 @@ void Editor::draw()
     ImGuizmo::BeginFrame();
     ImGui_ImplWin32_NewFrame();
 
+    ImGui::PushFont(m_inconsolataMedium);
+
     m_viewportWindow->set_camera(m_camera);
 
     m_dockingWindow->draw();
@@ -62,6 +69,8 @@ void Editor::draw()
         else
             ++it;
     }
+
+    ImGui::PopFont();
 
     ImGui::Render();
 }
@@ -95,6 +104,15 @@ void Editor::subscribe_to_events()
     {
         m_extraWindows.push_back(event.create_window());
     });
+}
+
+void Editor::load_fonts()
+{
+    const std::string inconsolataMediumPath = FileSystem::get_absolute_path("content/fonts/Inconsolata-Medium.ttf");
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->AddFontDefault();
+    m_inconsolataMedium = io.Fonts->AddFontFromFileTTF(inconsolataMediumPath.c_str(), 16.0f);
 }
 
 }

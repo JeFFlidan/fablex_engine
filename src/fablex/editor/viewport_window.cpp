@@ -16,6 +16,7 @@ void ViewportWindow::draw(const EntitySet& selectedEntities)
     ImGui::Begin("Viewport");
 
     ViewportState viewportState = Input::get_viewport_state();
+    viewportState.isHovered = ImGui::IsWindowHovered();
 
     ImVec2 newExtent = ImGui::GetContentRegionAvail();
     if (newExtent.x != viewportState.width || newExtent.y != viewportState.height)
@@ -32,7 +33,7 @@ void ViewportWindow::draw(const EntitySet& selectedEntities)
     ImVec2 vMin = ImGui::GetWindowContentRegionMin();
     ImVec2 vMax = ImGui::GetWindowContentRegionMax();
 
-       viewportState.min = Float2(vMin.x, vMin.y);
+    viewportState.min = Float2(vMin.x, vMin.y);
     viewportState.max = Float2(vMax.x, vMax.y);
 
     viewportState.min.x += ImGui::GetWindowPos().x;

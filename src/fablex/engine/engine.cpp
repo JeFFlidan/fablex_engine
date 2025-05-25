@@ -311,13 +311,15 @@ void Engine::subscribe_to_events()
 {
     EventManager::subscribe<ModelEntityCreationRequest>([this](const auto&)
     {
-        m_world->create_entity(ModelEntity::get_static_type_info());
+        Entity* entity = m_world->create_entity(ModelEntity::get_static_type_info());
+        entity->set_name("Model");
     });
 
     EventManager::subscribe<PointLightEntityCreationRequest>([this](const auto&)
     {
         Entity* entity = m_world->create_entity();
         entity->create_component<PointLightComponent>();
+        entity->set_name("PointLight");
     });
 
     EventManager::subscribe<EntityRemovalRequest>([this](const auto& event)

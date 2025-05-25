@@ -197,7 +197,6 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         rhi::Buffer* buffer = get_shader_entity_buffer();
         ShaderEntity* shaderEntities = static_cast<ShaderEntity*>(buffer->mappedData);
         uint64 lightIndex = 0;
-
         for (engine::ShaderEntityComponent* shaderEntityComponent : m_shaderEntityComponents)
         {
             if (shaderEntityComponent->is_light_source())
@@ -348,7 +347,9 @@ void SceneManager::subscribe_to_events()
     {
         engine::Entity* entity = event.entity();
         auto it = std::find(m_entitiesForTLAS.begin(), m_entitiesForTLAS.end(), entity);
-        m_entitiesForTLAS.erase(it);
+
+        if (it != m_entitiesForTLAS.end())
+            m_entitiesForTLAS.erase(it);
 
         if (auto modelComponent = entity->get_component<engine::ModelComponent>())
         {
@@ -359,6 +360,9 @@ void SceneManager::subscribe_to_events()
 
         if (auto shaderEntityComponent = entity->get_component<engine::ShaderEntityComponent>())
         {
+            if (shaderEntityComponent->is_light_source())
+                --m_lightComponentCount;
+
             auto it = std::find(m_shaderEntityComponents.begin(), m_shaderEntityComponents.end(), shaderEntityComponent);
             m_shaderEntityComponents.erase(it);
         }

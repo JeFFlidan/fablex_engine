@@ -12,6 +12,7 @@ public:
     static void draw_properties_ui(const PropertyArray& properties, Object* object);
     static void send_save_request();
     static void import_files(const std::string& currProjectDir);
+    static void setup_dark_theme();
 
 private:
     static void draw_material_component(Object* materialComponentObj);

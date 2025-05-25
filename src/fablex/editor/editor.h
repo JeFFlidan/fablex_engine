@@ -13,6 +13,8 @@
 
 #include <memory>
 
+struct ImFont;
+
 namespace fe::editor
 {
 
@@ -40,9 +42,12 @@ private:
     std::unique_ptr<ContentBrowser> m_contentBrowser = nullptr;
     std::unique_ptr<Toolbar> m_toolbar = nullptr;
 
+    ImFont* m_inconsolataMedium = nullptr;;
+
     std::vector<std::unique_ptr<WindowUI>> m_extraWindows;
 
     void subscribe_to_events();
+    void load_fonts();
 };
 
 }

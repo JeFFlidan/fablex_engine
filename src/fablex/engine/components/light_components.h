@@ -38,7 +38,7 @@ class PointLightComponent : public LightComponent
     FE_DECLARE_PROPERTY_REGISTER(PointLightComponent);
 
 public:
-    float attenuationRadius = 128.0f;
+    float attenuationRadius = 32.0f;
 
     virtual void fill_shader_data(ShaderEntity& outShaderEntity) const override;
 
