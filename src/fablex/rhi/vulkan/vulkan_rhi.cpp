@@ -532,7 +532,7 @@ VkCullModeFlags get_cull_mode(rhi::CullMode cullMode)
     {
         default:
         case rhi::CullMode::UNDEFINED:
-            return 0;
+            return VK_CULL_MODE_FLAG_BITS_MAX_ENUM;
         case rhi::CullMode::NONE:
             return VK_CULL_MODE_NONE;
         case rhi::CullMode::FRONT:
@@ -566,7 +566,7 @@ VkShaderStageFlags get_shader_stage(rhi::ShaderType shaderType)
         default:
         case rhi::ShaderType::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Shader type is UNDEFINED.");
-            return 0;
+            return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
         case rhi::ShaderType::VERTEX:
             return VK_SHADER_STAGE_VERTEX_BIT;
         case rhi::ShaderType::FRAGMENT:

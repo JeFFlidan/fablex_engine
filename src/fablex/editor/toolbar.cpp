@@ -19,6 +19,10 @@ void Toolbar::draw(const std::string& currProjectPath)
             {
 
             }
+            if (ImGui::MenuItem("Open Project", "Ctrl+O"))
+            {
+                
+            }
             if (ImGui::MenuItem("Save", "Ctrl+S"))
             {
                 Utils::send_save_request();

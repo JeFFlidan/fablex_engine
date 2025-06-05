@@ -39,7 +39,7 @@ void ContentBrowser::draw()
         ImGui::Separator();
     }
 
-    const float thumbnailSize = 96.0f;
+    const float thumbnailSize = 80.0f;
     const float padding = 16.0f;
     float cellSize = thumbnailSize + padding;
     float panelWidth = ImGui::GetContentRegionAvail().x;

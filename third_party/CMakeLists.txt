@@ -13,6 +13,9 @@ target_include_directories(stb INTERFACE stb)
 add_library(ddsktx INTERFACE)
 target_include_directories(ddsktx INTERFACE misc)
 
+add_library(doctest INTERFACE)
+target_include_directories(doctest INTERFACE misc)
+
 add_library(fmt)
 target_compile_options(fmt PUBLIC "/utf-8")
 set_target_properties(fmt PROPERTIES CXX_SCAN_FOR_MODULES OFF)
