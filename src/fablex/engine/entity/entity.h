@@ -1,7 +1,8 @@
 #pragma once
 
-#include "core/object.h"
 #include "tags.h"
+#include "sparse_set.h"
+#include "core/object.h"
 #include <unordered_set>
 
 namespace fe::engine
@@ -10,7 +11,7 @@ namespace fe::engine
 class World;
 class Component;
 
-class Entity : public Object
+class Entity : public Object, public SparseSetEntry
 {
     FE_DECLARE_OBJECT(Entity);
     FE_DECLARE_PROPERTY_REGISTER(Entity);

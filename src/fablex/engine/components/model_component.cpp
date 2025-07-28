@@ -7,7 +7,7 @@
 namespace fe::engine
 {
 
-FE_DEFINE_OBJECT(ModelComponent, Component);
+FE_DEFINE_COMPONENT(ModelComponent, Component);
 
 FE_BEGIN_PROPERTY_REGISTER(ModelComponent)
 {

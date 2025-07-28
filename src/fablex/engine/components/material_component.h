@@ -2,15 +2,13 @@
 
 #include "engine/entity/component.h"
 #include "asset_manager/fwd.h"
-#include "core/event.h"
 
 namespace fe::engine
 {
 
 class MaterialComponent : public Component
 {
-    FE_DECLARE_OBJECT(MaterialComponent);
-    FE_DECLARE_PROPERTY_REGISTER(MaterialComponent);
+    FE_DECLARE_COMPONENT(MaterialComponent);
 
 public:
     void init(asset::Model* model);

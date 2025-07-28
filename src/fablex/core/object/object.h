@@ -68,8 +68,6 @@ public:
     Object() = default;
     virtual ~Object() = default;
 
-    virtual void on_create() { }
-
     bool is_exactly(const TypeInfo* classTypeInfo) const
     {
         return get_type_info()->is_exactly(classTypeInfo);
@@ -106,16 +104,17 @@ public:
 template<typename T>
 T* create_object()
 {
-    T* object = static_cast<T*>(T::allocate());
-    object->on_create();
-    return object;
+    return static_cast<T*>(T::allocate());
+}
+
+inline Object* create_object(const TypeInfo* typeInfo)
+{
+    return typeInfo->get_allocator_handler()();
 }
 
 inline Object* create_object(Name name)
 {
-    Object* object = TypeManager::create_object_by_name(name.to_string().c_str());
-    object->on_create();
-    return object;
+    return TypeManager::create_object_by_name(name.to_string().c_str());
 }
 
 inline void destroy_object(Object* object)

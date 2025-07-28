@@ -9,8 +9,7 @@ namespace fe::engine
 
 class CameraComponent : public Component
 {
-    FE_DECLARE_OBJECT(CameraComponent);
-    FE_DECLARE_PROPERTY_REGISTER(CameraComponent);
+    FE_DECLARE_COMPONENT(CameraComponent);
 
 public:
     float zNear = 0.1f;

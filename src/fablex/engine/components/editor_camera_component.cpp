@@ -5,7 +5,12 @@
 namespace fe::engine
 {
 
-FE_DEFINE_OBJECT(EditorCameraComponent, CameraComponent);
+FE_DEFINE_COMPONENT(EditorCameraComponent, CameraComponent);
+FE_BEGIN_PROPERTY_REGISTER(EditorCameraComponent)
+{
+
+}
+FE_END_PROPERTY_REGISTER(EditorCameraComponent);
 
 void EditorCameraComponent::update(float deltaTime)
 {

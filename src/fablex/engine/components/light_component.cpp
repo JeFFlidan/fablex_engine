@@ -5,7 +5,7 @@
 namespace fe::engine
 {
 
-FE_DEFINE_OBJECT(LightComponent, ShaderEntityComponent);
+FE_DEFINE_COMPONENT(LightComponent, ShaderEntityComponent);
 FE_BEGIN_PROPERTY_REGISTER(LightComponent)
 {
     FE_REGISTER_PROPERTY(LightComponent, color, EditAnywhere(), Color());
@@ -13,14 +13,14 @@ FE_BEGIN_PROPERTY_REGISTER(LightComponent)
 }
 FE_END_PROPERTY_REGISTER(LightComponent)
 
-FE_DEFINE_OBJECT(DirectionalLightComponent, LightComponent);
+FE_DEFINE_COMPONENT(DirectionalLightComponent, LightComponent);
 FE_BEGIN_PROPERTY_REGISTER(DirectionalLightComponent)
 {
 
 }
 FE_END_PROPERTY_REGISTER(DirectionalLightComponent)
 
-FE_DEFINE_OBJECT(PointLightComponent, LightComponent);
+FE_DEFINE_COMPONENT(PointLightComponent, LightComponent);
 FE_BEGIN_PROPERTY_REGISTER(PointLightComponent)
 {
     FE_REGISTER_PROPERTY(PointLightComponent, attenuationRadius, EditAnywhere(), ClampMin(1.0f), ClampMax(10000.0f));

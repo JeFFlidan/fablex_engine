@@ -8,8 +8,7 @@ namespace fe::engine
 
 class LightComponent : public ShaderEntityComponent
 {
-    FE_DECLARE_OBJECT(LightComponent);
-    FE_DECLARE_PROPERTY_REGISTER(LightComponent);
+    FE_DECLARE_COMPONENT(LightComponent);
 
 public:
     Float4 color = Float4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -25,8 +24,7 @@ public:
 
 class DirectionalLightComponent : public LightComponent
 {
-    FE_DECLARE_OBJECT(DirectionalLightComponent);
-    FE_DECLARE_PROPERTY_REGISTER(DirectionalLightComponent);
+    FE_DECLARE_COMPONENT(DirectionalLightComponent);
 
 public:
     virtual void fill_shader_data(ShaderEntity& outShaderEntity) const override;
@@ -34,8 +32,7 @@ public:
 
 class PointLightComponent : public LightComponent
 {
-    FE_DECLARE_OBJECT(PointLightComponent);
-    FE_DECLARE_PROPERTY_REGISTER(PointLightComponent);
+    FE_DECLARE_COMPONENT(PointLightComponent);
 
 public:
     float attenuationRadius = 32.0f;

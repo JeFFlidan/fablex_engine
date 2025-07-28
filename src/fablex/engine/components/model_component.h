@@ -9,8 +9,7 @@ namespace fe::engine
 
 class ModelComponent : public Component
 {
-    FE_DECLARE_OBJECT(ModelComponent);
-    FE_DECLARE_PROPERTY_REGISTER(ModelComponent);
+    FE_DECLARE_COMPONENT(ModelComponent);
 
 public:
     void set_model(asset::Model* model);

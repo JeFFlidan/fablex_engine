@@ -43,10 +43,10 @@ void World::update_pre_entities_update()
 
 void World::update_camera_entities()
 {
-    const std::vector<Entity*>& entities = m_entityManager.get_entities();
-    for (Entity* entity : entities)
-        if (CameraComponent* cameraComponent = entity->get_component<CameraComponent>())
-            cameraComponent->update(Timer::get_delta_time());
+    CameraComponent::for_each([](CameraComponent* cameraComponent)
+    {
+        cameraComponent->update(Timer::get_delta_time());
+    });
 }
 
 void World::serialize(Archive& archive) const

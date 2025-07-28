@@ -61,10 +61,9 @@ Entity* Entity::create_child(const TypeInfo* typeInfo)
 
 Component* Entity::create_component(const TypeInfo* typeInfo)
 {
-    // TODO: Think how to allocate component from pool
     FE_CHECK(typeInfo);
 
-    Component* component = static_cast<Component*>(TypeManager::create_object(typeInfo));
+    Component* component = static_cast<Component*>(create_object(typeInfo));
     m_components.push_back(component);
     if (m_world) component->on_world_set(m_world);
     component->on_entity_set(this);

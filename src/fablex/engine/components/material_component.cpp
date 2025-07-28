@@ -1,10 +1,11 @@
 #include "material_component.h"
+#include "engine/entity/entity.h"
 #include "asset_manager/asset_manager.h"
 
 namespace fe::engine
 {
 
-FE_DEFINE_OBJECT(MaterialComponent, Component);
+FE_DEFINE_COMPONENT(MaterialComponent, Component);
 FE_BEGIN_PROPERTY_REGISTER(MaterialComponent)
 {
     FE_REGISTER_ARRAY_PROPERTY(MaterialComponent, m_materialUUIDs, EditAnywhere(), Type("material"));

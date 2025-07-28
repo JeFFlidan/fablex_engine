@@ -1,10 +1,11 @@
 #include "camera_component.h"
+#include "engine/entity/entity.h"
 #include "core/file_system/archive.h"
 
 namespace fe::engine
 {
 
-FE_DEFINE_OBJECT(CameraComponent, Component);
+FE_DEFINE_COMPONENT(CameraComponent, Component);
 
 FE_BEGIN_PROPERTY_REGISTER(CameraComponent)
 {

@@ -7,7 +7,7 @@ namespace fe::engine
 
 class EditorCameraComponent : public CameraComponent
 {
-    FE_DECLARE_OBJECT(EditorCameraComponent);
+    FE_DECLARE_COMPONENT(EditorCameraComponent);
 
 public:
     virtual void update(float deltaTime) override;
