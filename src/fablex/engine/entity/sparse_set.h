@@ -1,10 +1,12 @@
 #pragma once
 
-#include "core/pool_allocator.h"
+#include "core/types.h"
 #include <functional>
 
 namespace fe::engine
 {
+
+class Component;
 
 class SparseSetEntry
 {
@@ -33,7 +35,7 @@ public:
         m_sparse.resize(1024, s_invalidIndex);
     }
 
-    Component* insert(const SparseSetEntry& entry)
+    void insert(const SparseSetEntry& entry, Component* component)
     {
         if (entry.id() >= m_sparse.size())
             m_sparse.resize(entry.id() + 1, s_invalidIndex);
@@ -42,19 +44,18 @@ public:
         {
             m_sparse[entry.id()] = static_cast<uint32>(m_dense.size());
             m_dense.push_back(entry.id());
-            m_components.push_back(m_allocator.allocate());
+            m_components.push_back(component);
         }
         else
         {
-            m_components.push_back(m_allocator.allocate());
+            uint32 index = m_sparse[entry.id()];
+            m_components[index] = component;
         }
-
-        return m_components.back();
     }
 
-    void insert(const SparseSetEntry* entry)
+    void insert(const SparseSetEntry* entry, Component* component)
     {
-        insert(*entry);
+        insert(*entry, component);
     }
 
     void erase(const SparseSetEntry& entry)
@@ -71,7 +72,6 @@ public:
         m_sparse[lastEntry] = index;
 
         m_dense.pop_back();
-        m_allocator.free(m_components.back());
         m_components.pop_back();
         m_sparse[entry.id()] = s_invalidIndex;
     }
@@ -120,7 +120,6 @@ private:
     std::vector<uint32> m_sparse;
     std::vector<uint32> m_dense;
     std::vector<Component*> m_components;
-    PoolAllocator<Component, PoolSize> m_allocator;
 };
 
 }

@@ -4,6 +4,7 @@
 #include "platform/platform.h"
 #include "lz4.h"
 #include <string>
+#include <vector>
 #include <functional>
 #include <algorithm>
 

@@ -12,7 +12,7 @@ class Entity;
 class Component : public Object
 {
     FE_DECLARE_OBJECT(Component);
-    FE_DECLARE_PROPERTY_REGISTER(Entity);
+    FE_DECLARE_PROPERTY_REGISTER(Component);
 
 public:
     virtual void update(float deltaTime) { }

@@ -14,7 +14,7 @@
 #include "rhi/resources.h"
 #include "rhi/utils.h"
 #include "core/logger.h"
-#include "core/pool_allocator.h"
+#include "core/memory/pool_allocator.h"
 #include "core/utils.h"
 
 #define VOLK_IMPLEMENTATION

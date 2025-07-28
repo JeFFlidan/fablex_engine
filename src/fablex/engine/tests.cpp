@@ -1,4 +1,5 @@
 #include "entity/sparse_set.h"
+#include "core/memory/pool_allocator.h"
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
@@ -14,12 +15,14 @@ TEST_CASE("Tesing sparse set")
 {
     SparseSet<TestComponent> sparseSet;
     std::vector<SparseSetEntry> entries;
+    fe::PoolAllocator<TestComponent> allocator;
     uint32 entriesCount = 8;
 
     for (uint32 i = 0; i != entriesCount; ++i)
     {
         const SparseSetEntry& entry = entries.emplace_back();
-        TestComponent* component = sparseSet.insert(entry);
+        TestComponent* component = allocator.allocate();
+        sparseSet.insert(entry, component);
         REQUIRE(component);
 
         component->value = entry.id();

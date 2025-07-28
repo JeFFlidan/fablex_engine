@@ -18,6 +18,7 @@ class TypeInfo
 {
 public:
     using AllocatorHandler = std::function<Object*()>;
+    using DestructorHandler = std::function<void(Object*)>;
 
     friend TypeManager;
     friend void add_property(TypeInfo* typeInfo, Property* property);
@@ -25,6 +26,7 @@ public:
     TypeInfo(
         const char* name,
         AllocatorHandler allocatorHandler,
+        DestructorHandler destructorHandler,
         uint64 size,
         uint64 alignment,
         const TypeInfo* baseTypeInfo
@@ -37,6 +39,7 @@ public:
     uint64 get_class_size() const { return m_classSize; }
     uint64 get_class_alignment() const { return m_classAlignment; }
     AllocatorHandler get_allocator_handler() const { return m_allocatorHandler; }
+    DestructorHandler get_destructor_handler() const { return m_destructorHandler; }
     const TypeInfo* get_base_type_info() const { return m_baseTypeInfo; }
 
     bool is_a(const TypeInfo* typeInfo) const;
@@ -61,6 +64,7 @@ public:
 protected:
     const char* m_name;
     AllocatorHandler m_allocatorHandler;
+    DestructorHandler m_destructorHandler;
     uint64 m_classSize;
     uint64 m_classAlignment;
     

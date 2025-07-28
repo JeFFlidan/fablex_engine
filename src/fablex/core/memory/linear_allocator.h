@@ -1,8 +1,8 @@
 #pragma once
 
-#include "types.h"
 #include "memory_utils.h"
-#include "macro.h"
+#include "core/types.h"
+#include "core/macro.h"
 
 namespace fe
 {

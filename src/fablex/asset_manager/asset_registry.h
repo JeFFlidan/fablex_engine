@@ -2,7 +2,7 @@
 
 #include "asset.h"
 #include "core/uuid.h"
-#include "core/pool_allocator.h"
+#include "core/memory/pool_allocator.h"
 #include <string>
 #include <unordered_set>
 

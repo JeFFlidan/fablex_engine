@@ -7,7 +7,7 @@
 #include "model/model.h"
 #include "texture/texture.h"
 #include "core/fwd.h"
-#include "core/pool_allocator.h"
+#include "core/memory/pool_allocator.h"
 #include "core/file_system/archive.h"
 
 namespace fe::asset

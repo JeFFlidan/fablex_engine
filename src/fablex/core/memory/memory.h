@@ -1,13 +1,13 @@
 #pragma once
 
-#include "types.h"
 #include "memory_utils.h"
+#include "core/types.h"
 
 namespace fe
 {
 
 template<typename T, typename ...Params>
-T* memory_new(Params... params)
+T* memory_new(Params&&... params)
 {
     return new(MemoryUtils::allocate_aligned_memory(sizeof(T), alignof(T))) T(params...);
 }

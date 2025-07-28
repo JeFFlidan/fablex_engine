@@ -7,6 +7,7 @@ namespace fe
 TypeInfo::TypeInfo(
     const char* name,
     AllocatorHandler allocatorHandler,
+    DestructorHandler destructorHandler,
     uint64 size,
     uint64 alignment,
     const TypeInfo* baseTypeInfo
@@ -14,6 +15,7 @@ TypeInfo::TypeInfo(
 {
     m_name = name;
     m_allocatorHandler = allocatorHandler;
+    m_destructorHandler = destructorHandler;
     m_classSize = size;
     m_classAlignment = alignment;
     m_baseTypeInfo = baseTypeInfo;

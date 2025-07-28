@@ -1,7 +1,7 @@
 #pragma once
 
 #include "task_types.h"
-#include "pool_allocator.h"
+#include "memory/pool_allocator.h"
 
 #include <condition_variable>
 #include <thread>

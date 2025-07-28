@@ -2,7 +2,7 @@
 
 #include "config.h"
 #include "entity.h"
-#include "core/pool_allocator.h"
+#include "core/memory/pool_allocator.h"
 
 namespace fe::engine
 {

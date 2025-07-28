@@ -2,8 +2,8 @@
 
 #ifdef WIN32
 
-#include "core/linear_allocator.h"
 #include "platform_win32.h"
+#include "core/memory/linear_allocator.h"
 
 namespace fe
 {

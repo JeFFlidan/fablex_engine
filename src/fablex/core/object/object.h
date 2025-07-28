@@ -2,7 +2,8 @@
 
 #include "type_info.h"
 #include "type_manager.h"
-#include "core/memory.h"
+#include "object_allocator.h"
+#include "core/memory/default_allocator.h"
 
 namespace fe
 {
@@ -14,8 +15,20 @@ class Archive;
 #define FE_DECLARE_OBJECT(TypeName)                                                                             \
     public:                                                                                                     \
         static const TypeInfo s_typeInfo;                                                                       \
+        static inline ObjectAllocator<DefaultAllocator<TypeName>> s_allocator;                                  \
         static void static_constructor(void* ptr) { reinterpret_cast<TypeName*>(ptr)->TypeName::TypeName(); }   \
-        static Object* allocate() { return (Object*)memory_new<TypeName>(); }                                   \
+        static Object* allocate() { return (Object*)s_allocator.allocate(); }                                   \
+        static void destroy(Object* ptr) { s_allocator.free(static_cast<TypeName*>(ptr)); }                     \
+        static const TypeInfo* get_static_type_info() { return &TypeName::s_typeInfo; }                         \
+        virtual const TypeInfo* get_type_info() const { return &TypeName::s_typeInfo; }
+
+#define FE_DECLARE_OBJECT_CUSTOM_ALLOCATOR(TypeName, Allocator)                                                 \
+    public:                                                                                                     \
+        static const TypeInfo s_typeInfo;                                                                       \
+        static inline ObjectAllocator<Allocator> s_allocator;                                                   \
+        static void static_constructor(void* ptr) { reinterpret_cast<TypeName*>(ptr)->TypeName::TypeName(); }   \
+        static Object* allocate() { return (Object*)s_allocator.allocate(); }                                   \
+        static void destroy(Object* ptr) { s_allocator.free(static_cast<TypeName*>(ptr)); }                     \
         static const TypeInfo* get_static_type_info() { return &TypeName::s_typeInfo; }                         \
         virtual const TypeInfo* get_type_info() const { return &TypeName::s_typeInfo; }
 
@@ -23,6 +36,7 @@ class Archive;
     const TypeInfo TypeName::s_typeInfo(            \
         #TypeName,                                  \
         TypeName::allocate,                         \
+        TypeName::destroy,                          \
         sizeof(TypeName),                           \
         alignof(TypeName),                          \
         nullptr                                     \
@@ -32,6 +46,7 @@ class Archive;
     const TypeInfo TypeName::s_typeInfo(            \
         #TypeName,                                  \
         TypeName::allocate,                         \
+        TypeName::destroy,                          \
         sizeof(TypeName),                           \
         alignof(TypeName),                          \
         BaseTypeName::get_static_type_info()        \
@@ -52,6 +67,8 @@ class Object
 public:
     Object() = default;
     virtual ~Object() = default;
+
+    virtual void on_create() { }
 
     bool is_exactly(const TypeInfo* classTypeInfo) const
     {
@@ -89,17 +106,21 @@ public:
 template<typename T>
 T* create_object()
 {
-    return (T*)TypeManager::create_object_by_name(T::get_static_type_info()->get_str_name());
+    T* object = static_cast<T*>(T::allocate());
+    object->on_create();
+    return object;
 }
 
 inline Object* create_object(Name name)
 {
-    return TypeManager::create_object_by_name(name.to_string().c_str());
+    Object* object = TypeManager::create_object_by_name(name.to_string().c_str());
+    object->on_create();
+    return object;
 }
 
 inline void destroy_object(Object* object)
 {
-    memory_delete(object);
+    TypeManager::destroy_object(object);
 }
 
 }

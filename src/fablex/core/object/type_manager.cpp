@@ -41,6 +41,13 @@ Object* TypeManager::create_object_by_name(const char* typeName)
     return typeInfo->get_allocator_handler()();
 }
 
+void TypeManager::destroy_object(Object* object) 
+{
+    FE_CHECK(object);
+    const TypeInfo* typeInfo = object->get_type_info();
+    typeInfo->get_destructor_handler()(object);
+}
+
 void TypeManager::register_type(const TypeInfo* typeInfo)
 {
     FE_CHECK(typeInfo);

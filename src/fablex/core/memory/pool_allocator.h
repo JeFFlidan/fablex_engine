@@ -1,8 +1,8 @@
 #pragma once
 
 #include "memory_utils.h"
-#include "types.h"
-#include "macro.h"
+#include "core/types.h"
+#include "core/macro.h"
 #include <vector>
 #include <mutex>
 
@@ -13,6 +13,8 @@ template<typename T, size_t PoolSize = 64>
 class PoolAllocator
 {
 public:
+    using ValueType = T;
+
     PoolAllocator()
     {
         m_freePointers.reserve(PoolSize);
@@ -88,6 +90,8 @@ template<typename T, size_t PoolSize = 64>
 class ThreadSafePoolAllocator : private PoolAllocator<T, PoolSize>
 {
 public:
+    using ValueType = T;
+
     ThreadSafePoolAllocator() : PoolAllocator<T, PoolSize>() { }
 
     template<typename... Params>

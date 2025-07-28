@@ -22,6 +22,7 @@ public:
     
     static Object* create_object(const TypeInfo* typeInfo);
     static Object* create_object_by_name(const char* typeName);
+    static void destroy_object(Object* object);
 
     static void register_type(const TypeInfo* typeInfo);
 
