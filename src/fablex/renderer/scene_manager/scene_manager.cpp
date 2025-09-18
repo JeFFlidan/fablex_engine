@@ -1,5 +1,6 @@
 #include "scene_manager.h"
 #include "renderer/globals.h"
+#include "renderer/utils.h"
 
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
@@ -368,7 +369,7 @@ void SceneManager::subscribe_to_events()
         }
     });
 
-    EventManager::subscribe<asset::AssetLoadedEvent<asset::Texture>>([this](const auto& event)
+    EventManager::subscribe<asset::TextureLoadedEvent>([this](const auto& event)
     {
         asset::Texture* textureAsset = event.get_handle();
         if (m_gpuResourcesLookup.contains(textureAsset->get_uuid()))
@@ -380,17 +381,17 @@ void SceneManager::subscribe_to_events()
         createInfo.gpuTexture->create();
     });
 
-    EventManager::subscribe<asset::AssetLoadedEvent<asset::Model>>([this](const auto& event)
+    EventManager::subscribe<asset::ModelLoadedEvent>([this](const auto& event)
     {
         m_pendingModels.push_back(event.get_handle());
     });
 
-    EventManager::subscribe<asset::AssetLoadedEvent<asset::Material>>([this](const auto& event)
+    EventManager::subscribe<asset::MaterialLoadedEvent>([this](const auto& event)
     {
         m_pendingMaterials.push_back(event.get_handle());    
     });
 
-    EventManager::subscribe<asset::AssetImportedEvent<asset::Texture>>([this](const auto& event)
+    EventManager::subscribe<asset::TextureImportedEvent>([this](const auto& event)
     {
         asset::Texture* textureAsset = event.get_handle();
         if (m_gpuResourcesLookup.contains(textureAsset->get_uuid()))
@@ -402,7 +403,7 @@ void SceneManager::subscribe_to_events()
         createInfo.gpuTexture->create();
     });
 
-    EventManager::subscribe<asset::AssetImportedEvent<asset::Model>>([this](const auto& event)
+    EventManager::subscribe<asset::ModelImportedEvent>([this](const auto& event)
     {
         if (m_gpuResourcesLookup.contains(event.get_handle()->get_uuid()))
             return; 
@@ -410,7 +411,7 @@ void SceneManager::subscribe_to_events()
         m_pendingModels.push_back(event.get_handle());
     });
 
-    EventManager::subscribe<asset::AssetCreatedEvent<asset::Material>>([this](const auto& event)
+    EventManager::subscribe<asset::MaterialCreatedEvent>([this](const auto& event)
     {
         m_pendingMaterials.push_back(event.get_handle());
     });
@@ -589,8 +590,8 @@ void SceneManager::allocate_storage_buffers()
             uint64 bufferSize = cpuEntriesSize > DEFAULT_GPU_BUFFER_SIZE 
                 ? calc_buffer_size(0, cpuEntriesSize) : DEFAULT_GPU_BUFFER_SIZE;
 
-            buffers.push_back(create_uma_storage_buffer(bufferSize));
-            rhi::set_name(buffers.back(), generate_resource_name(debugName));
+            buffers.push_back(Utils::create_uma_storage_buffer(bufferSize));
+            rhi::set_name(buffers.back(), Utils::create_per_frame_resource_name(debugName));
         }
         else
         {
@@ -601,8 +602,8 @@ void SceneManager::allocate_storage_buffers()
                 rhi::destroy_buffer(buffer);
 
                 uint64 newSize = calc_buffer_size(currentBufferSize, cpuEntriesSize);
-                buffers.at(g_frameIndex) = create_uma_storage_buffer(newSize);
-                rhi::set_name(buffers.back(), generate_resource_name(debugName));
+                buffers.at(g_frameIndex) = Utils::create_uma_storage_buffer(newSize);
+                rhi::set_name(buffers.back(), Utils::create_per_frame_resource_name(debugName));
             }
         }
     };
@@ -651,8 +652,8 @@ void SceneManager::fill_frame_data()
 {
     if (m_frameBuffers.size() < g_frameIndex + 1)
     {
-        m_frameBuffers.push_back(create_uma_uniform_buffer(sizeof(FrameUB)));
-        rhi::set_name(m_frameBuffers.back(), generate_resource_name(FRAME_DATA_BUFFER_NAME));
+        m_frameBuffers.push_back(Utils::create_uma_uniform_buffer(sizeof(FrameUB)));
+        rhi::set_name(m_frameBuffers.back(), Utils::create_per_frame_resource_name(FRAME_DATA_BUFFER_NAME));
     }
     
     m_frameData.modelBufferIndex = get_model_buffer()->descriptorIndex;
@@ -674,8 +675,8 @@ void SceneManager::fill_camera_buffers()
 
     if (m_cameraBuffers.size() < g_frameIndex + 1)
     {
-        m_cameraBuffers.push_back(create_uma_uniform_buffer(shaderCameraBufferSize));
-        rhi::set_name(m_frameBuffers.back(), generate_resource_name(CAMERA_BUFFER_NAME));
+        m_cameraBuffers.push_back(Utils::create_uma_uniform_buffer(shaderCameraBufferSize));
+        rhi::set_name(m_frameBuffers.back(), Utils::create_per_frame_resource_name(CAMERA_BUFFER_NAME));
     }
     
     if (!m_mainCameraEntity)
@@ -705,30 +706,6 @@ void SceneManager::add_delete_handler(const DeleteHandler& deleteHandler)
         m_deleteHandlersPerFrame.emplace_back();
 
     m_deleteHandlersPerFrame[g_frameIndex].push_back(deleteHandler);
-}
-
-rhi::Buffer* SceneManager::create_uma_storage_buffer(uint64 size) const
-{
-    rhi::BufferInfo bufferInfo;
-    bufferInfo.bufferUsage = rhi::ResourceUsage::STORAGE_BUFFER;
-    bufferInfo.memoryUsage = rhi::MemoryUsage::CPU_TO_GPU;
-    bufferInfo.size = size;
-
-    rhi::Buffer* buffer;
-    rhi::create_buffer(&buffer, &bufferInfo);
-    return buffer;
-}
-
-rhi::Buffer* SceneManager::create_uma_uniform_buffer(uint64 size) const
-{
-    rhi::BufferInfo bufferInfo;
-    bufferInfo.bufferUsage = rhi::ResourceUsage::UNIFORM_BUFFER;
-    bufferInfo.memoryUsage = rhi::MemoryUsage::CPU_TO_GPU;
-    bufferInfo.size = size;
-
-    rhi::Buffer* buffer;
-    rhi::create_buffer(&buffer, &bufferInfo);
-    return buffer;
 }
 
 void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
@@ -831,11 +808,6 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
     );
 
     rhi::build_acceleration_structure(cmd, m_TLAS, nullptr);
-}
-
-std::string SceneManager::generate_resource_name(const std::string& baseName) const
-{
-    return baseName + "_" + std::to_string(g_frameIndex);
 }
 
 }

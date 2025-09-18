@@ -5,6 +5,7 @@
 #include "render_graph_resource_manager.h"
 #include "resource_scheduler.h"
 #include "globals.h"
+#include "utils.h"
 #include "rhi/utils.h"
 #include "rhi/rhi.h"
 
@@ -12,6 +13,8 @@ namespace fe::renderer
 {
 
 FE_DEFINE_OBJECT(RenderPass, Object)
+
+constexpr const char* RESOURCE_NAME_FORMAT_STR = "{}-{}";
 
 void RenderPass::init(const RenderPassMetadata& metadata, const RenderContext* renderContext)
 {
@@ -343,12 +346,12 @@ RenderPass::ResourceNamesXFR RenderPass::get_resource_names_xfr(ResourceName bas
 
 ResourceName RenderPass::get_prev_frame_resource_name(ResourceName baseName) const
 {
-    return ResourceName(baseName.to_string() + std::to_string(get_prev_frame_index()));
+    return ResourceName(Utils::create_resource_name(RESOURCE_NAME_FORMAT_STR, baseName.to_string(), get_prev_frame_index()));
 }
 
 ResourceName RenderPass::get_curr_frame_resource_name(ResourceName baseName) const
 {
-    return ResourceName(baseName.to_string() + std::to_string(get_curr_frame_index()));
+    return ResourceName(Utils::create_resource_name(RESOURCE_NAME_FORMAT_STR, baseName.to_string(), get_curr_frame_index()));
 }
 
 std::string RenderPass::get_name_at_index(Name name, uint32 index) const

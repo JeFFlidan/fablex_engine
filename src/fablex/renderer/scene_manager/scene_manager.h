@@ -18,9 +18,6 @@
 namespace fe::renderer
 {
 
-constexpr uint64 ONE_MEBIBYTE = 1048576;
-constexpr uint64 DEFAULT_GPU_BUFFER_SIZE = ONE_MEBIBYTE * 32;
-
 class CommandRecorder;
 
 class SceneManager
@@ -141,9 +138,6 @@ private:
     void fill_camera_buffers();
 
     void add_delete_handler(const DeleteHandler& deleteHandler);
-
-    rhi::Buffer* create_uma_storage_buffer(uint64 size = DEFAULT_GPU_BUFFER_SIZE) const;
-    rhi::Buffer* create_uma_uniform_buffer(uint64 size) const;
 
     void fill_tlas(rhi::CommandBuffer* cmd);
 

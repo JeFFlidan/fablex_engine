@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "globals.h"
 #include "accessor.h"
+#include "utils.h"
 #include "resource_scheduler.h"
 #include "rhi/utils.h"
 #include "core/task_composer.h"
@@ -412,10 +413,10 @@ void Renderer::record_bvh_build_cmd()
 void Renderer::record_predraw_cmds()
 {
     m_bvhBuildSemaphore = m_syncManager->get_semaphore();
-    rhi::set_name(m_bvhBuildSemaphore, "BVHBuildSemaphore" + std::to_string(g_frameIndex));
+    Utils::set_debug_name(m_bvhBuildSemaphore, "BVHBuildSemaphore");
 
     m_uploadSemaphore = m_syncManager->get_semaphore();
-    rhi::set_name(m_uploadSemaphore, "UploadSemaphore" + std::to_string(g_frameIndex));
+    Utils::set_debug_name(m_uploadSemaphore, "UploadSemaphore");
     
     TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo)
     {

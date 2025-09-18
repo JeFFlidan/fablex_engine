@@ -1,63 +1,38 @@
 #include "utils.h"
-#include "globals.h"
-#include "render_context.h"
-#include "scene_manager/scene_manager.h"
-#include "asset_manager/texture/texture.h"
 
 namespace fe::renderer
 {
 
-void Utils::init(RenderContext* renderContext)
+rhi::Buffer* Utils::create_uma_uniform_buffer(uint32 size)
 {
-    FE_CHECK(renderContext);
-    s_renderContext = renderContext;
+    return create_uma_buffer(size, rhi::ResourceUsage::UNIFORM_BUFFER);
 }
 
-int32 Utils::get_descriptor(asset::Texture* textureAsset)
+rhi::Buffer* Utils::create_uma_storage_buffer(uint32 size)
 {
-    FE_CHECK(s_renderContext);
-    return s_renderContext->scene_manager()->descriptor(textureAsset);
+    return create_uma_buffer(size, rhi::ResourceUsage::STORAGE_BUFFER);
 }
 
-int32 Utils::get_sampler_linear_repeat()
+rhi::Buffer* Utils::create_uma_buffer(uint32 size, rhi::ResourceUsage usage)
 {
-    return get_sampler_descriptor(SAMPLER_LINEAR_REPEAT);
+    rhi::BufferInfo bufferInfo;
+    bufferInfo.bufferUsage = usage;
+    bufferInfo.memoryUsage = rhi::MemoryUsage::CPU_TO_GPU;
+    bufferInfo.size = size;
+
+    rhi::Buffer* buffer;
+    rhi::create_buffer(&buffer, &bufferInfo);
+    return buffer;
 }
 
-int32 Utils::get_sampler_linear_clamp()
+std::string Utils::create_per_frame_resource_name(std::string_view baseName)
 {
-    return get_sampler_descriptor(SAMPLER_LINEAR_CLAMP);
+    return create_resource_name("{}-{}", baseName, g_frameIndex);
 }
 
-int32 Utils::get_sampler_linear_mirror()
+void Utils::set_debug_name(rhi::ResourceVariant resource, const std::string& baseName)
 {
-    return get_sampler_descriptor(SAMPLER_LINEAR_MIRROR);
+    rhi::set_name(resource, baseName);
 }
 
-int32 Utils::get_sampler_nearest_repeat()
-{
-    return get_sampler_descriptor(SAMPLER_NEAREST_REPEAT);
-}
-
-int32 Utils::get_sampler_nearest_clamp()
-{
-    return get_sampler_descriptor(SAMPLER_NEAREST_CLAMP);
-}
-
-int32 Utils::get_sampler_nearest_mirror()
-{
-    return get_sampler_descriptor(SAMPLER_NEAREST_MIRROR);
-}
-
-int32 Utils::get_sampler_minimum_nearest_clamp()
-{
-    return get_sampler_descriptor(SAMPLER_MINIMUM_NEAREST_CLAMP);
-}
-
-int32 Utils::get_sampler_descriptor(const char* samplerName)
-{
-    FE_CHECK(s_renderContext);
-    return s_renderContext->scene_manager()->sampler_descriptor(samplerName);
-}
-    
 }

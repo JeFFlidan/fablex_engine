@@ -17,6 +17,9 @@ constexpr const char* SAMPLER_NEAREST_CLAMP = "SamplerNearesClamp";
 constexpr const char* SAMPLER_NEAREST_MIRROR = "SamplerNearestMirror";
 constexpr const char* SAMPLER_MINIMUM_NEAREST_CLAMP = "SamplerMinimumNearestClamp";
 
+constexpr uint64 ONE_MEBIBYTE = 1048576;
+constexpr uint64 DEFAULT_GPU_BUFFER_SIZE = ONE_MEBIBYTE * 32;
+
 // Must only be used for render graph cross frame resources 
 inline uint64 get_curr_frame_index()
 {

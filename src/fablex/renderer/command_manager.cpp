@@ -1,5 +1,6 @@
 #include "command_manager.h"
 #include "globals.h"
+#include "utils.h"
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
 #include <sstream>
@@ -11,6 +12,18 @@ std::string to_string(std::thread::id id) {
     std::ostringstream oss;
     oss << id;
     return oss.str();
+}
+
+// Name = CmdPool-{ThredID}-{FrameIdx}-{QueueIdx}
+void set_cmd_pool_name(rhi::CommandPool* cmdPool, uint32 queueIdx)
+{
+    Utils::set_debug_name(cmdPool, "CmdPool-{}-{}-{}", to_string(std::this_thread::get_id()), g_frameIndex, queueIdx);
+}
+
+// Name = CmdBuffer-{ThredID}-{FrameIdx}-{QueueIdx}-{CmdIdx}
+void set_cmd_name(rhi::CommandBuffer* cmd, uint32 queueIdx, uint32 cmdIdx)
+{
+    Utils::set_debug_name(cmd, "CmdBuffer-{}-{}-{}-{}", to_string(std::this_thread::get_id()), g_frameIndex, queueIdx, cmdIdx);
 }
 
 CommandManager::~CommandManager()
@@ -76,8 +89,7 @@ CommandManager::CommandAllocator::CommandAllocator()
         info.queueType = (rhi::QueueType)i;
         rhi::create_command_pool(&cmdPoolContext.cmdPool, &info);
 
-        std::string name = "CmdPool_" + to_string(std::this_thread::get_id()) + "_" + std::to_string(g_frameIndex);
-        rhi::set_name(cmdPoolContext.cmdPool, name.c_str());
+        set_cmd_pool_name(cmdPoolContext.cmdPool, i);
     }
 }
 
@@ -110,8 +122,11 @@ rhi::CommandBuffer* CommandManager::CommandAllocator::get_cmd(rhi::QueueType que
         info.cmdPool = cmdPoolContext.cmdPool;
         rhi::create_command_buffer(&cmdPoolContext.usedCmdBuffers.emplace_back(), &info);
 
-        std::string name = "CmdBuffer_" + to_string(std::this_thread::get_id()) + "_" + std::to_string(g_frameIndex) + "_" + std::to_string(cmdPoolContext.usedCmdBuffers.size() - 1);
-        rhi::set_name(cmdPoolContext.usedCmdBuffers.back(), name.c_str());
+        rhi::CommandBuffer* cmd = cmdPoolContext.usedCmdBuffers.back();
+        uint32 cmdIdx = cmdPoolContext.usedCmdBuffers.size() - 1;
+        uint32 queueIdx = std::to_underlying(cmdPoolContext.cmdPool->queueType);
+
+        set_cmd_name(cmd, cmdIdx, queueIdx);
     }
     else
     {

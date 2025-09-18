@@ -1,31 +1,37 @@
 #pragma once
 
+#include "rhi/rhi.h"
 #include "core/types.h"
-#include "asset_manager/fwd.h"
+#include "globals.h"
+#include "fmt/core.h"
+#include <string>
 
 namespace fe::renderer
 {
 
-class RenderContext;
-
 class Utils
 {
 public:
-    static void init(RenderContext* renderContext);
+    static rhi::Buffer* create_uma_uniform_buffer(uint32 size);
+    static rhi::Buffer* create_uma_storage_buffer(uint32 size = DEFAULT_GPU_BUFFER_SIZE);
+    static rhi::Buffer* create_uma_buffer(uint32 size, rhi::ResourceUsage usage);
 
-    static int32 get_descriptor(asset::Texture* textureAsset);
-    static int32 get_sampler_linear_repeat();
-    static int32 get_sampler_linear_clamp();
-    static int32 get_sampler_linear_mirror();
-    static int32 get_sampler_nearest_repeat();
-    static int32 get_sampler_nearest_clamp();
-    static int32 get_sampler_nearest_mirror();
-    static int32 get_sampler_minimum_nearest_clamp();
+    static std::string create_per_frame_resource_name(std::string_view baseName);
 
-private:
-    inline static RenderContext* s_renderContext = nullptr;
+    template<typename... Params>
+    static std::string create_resource_name(std::string_view formatStr, Params&&... params)
+    {
+        return fmt::format(fmt::runtime(formatStr), params...);
+    }
 
-    static int32 get_sampler_descriptor(const char* samplerName);
+    template<typename... Params>
+    static void set_debug_name(rhi::ResourceVariant resource, std::string_view formatStr, Params&&... params)
+    {
+        rhi::set_name(resource, create_resource_name(formatStr, params...));
+    }
+
+    // Debug name for per frame resource
+    static void set_debug_name(rhi::ResourceVariant resource, const std::string& baseName);
 };
 
 }

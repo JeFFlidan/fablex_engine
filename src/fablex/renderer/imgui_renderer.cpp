@@ -5,6 +5,7 @@
 #include "resource_metadata.h"
 #include "imgui_interop_editor.h"
 #include "accessor.h"
+#include "utils.h"
 
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
@@ -316,20 +317,13 @@ rhi::Buffer* ImGuiRenderer::get_index_buffer(uint32 desiredSize)
 }
 
 rhi::Buffer* ImGuiRenderer::create_uma_buffer(uint32 desiredSize, rhi::ResourceUsage usage)
-{
-    rhi::BufferInfo info;
-    info.size = desiredSize ? desiredSize : BUFFER_ALIGNMENT;
-    info.memoryUsage = rhi::MemoryUsage::CPU_TO_GPU;
-    info.bufferUsage = usage;
-    
-    rhi::Buffer* buffer;
+{    
+    rhi::Buffer* buffer = Utils::create_uma_buffer(desiredSize ? desiredSize : BUFFER_ALIGNMENT, usage);
 
-    rhi::create_buffer(&buffer, &info);
-
-    if (has_flag(info.bufferUsage, rhi::ResourceUsage::VERTEX_BUFFER))
-        rhi::set_name(buffer, VERTEX_BUFFER_NAME + std::to_string(g_frameIndex));
-    else if (has_flag(info.bufferUsage, rhi::ResourceUsage::INDEX_BUFFER))
-        rhi::set_name(buffer, INDEX_BUFFER_NAME + std::to_string(g_frameIndex));
+    if (has_flag(buffer->bufferUsage, rhi::ResourceUsage::VERTEX_BUFFER))
+        Utils::set_debug_name(buffer, VERTEX_BUFFER_NAME);
+    else if (has_flag(buffer->bufferUsage, rhi::ResourceUsage::INDEX_BUFFER))
+        Utils::set_debug_name(buffer, INDEX_BUFFER_NAME);
 
     return buffer;
 }

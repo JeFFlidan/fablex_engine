@@ -1,4 +1,5 @@
 #include "texture.h"
+#include "utils.h"
 #include "rhi/rhi.h"
 #include "core/macro.h"
 
@@ -115,7 +116,7 @@ void Texture::reserve_texture_view_arrays()
 
 std::string Texture::get_view_name(uint32 mipLevel) const
 {
-    return m_name.to_string() + "View" + std::to_string(mipLevel);
+    return Utils::create_resource_name("{}View-{}", m_name.to_string(), mipLevel);
 }
 
 }
