@@ -4,7 +4,7 @@
 #include "globals.h"
 #include "resource_metadata.h"
 #include "imgui_interop_editor.h"
-#include "utils.h"
+#include "accessor.h"
 
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
@@ -148,7 +148,7 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
     }
 
     ImGuiPushConstants pushConstants;
-    pushConstants.sampler = Utils::get_sampler_linear_clamp();
+    pushConstants.sampler = Accessor::get_sampler_linear_clamp();
     pushConstants.scale.x = 2.0f / drawData->DisplaySize.x;
     pushConstants.scale.y = 2.0f / drawData->DisplaySize.y;
     pushConstants.translate.x = -1.0f - drawData->DisplayPos.x * pushConstants.scale.x;

@@ -8,7 +8,7 @@
 #include "core/task_composer.h"
 #include "core/file_system/file_system.h"
 
-#include "renderer/utils.h"
+#include "renderer/accessor.h"
 
 #include "imgui.h"
 #include <vector>
@@ -57,7 +57,7 @@ void ContentBrowser::draw()
             {"Textures", ContentFolder::TEXTURES},
         };
 
-        uint32 folderIconDescriptor = renderer::Utils::get_descriptor(m_folderIcon);
+        uint32 folderIconDescriptor = renderer::Accessor::get_descriptor(m_folderIcon);
 
         for (auto& [name, folder] : rootItems)
         {
@@ -85,7 +85,7 @@ void ContentBrowser::draw()
         };
 
         asset::Type assetType = assetTypeByFolder.at(m_currentFolder);
-        uint32 iconDescriptor = renderer::Utils::get_descriptor(m_iconByAssetType.at(assetType));
+        uint32 iconDescriptor = renderer::Accessor::get_descriptor(m_iconByAssetType.at(assetType));
         auto allAssetData = asset::AssetRegistry::get_assets_data_by_type(assetType);
 
         for (const asset::AssetData* assetData : allAssetData)

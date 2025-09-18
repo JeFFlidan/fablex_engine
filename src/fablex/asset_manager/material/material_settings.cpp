@@ -1,5 +1,5 @@
 #include "material_settings.h"
-#include "renderer/utils.h"
+#include "renderer/accessor.h"
 #include "shaders/shader_interop_renderer.h"
 
 namespace fe::asset
@@ -15,7 +15,7 @@ void MaterialSettings::set_texture(
 {
     outShaderMaterial.textures[textureSlot].init();
     if (textureAsset)
-        outShaderMaterial.textures[textureSlot] = renderer::Utils::get_descriptor(textureAsset);
+        outShaderMaterial.textures[textureSlot] = renderer::Accessor::get_descriptor(textureAsset);
 }
 
 }

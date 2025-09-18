@@ -1,6 +1,6 @@
 #include "opaque_material_settings.h"
 #include "asset_manager.h"
-#include "renderer/utils.h"
+#include "renderer/accessor.h"
 #include "shaders/shader_interop_renderer.h"
 
 namespace fe::asset
@@ -18,7 +18,7 @@ void OpaqueMaterialSettings::fill_shader_material(ShaderMaterial& outShaderMater
     outShaderMaterial.set_base_color(m_baseColor);
     outShaderMaterial.set_metallic(m_metallic);
     outShaderMaterial.set_roughness(m_roughness);
-    outShaderMaterial.set_sampler_index(renderer::Utils::get_sampler_linear_repeat());
+    outShaderMaterial.set_sampler_index(renderer::Accessor::get_sampler_linear_repeat());
 
     set_texture(outShaderMaterial, TEXTURE_SLOT_BASE_COLOR, base_color_texture());
     set_texture(outShaderMaterial, TEXTURE_SLOT_NORMAL, normal_texture());

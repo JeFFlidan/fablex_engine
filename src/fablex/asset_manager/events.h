@@ -63,7 +63,8 @@ class AssetLoadedEvent { };
             { return m_importContext; }                                                 \
     private:                                                                            \
         AssetType##ImportContext m_importContext;                                       \
-    };
+    };                                                                                  \
+    using AssetType##ImportedEvent = AssetImportedEvent<AssetType>;
 
 #define FE_DEFINE_ASSET_CREATED_EVENT(AssetType)                                        \
     template<>                                                                          \
@@ -72,7 +73,8 @@ class AssetLoadedEvent { };
     public:                                                                             \
         FE_DECLARE_EVENT(AssetType##CreatedEvent);                                      \
         AssetCreatedEvent(AssetType* asset) : AssetEvent<AssetType>(asset) { }          \
-    };
+    };                                                                                  \
+    using AssetType##CreatedEvent = AssetCreatedEvent<AssetType>;
 
 #define FE_DEFINE_ASSET_LOADED_EVENT(AssetType)                                         \
     template<>                                                                          \
@@ -81,7 +83,8 @@ class AssetLoadedEvent { };
     public:                                                                             \
         FE_DECLARE_EVENT(AssetType##LoadedEvent);                                       \
         AssetLoadedEvent(AssetType* asset) : AssetEvent<AssetType>(asset) { }           \
-    };
+    };                                                                                  \
+    using AssetType##LoadedEvent = AssetLoadedEvent<AssetType>;
 
 FE_DEFINE_ASSET_IMPORTED_EVENT(Model);
 FE_DEFINE_ASSET_IMPORTED_EVENT(Texture);
