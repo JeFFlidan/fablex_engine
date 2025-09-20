@@ -29,6 +29,11 @@ GPUModel::~GPUModel()
     destroy_buffer_views();
 }
 
+void GPUModel::reset()
+{
+    m_instances.clear();
+}
+
 void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder)
 {
     destroy_buffer_views();
@@ -513,10 +518,11 @@ void GPUModel::destroy_BLASes()
     m_BLASState = BLASState::REQUIRES_REBUILD;
 }
 
-void GPUModel::add_instance(engine::Entity* entity)
+GPUModelInstance& GPUModel::add_instance(engine::Entity* entity)
 {
     FE_CHECK(entity);
     m_instances.push_back(entity);
+    return m_instances.back();
 }
 
 void GPUModel::remove_instance(engine::Entity* entity)
@@ -532,48 +538,46 @@ void GPUModel::remove_instance(engine::Entity* entity)
     m_instances.erase(it);
 }
 
-void GPUModel::fill_shader_model(ShaderModel& outShaderModel) const
+void GPUModel::fill_shader_data(const SceneManager* sceneManager)
 {
-    outShaderModel.indexBuffer = srv_indices();
-    outShaderModel.vertexBufferPosWind = srv_positions_winds();
-    outShaderModel.vertexBufferMeshlets = srv_meshlets();
-    outShaderModel.vertexBufferMeshletBounds = srv_meshlet_bounds();
-    outShaderModel.vertexBufferNormals = srv_normals();
-    outShaderModel.vertexBufferTangents = srv_tangents();
-    outShaderModel.vertexBufferUVs = srv_uvs();
-    outShaderModel.vertexBufferAtlas = srv_atlas();
-    outShaderModel.vertexBufferColors = srv_colors();
-    
-    outShaderModel.aabbMin = aabb().minPoint;
-    outShaderModel.aabbMax = aabb().maxPoint;
-    
-    outShaderModel.uvRangeMin = m_uvRangeMin;
-    outShaderModel.uvRangeMax = m_uvRangeMax;
-}
+    ShaderModel& shaderModel = sceneManager->model_buffers()[m_indexInBuffer];
 
-void GPUModel::fill_shader_model_and_mesh_instances(
-    SceneManager* sceneManager,
-    ShaderModelInstance* modelInstanceArray,
-    uint64& modelInstanceArrayOffset,
-    ShaderMeshInstance* meshInstanceArray,
-    uint64& meshInstanceArrayOffset
-)
-{
+    shaderModel.indexBuffer = srv_indices();
+    shaderModel.vertexBufferPosWind = srv_positions_winds();
+    shaderModel.vertexBufferMeshlets = srv_meshlets();
+    shaderModel.vertexBufferMeshletBounds = srv_meshlet_bounds();
+    shaderModel.vertexBufferNormals = srv_normals();
+    shaderModel.vertexBufferTangents = srv_tangents();
+    shaderModel.vertexBufferUVs = srv_uvs();
+    shaderModel.vertexBufferAtlas = srv_atlas();
+    shaderModel.vertexBufferColors = srv_colors();
+    
+    shaderModel.aabbMin = aabb().minPoint;
+    shaderModel.aabbMax = aabb().maxPoint;
+    
+    shaderModel.uvRangeMin = m_uvRangeMin;
+    shaderModel.uvRangeMax = m_uvRangeMax;
+
+    const ModelInstanceBuffers& modelInstanceBuffers = sceneManager->model_instance_buffers();
+    const MeshInstanceBuffers& meshInstanceBuffers = sceneManager->mesh_instance_buffers();
+
     for (const GPUModelInstance& instance : m_instances)
     {
-        ShaderModelInstance& shaderModelInstance = modelInstanceArray[modelInstanceArrayOffset++];
-        instance.fill_shader_model_instance(sceneManager, shaderModelInstance);
-        shaderModelInstance.meshOffset = meshInstanceArrayOffset;
+        ShaderModelInstance& shaderModelInstance = modelInstanceBuffers[instance.index()];
+        instance.fill_shader_model_instance(shaderModelInstance);
 
         engine::MaterialComponent* matComponent = instance.material_component();
 
+        uint32 meshIndex = instance.mesh_instance_range_begin_index();
+
         for (auto& mesh : m_model->meshes())
         {
-            ShaderMeshInstance& shaderMeshInstance = meshInstanceArray[meshInstanceArrayOffset++];
-            shaderMeshInstance.modelIndex = sceneManager->resource_index(m_model->get_uuid());
+            ShaderMeshInstance& shaderMeshInstance = meshInstanceBuffers[meshIndex++];
+            shaderMeshInstance.modelIndex = m_indexInBuffer;
 
-            uint32 materialIndex = sceneManager->resource_index(matComponent->material_uuids()[mesh.materialIndex]);
-            shaderMeshInstance.materialIndex = materialIndex;
+            UUID materialUUID = matComponent->material_uuids()[mesh.materialIndex];
+
+            shaderMeshInstance.materialIndex = sceneManager->gpu_material(materialUUID)->index();
             shaderMeshInstance.indexOffset = mesh.indexOffset;
         }
     }

@@ -20,4 +20,12 @@ void GPUMaterial::fill_shader_material(const SceneManager* sceneManager, ShaderM
     m_material->fill_shader_material(shaderMaterial);
 }
 
+void GPUMaterial::fill_shader_data(const SceneManager* sceneManager)
+{
+    const MaterialBuffers& materialBuffers = sceneManager->material_buffers();
+    ShaderMaterial& shaderMaterial = materialBuffers[m_indexInBuffer];
+    shaderMaterial.init();
+    m_material->fill_shader_material(shaderMaterial);
+}
+
 }

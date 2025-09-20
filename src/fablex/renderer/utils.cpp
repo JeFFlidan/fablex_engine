@@ -32,7 +32,7 @@ std::string Utils::create_per_frame_resource_name(std::string_view baseName)
 
 void Utils::set_debug_name(rhi::ResourceVariant resource, const std::string& baseName)
 {
-    rhi::set_name(resource, baseName);
+    rhi::set_name(resource, create_per_frame_resource_name(baseName));
 }
 
 }

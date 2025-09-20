@@ -27,6 +27,7 @@ struct ComponentPoolSize
     using ForEachHandler = SparseSet<ComponentType>::ForEachHandler;                                    \
     inline static SparseSet<ComponentType> s_sparseSet;                                                 \
     static void for_each(const ForEachHandler& handler);                                                \
+    static uint32 count();                                                                              \
     virtual void on_entity_set(Entity* entity) override;                                                \
 
 
@@ -35,6 +36,10 @@ struct ComponentPoolSize
     void ComponentType::for_each(const ForEachHandler& handler)  \
     {                                                            \
         s_sparseSet.for_each(handler);                           \
+    }                                                            \
+    uint32 ComponentType::count()                                \
+    {                                                            \
+        return s_sparseSet.size();                               \
     }                                                            \
     void ComponentType::on_entity_set(Entity* entity)            \
     {                                                            \

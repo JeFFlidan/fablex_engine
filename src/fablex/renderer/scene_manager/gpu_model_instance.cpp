@@ -1,5 +1,4 @@
 #include "gpu_model_instance.h"
-#include "scene_manager.h"
 #include "engine/entity/entity.h"
 #include "engine/components/model_component.h"
 #include "engine/components/material_component.h"
@@ -15,7 +14,7 @@ GPUModelInstance::GPUModelInstance(engine::Entity* entity) : m_entity(entity)
     m_materialComponent = m_entity->get_component<engine::MaterialComponent>();
 }
 
-void GPUModelInstance::fill_shader_model_instance(SceneManager* sceneManager, ShaderModelInstance& outModelInstance) const
+void GPUModelInstance::fill_shader_model_instance(ShaderModelInstance& outModelInstance) const
 {
     asset::Model* modelAsset = m_modelComponent->get_model();
     
@@ -24,7 +23,7 @@ void GPUModelInstance::fill_shader_model_instance(SceneManager* sceneManager, Sh
     Sphere sphereBounds(aabb);
     outModelInstance.sphereBounds.center = sphereBounds.center;
     outModelInstance.sphereBounds.radius = sphereBounds.radius;
-    outModelInstance.meshOffset = sceneManager->resource_index(modelAsset->get_uuid());
+    outModelInstance.meshOffset = m_meshInstanceRangeBeginIndex;
 
     Matrix remapMat = modelAsset->aabb().get_unorm_remap_matrix();
     Matrix transformMat = m_entity->get_world_transform();

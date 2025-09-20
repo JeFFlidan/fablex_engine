@@ -1,6 +1,8 @@
 #pragma once
 
+#include "gpu_resource.h"
 #include "gpu_model_instance.h"
+#include "frame_data_buffers.h"
 #include "rhi/resources.h"
 #include "asset_manager/fwd.h"
 #include "engine/entity/fwd.h"
@@ -23,30 +25,24 @@ enum class BLASState
     READY
 };
 
-class GPUModel
+class GPUModel : public GPUResource
 {
 public:
     GPUModel(asset::Model* model);
     GPUModel(engine::ModelComponent* modelComponent);
-    virtual ~GPUModel();
+    ~GPUModel();
+
+    void reset();
 
     void build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder);
     void build_blas(const CommandRecorder& cmdRecorder);
     void destroy_buffer_views();
     void destroy_BLASes();
 
-    void add_instance(engine::Entity* entity);
+    GPUModelInstance& add_instance(engine::Entity* entity);
     void remove_instance(engine::Entity* entity);
 
-    void fill_shader_model(ShaderModel& outShaderModel) const;
-    
-    void fill_shader_model_and_mesh_instances(
-        SceneManager* sceneManager,
-        ShaderModelInstance* modelInstanceArray,
-        uint64& modelInstanceArrayOffset,
-        ShaderMeshInstance* meshInstanceArray,
-        uint64& meshInstanceArrayOffset
-    );
+    void fill_shader_data(const SceneManager* sceneManager);
 
     asset::Model* model_asset() const { return m_model; }
     const AABB& aabb() const;

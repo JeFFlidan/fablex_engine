@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu_resource.h"
 #include "asset_manager/fwd.h"
 #include "rhi/resources.h"
 
@@ -8,7 +9,7 @@ namespace fe::renderer
 
 class CommandRecorder;
 
-class GPUTexture
+class GPUTexture : public GPUResource
 {
 public:
     GPUTexture(asset::Texture* textureAsset);
