@@ -2,9 +2,8 @@
 
 #include "gpu_resource.h"
 #include "gpu_model_instance.h"
-#include "frame_data_buffers.h"
 #include "rhi/resources.h"
-#include "asset_manager/fwd.h"
+#include "asset_manager/model/model.h"
 #include "engine/entity/fwd.h"
 #include "core/primitives/aabb.h"
 
@@ -25,7 +24,7 @@ enum class BLASState
     READY
 };
 
-class GPUModel : public GPUResource
+class GPUModel : public GPUResource<asset::Model>
 {
 public:
     GPUModel(asset::Model* model);
@@ -44,7 +43,6 @@ public:
 
     void fill_shader_data(const SceneManager* sceneManager);
 
-    asset::Model* model_asset() const { return m_model; }
     const AABB& aabb() const;
     uint32 mesh_count() const;
     rhi::Format position_format() const { return m_positionFormat; }
@@ -82,7 +80,6 @@ private:
         void cleanup();
     };
 
-    asset::Model* m_model = nullptr;
     rhi::Format m_positionFormat = rhi::Format::UNDEFINED;
     rhi::Format m_uvFormat = rhi::Format::UNDEFINED;
     Float2 m_uvRangeMin = Float2(0.0f, 0.0f);

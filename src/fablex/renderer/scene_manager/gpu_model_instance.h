@@ -10,7 +10,7 @@ namespace fe::renderer
 
 class SceneManager;
 
-class GPUModelInstance : public GPUResource
+class GPUModelInstance : public IndexedGPUObject
 {
 public:
     GPUModelInstance(engine::Entity* entity);

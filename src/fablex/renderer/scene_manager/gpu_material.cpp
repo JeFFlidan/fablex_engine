@@ -1,11 +1,10 @@
 #include "gpu_material.h"
 #include "scene_manager.h"
-#include "asset_manager/material/material.h"
 
 namespace fe::renderer
 {
 
-GPUMaterial::GPUMaterial(asset::Material* material) : m_material(material)
+GPUMaterial::GPUMaterial(asset::Material* material) : GPUResource(material)
 {
 
 }
@@ -15,17 +14,12 @@ void GPUMaterial::build(SceneManager* sceneManager, const CommandRecorder& cmdRe
     
 }
 
-void GPUMaterial::fill_shader_material(const SceneManager* sceneManager, ShaderMaterial& shaderMaterial) const
-{
-    m_material->fill_shader_material(shaderMaterial);
-}
-
 void GPUMaterial::fill_shader_data(const SceneManager* sceneManager)
 {
     const MaterialBuffers& materialBuffers = sceneManager->material_buffers();
     ShaderMaterial& shaderMaterial = materialBuffers[m_indexInBuffer];
     shaderMaterial.init();
-    m_material->fill_shader_material(shaderMaterial);
+    m_asset->fill_shader_material(shaderMaterial);
 }
 
 }

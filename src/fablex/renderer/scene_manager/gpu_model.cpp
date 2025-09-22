@@ -12,9 +12,9 @@
 namespace fe::renderer
 {
 
-GPUModel::GPUModel(asset::Model* model) : m_model(model)
+GPUModel::GPUModel(asset::Model* model) : GPUResource(model)
 {
-    FE_CHECK(m_model);
+
 }
 
 GPUModel::GPUModel(engine::ModelComponent* modelComponent)
@@ -43,10 +43,10 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
 
     const AABB& aabb = this->aabb();
 
-    for (uint32 i = 0; i != m_model->vertex_positions().size(); ++i)
+    for (uint32 i = 0; i != m_asset->vertex_positions().size(); ++i)
     {
-        const Float3& position = m_model->vertex_positions()[i];
-        const uint8 wind = m_model->vertex_wind_weights().empty() ? 0xFF : m_model->vertex_wind_weights()[i];
+        const Float3& position = m_asset->vertex_positions()[i];
+        const uint8 wind = m_asset->vertex_wind_weights().empty() ? 0xFF : m_asset->vertex_wind_weights()[i];
 
         VertexPositionWind16Bit vertex;
         vertex.from_full(aabb, position, wind);
@@ -67,14 +67,14 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
 
     const uint32 positionFormatStride = rhi::get_format_stride(m_positionFormat);
 
-    const uint64 uvCount = std::max(m_model->vertex_uv_set0().size(), m_model->vertex_uv_set1().size());
+    const uint64 uvCount = std::max(m_asset->vertex_uv_set0().size(), m_asset->vertex_uv_set1().size());
     uint64 uvStride = sizeof(VertexUVs16Bit);
     m_uvFormat = VertexUVs16Bit::FORMAT;
 
-    if (!m_model->vertex_uv_set0().empty() || !m_model->vertex_uv_set1().empty())
+    if (!m_asset->vertex_uv_set0().empty() || !m_asset->vertex_uv_set1().empty())
     {
-        const std::vector<Float2>& uv0 = m_model->vertex_uv_set0().empty() ? m_model->vertex_uv_set1() : m_model->vertex_uv_set0();
-        const std::vector<Float2>& uv1 = m_model->vertex_uv_set1().empty() ? m_model->vertex_uv_set0() : m_model->vertex_uv_set1();
+        const std::vector<Float2>& uv0 = m_asset->vertex_uv_set0().empty() ? m_asset->vertex_uv_set1() : m_asset->vertex_uv_set0();
+        const std::vector<Float2>& uv1 = m_asset->vertex_uv_set1().empty() ? m_asset->vertex_uv_set0() : m_asset->vertex_uv_set1();
 
         m_uvRangeMin = Float2(FLOAT_MAX, FLOAT_MAX);
         m_uvRangeMax = Float2(FLOAT_MIN, FLOAT_MIN);
@@ -100,7 +100,7 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
     const float coneWeight = 0.5f;
 
     const size_t maxMeshlets = meshopt_buildMeshletsBound(
-        m_model->index_count(), 
+        m_asset->index_count(), 
         MESHLET_VERTEX_COUNT, 
         MESHLET_TRIANGLE_COUNT
     );
@@ -113,10 +113,10 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
         meshoptMeshlets.data(),
         meshletVertices.data(),
         meshletTriangles.data(),
-        m_model->indices().data(),
-        m_model->index_count(),
-        (float*)m_model->vertex_positions().data(),
-        m_model->vertex_count(),
+        m_asset->indices().data(),
+        m_asset->index_count(),
+        (float*)m_asset->vertex_positions().data(),
+        m_asset->vertex_count(),
         sizeof(Float3),
         MESHLET_VERTEX_COUNT,
         MESHLET_TRIANGLE_COUNT,
@@ -147,8 +147,8 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
             &meshletVertices[meshoptMeshlet.vertex_offset], 
             &meshletTriangles[meshoptMeshlet.triangle_offset], 
             meshoptMeshlet.triangle_count, 
-            &m_model->vertex_positions()[0].x, 
-            m_model->vertex_count(), 
+            &m_asset->vertex_positions()[0].x, 
+            m_asset->vertex_count(), 
             sizeof(Float3)
         );
 
@@ -194,13 +194,13 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
     // TODO: Add bone indices to size when animations will be implemented
     const uint64 alignment = rhi::get_min_offset_alignment(&bufferInfo);
     bufferInfo.size = 
-        rhi::align_to(m_model->vertex_positions().size() * positionFormatStride, alignment) +
-        rhi::align_to(m_model->indices().size() * sizeof(uint32), alignment) +
-        rhi::align_to(m_model->vertex_normals().size() * sizeof(VertexNormal), alignment) +
-        rhi::align_to(m_model->vertex_tangents().size() * sizeof(VertexTangent), alignment) +
+        rhi::align_to(m_asset->vertex_positions().size() * positionFormatStride, alignment) +
+        rhi::align_to(m_asset->indices().size() * sizeof(uint32), alignment) +
+        rhi::align_to(m_asset->vertex_normals().size() * sizeof(VertexNormal), alignment) +
+        rhi::align_to(m_asset->vertex_tangents().size() * sizeof(VertexTangent), alignment) +
         rhi::align_to(uvCount * uvStride, alignment) +
-        rhi::align_to(m_model->vertex_atlas().size() * sizeof(VertexUV16Bit), alignment) +
-        rhi::align_to(m_model->vertex_colors().size() * sizeof(VertexColor), alignment);
+        rhi::align_to(m_asset->vertex_atlas().size() * sizeof(VertexUV16Bit), alignment) +
+        rhi::align_to(m_asset->vertex_colors().size() * sizeof(VertexColor), alignment);
 
     if (!shaderMeshlets.empty())
     {
@@ -232,15 +232,15 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
     case VertexPositionWind16Bit::FORMAT:
     {
         m_vertexPositionsWinds.offset = bufferOffset;
-        m_vertexPositionsWinds.size = sizeof(VertexPositionWind16Bit) * m_model->vertex_positions().size();
+        m_vertexPositionsWinds.size = sizeof(VertexPositionWind16Bit) * m_asset->vertex_positions().size();
         
         VertexPositionWind16Bit* vertices = reinterpret_cast<VertexPositionWind16Bit*>(bufferData + bufferOffset);
         bufferOffset += rhi::align_to(m_vertexPositionsWinds.size, alignment);
 
-        for (uint64 i = 0; i != m_model->vertex_positions().size(); ++i)
+        for (uint64 i = 0; i != m_asset->vertex_positions().size(); ++i)
         {
-            const Float3& position = m_model->vertex_positions()[i];
-            uint8 wind = m_model->vertex_wind_weights().empty() ? 0 : m_model->vertex_wind_weights()[i];
+            const Float3& position = m_asset->vertex_positions()[i];
+            uint8 wind = m_asset->vertex_wind_weights().empty() ? 0 : m_asset->vertex_wind_weights()[i];
             VertexPositionWind16Bit vertex;
             vertex.from_full(aabb, position, wind);
             memcpy(vertices + i, &vertex, sizeof(VertexPositionWind16Bit));
@@ -251,15 +251,15 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
     case VertexPositionWind32Bit::FORMAT:
     {
         m_vertexPositionsWinds.offset = bufferOffset;
-        m_vertexPositionsWinds.size = sizeof(VertexPositionWind32Bit) * m_model->vertex_positions().size();
+        m_vertexPositionsWinds.size = sizeof(VertexPositionWind32Bit) * m_asset->vertex_positions().size();
         
         VertexPositionWind32Bit* vertices = reinterpret_cast<VertexPositionWind32Bit*>(bufferData + bufferOffset);
         bufferOffset += rhi::align_to(m_vertexPositionsWinds.size, alignment);
 
-        for (uint64 i = 0; i != m_model->vertex_positions().size(); ++i)
+        for (uint64 i = 0; i != m_asset->vertex_positions().size(); ++i)
         {
-            const Float3& position = m_model->vertex_positions()[i];
-            uint8 wind = m_model->vertex_wind_weights().empty() ? 0 : m_model->vertex_wind_weights()[i];
+            const Float3& position = m_asset->vertex_positions()[i];
+            uint8 wind = m_asset->vertex_wind_weights().empty() ? 0 : m_asset->vertex_wind_weights()[i];
             VertexPositionWind32Bit vertex;
             vertex.from_full(position, wind);
             memcpy(vertices + i, &vertex, sizeof(VertexPositionWind32Bit));
@@ -273,47 +273,47 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
     }
 
     m_indices.offset = bufferOffset;
-    m_indices.size = sizeof(uint32) * m_model->indices().size();
+    m_indices.size = sizeof(uint32) * m_asset->indices().size();
     uint32* indexData = reinterpret_cast<uint32*>(bufferData + bufferOffset);
     bufferOffset += rhi::align_to(m_indices.size, alignment);
-    memcpy(indexData, m_model->indices().data(), m_indices.size);
+    memcpy(indexData, m_asset->indices().data(), m_indices.size);
 
-    if (!m_model->vertex_normals().empty())
+    if (!m_asset->vertex_normals().empty())
     {
         m_vertexNormals.offset = bufferOffset;
-        m_vertexNormals.size = sizeof(VertexNormal) * m_model->vertex_normals().size();
+        m_vertexNormals.size = sizeof(VertexNormal) * m_asset->vertex_normals().size();
 
         VertexNormal* vertices = reinterpret_cast<VertexNormal*>(bufferData + bufferOffset);
         bufferOffset += rhi::align_to(m_vertexNormals.size, alignment);
 
-        for (uint64 i = 0; i != m_model->vertex_normals().size(); ++i)
+        for (uint64 i = 0; i != m_asset->vertex_normals().size(); ++i)
         {
             VertexNormal vertex;
-            vertex.from_full(m_model->vertex_normals()[i]);
+            vertex.from_full(m_asset->vertex_normals()[i]);
             memcpy(vertices + i, &vertex, sizeof(VertexNormal));
         }
     }
 
-    if (!m_model->vertex_tangents().empty())
+    if (!m_asset->vertex_tangents().empty())
     {
         m_vertexTangents.offset = bufferOffset;
-        m_vertexTangents.size = sizeof(VertexTangent) * m_model->vertex_tangents().size();
+        m_vertexTangents.size = sizeof(VertexTangent) * m_asset->vertex_tangents().size();
 
         VertexTangent* vertices = reinterpret_cast<VertexTangent*>(bufferData + bufferOffset);
         bufferOffset += rhi::align_to(m_vertexTangents.size, alignment);
 
-        for (uint64 i = 0; i != m_model->vertex_tangents().size(); ++i)
+        for (uint64 i = 0; i != m_asset->vertex_tangents().size(); ++i)
         {
             VertexTangent vertex;
-            vertex.from_full(m_model->vertex_tangents()[i]);
+            vertex.from_full(m_asset->vertex_tangents()[i]);
             memcpy(vertices + i, &vertex, sizeof(VertexTangent));
         }
     }
 
-    if (!m_model->vertex_uv_set0().empty() || m_model->vertex_uv_set1().empty())
+    if (!m_asset->vertex_uv_set0().empty() || m_asset->vertex_uv_set1().empty())
     {
-        const std::vector<Float2>& uv0 = m_model->vertex_uv_set0().empty() ? m_model->vertex_uv_set1() : m_model->vertex_uv_set0();
-        const std::vector<Float2>& uv1 = m_model->vertex_uv_set1().empty() ? m_model->vertex_uv_set0() : m_model->vertex_uv_set1();
+        const std::vector<Float2>& uv0 = m_asset->vertex_uv_set0().empty() ? m_asset->vertex_uv_set1() : m_asset->vertex_uv_set0();
+        const std::vector<Float2>& uv1 = m_asset->vertex_uv_set1().empty() ? m_asset->vertex_uv_set0() : m_asset->vertex_uv_set1();
 
         m_vertexUVs.offset = bufferOffset;
         m_vertexUVs.size = uvCount * uvStride;
@@ -356,33 +356,33 @@ void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecor
         }
     }
 
-    if (!m_model->vertex_atlas().empty())
+    if (!m_asset->vertex_atlas().empty())
     {
         m_vertexAtlas.offset = bufferOffset;
-        m_vertexAtlas.size = m_model->vertex_atlas().size() * sizeof(VertexUV16Bit);
+        m_vertexAtlas.size = m_asset->vertex_atlas().size() * sizeof(VertexUV16Bit);
 
         VertexUV16Bit* vertices = reinterpret_cast<VertexUV16Bit*>(bufferData + bufferOffset);
         bufferOffset += rhi::align_to(m_vertexAtlas.size, alignment);
 
-        for (uint64 i = 0; i != m_model->vertex_atlas().size(); ++i)
+        for (uint64 i = 0; i != m_asset->vertex_atlas().size(); ++i)
         {
             VertexUV16Bit vertex;
-            vertex.from_full(m_model->vertex_atlas()[i]);
+            vertex.from_full(m_asset->vertex_atlas()[i]);
             memcpy(vertices + i, &vertex, sizeof(VertexUV16Bit));
         }
     }
 
-    if (!m_model->vertex_colors().empty())
+    if (!m_asset->vertex_colors().empty())
     {
         m_vertexColors.offset = bufferOffset;
-        m_vertexColors.size = m_model->vertex_colors().size() * sizeof(VertexColor);
+        m_vertexColors.size = m_asset->vertex_colors().size() * sizeof(VertexColor);
 
         VertexColor* vertices = reinterpret_cast<VertexColor*>(bufferData + bufferOffset);
         bufferOffset += rhi::align_to(m_vertexColors.size, alignment);
 
-        for (uint64 i = 0; i != m_model->vertex_colors().size(); ++i)
+        for (uint64 i = 0; i != m_asset->vertex_colors().size(); ++i)
         {
-            VertexColor vertex{m_model->vertex_colors()[i]};
+            VertexColor vertex{m_asset->vertex_colors()[i]};
             memcpy(vertices + i, &vertex, sizeof(VertexColor));
         }
     }
@@ -446,12 +446,12 @@ void GPUModel::build_blas(const CommandRecorder& cmdRecorder)
         asInfo.type = rhi::AccelerationStructureInfo::BOTTOM_LEVEL;
         asInfo.flags |= rhi::AccelerationStructureInfo::Flags::PREFER_FAST_TRACE;
 
-        for (const asset::Mesh& mesh : m_model->meshes())
+        for (const asset::Mesh& mesh : m_asset->meshes())
         {
             rhi::BLAS::Geometry& geometry = asInfo.blas.geometries.emplace_back();
             geometry.triangles.vertexBuffer = m_generalBuffer;
             geometry.triangles.vertexOffset = m_vertexPositionsWinds.offset;
-            geometry.triangles.vertexCount = m_model->vertex_count();
+            geometry.triangles.vertexCount = m_asset->vertex_count();
             geometry.triangles.vertexFormat = m_positionFormat == rhi::Format::R32G32B32A32_SFLOAT ? rhi::Format::R32G32B32_SFLOAT : m_positionFormat;
             geometry.triangles.vertexStride = rhi::get_format_stride(m_positionFormat);
             geometry.triangles.indexBuffer = m_generalBuffer;
@@ -570,7 +570,7 @@ void GPUModel::fill_shader_data(const SceneManager* sceneManager)
 
         uint32 meshIndex = instance.mesh_instance_range_begin_index();
 
-        for (auto& mesh : m_model->meshes())
+        for (auto& mesh : m_asset->meshes())
         {
             ShaderMeshInstance& shaderMeshInstance = meshInstanceBuffers[meshIndex++];
             shaderMeshInstance.modelIndex = m_indexInBuffer;
@@ -585,12 +585,12 @@ void GPUModel::fill_shader_data(const SceneManager* sceneManager)
 
 const AABB& GPUModel::aabb() const
 {
-    return m_model->aabb();
+    return m_asset->aabb();
 }
 
 uint32 GPUModel::mesh_count() const
 {
-    return m_model->meshes().size();
+    return m_asset->meshes().size();
 }
 
 uint32 GPUModel::thread_group_count_x() const
@@ -600,7 +600,7 @@ uint32 GPUModel::thread_group_count_x() const
 
 uint64 GPUModel::index_count() const
 {
-    return m_model->indices().size();
+    return m_asset->indices().size();
 }
 
 int32 GPUModel::srv_indices() const
@@ -656,13 +656,13 @@ void GPUModel::configure_buffer_view(BufferView& bufferView, rhi::Format format,
     bufferViewInfo.size = bufferView.size;
     bufferViewInfo.type = rhi::ViewType::SRV;
     rhi::create_buffer_view(&bufferView.srv, &bufferViewInfo, m_generalBuffer);
-    rhi::set_name(bufferView.srv, m_model->get_name() + debugName + "SRV");
+    rhi::set_name(bufferView.srv, m_asset->get_name() + debugName + "SRV");
 
     if (requireUAV)
     {
         bufferViewInfo.type = rhi::ViewType::UAV;
         rhi::create_buffer_view(&bufferView.uav, &bufferViewInfo, m_generalBuffer);
-        rhi::set_name(bufferView.srv, m_model->get_name() + debugName + "UAV");
+        rhi::set_name(bufferView.srv, m_asset->get_name() + debugName + "UAV");
     }
 }
 

@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "command_recorder.h"
-#include "frame_data_buffers.h"
+#include "gpu_data_buffers.h"
 #include "gpu_resource_handle.h"
 
 #include "core/fwd.h"
@@ -19,11 +19,11 @@ namespace fe::renderer
 
 class CommandRecorder;
 
-using ModelBuffers = FrameDataBuffers<ShaderModel>;
-using ModelInstanceBuffers = FrameDataBuffers<ShaderModelInstance>;
-using MeshInstanceBuffers = FrameDataBuffers<ShaderMeshInstance>;
-using MaterialBuffers = FrameDataBuffers<ShaderMaterial>;
-using ShaderEntityBuffers = FrameDataBuffers<ShaderEntity>;
+using ModelBuffers = GPUDataBuffers<ShaderModel>;
+using ModelInstanceBuffers = GPUDataBuffers<ShaderModelInstance>;
+using MeshInstanceBuffers = GPUDataBuffers<ShaderMeshInstance>;
+using MaterialBuffers = GPUDataBuffers<ShaderMaterial>;
+using ShaderEntityBuffers = GPUDataBuffers<ShaderEntity>;
 
 class SceneManager
 {

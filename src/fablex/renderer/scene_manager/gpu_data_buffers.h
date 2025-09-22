@@ -10,7 +10,7 @@ namespace fe::renderer
 {
 
 template<typename DataType>
-struct DefaultFrameDataBuffersAllocator
+struct DefaultGPUDataBuffersAllocator
 {
     static uint32 get_new_buffer_size(uint32 currentSize, uint32 entryCount)
     {
@@ -50,8 +50,8 @@ struct DefaultFrameDataBuffersAllocator
     }
 };
 
-template<typename DataType, typename Allocator = DefaultFrameDataBuffersAllocator<DataType>>
-class FrameDataBuffers
+template<typename DataType, typename Allocator = DefaultGPUDataBuffersAllocator<DataType>>
+class GPUDataBuffers
 {
 public:
     void set_debug_name(const char* debugName)

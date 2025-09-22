@@ -153,18 +153,20 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     allocate_storage_buffers();
 
-    std::vector<GPUResourceHandleArrayIterator> gpuResourceIteratorsToDestroy;
-    TaskComposer::execute(taskGroup, [this, &gpuResourceIteratorsToDestroy](TaskExecutionInfo execInfo)
+    TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
-        uint32 index = 0;
+        int32 index = 0;
 
         for (const GPUResourceHandlePtr& handle : m_gpuResources)
         {
             handle->visit(fe::Utils::make_visitor(
-                [this, &gpuResourceIteratorsToDestroy, index](GPUModel& gpuModel) 
+                [this, &index](GPUModel& gpuModel) 
                 { 
                     if (gpuModel.instance_count() == 0)
-                        gpuResourceIteratorsToDestroy.push_back(m_gpuResources.begin() + index);
+                    {
+                        --index;
+                        return;
+                    }
 
                     gpuModel.index(m_gpuModels.size());
                     gpuModel.fill_shader_data(this);
@@ -185,11 +187,6 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
             ));
 
             ++index;
-        }
-
-        for (auto it = gpuResourceIteratorsToDestroy.rbegin(); it != gpuResourceIteratorsToDestroy.rend(); ++it)
-        {
-            m_gpuResources.erase(*it);
         }
     });
 
