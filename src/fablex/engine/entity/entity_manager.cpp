@@ -12,7 +12,6 @@ void EntityManager::update()
         if (it != m_entities.end())
         {
             EventManager::trigger_event(EntityRemovedEvent(entity));
-            
             m_entities.erase(it);
             m_allocator.free(entity);
         }

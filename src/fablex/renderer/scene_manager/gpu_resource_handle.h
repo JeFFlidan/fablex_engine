@@ -5,6 +5,7 @@
 #include "gpu_material.h"
 #include "core/utils.h"
 
+#include <memory>
 #include <variant>
 
 namespace fe::renderer
@@ -32,12 +33,12 @@ public:
     {}
 
     template<typename T, typename = std::enable_if_t<HasGPUResourceTypeV<T>>>
-    T* get()
+    T* get() const
     {
         return std::visit([](auto& obj) -> T* {
             using U = std::decay_t<decltype(obj)>;
             if constexpr (std::is_same_v<U, T>)
-                return &obj;
+                return const_cast<T*>(&obj);
             else
                 return nullptr;
         }, m_resource);
@@ -46,6 +47,11 @@ public:
     uint32 index() const
     {
         return std::visit([](auto& obj) { return obj.index(); }, m_resource);
+    }
+
+    UUID asset_uuid() const
+    {
+        return std::visit([](auto& obj) { return obj.asset_uuid(); }, m_resource);
     }
 
     template<typename Visitor>
@@ -64,22 +70,12 @@ private:
     GPUResourceVariant m_resource;
 };
 
-template<typename T, typename = std::enable_if_t<HasGPUResourceTypeV<T>>>
-class TGPUResourceHandle : public GPUResourceHandle
+using GPUResourceHandlePtr = std::unique_ptr<GPUResourceHandle>;
+
+template<typename T, typename... Params>
+GPUResourceHandlePtr create_gpu_resource_handle(Params&&... params)
 {
-public:
-    using Type = T;
-
-    template<typename... Params>
-    TGPUResourceHandle(Params&&... params) 
-        : GPUResourceHandle(std::in_place_type<T>, std::forward<Params>(params)...)
-    {
-
-    }
-};
-
-using GPUModelHandle = TGPUResourceHandle<GPUModel>;
-using GPUTextureHandle = TGPUResourceHandle<GPUTexture>;
-using GPUMaterialHandle = TGPUResourceHandle<GPUMaterial>;
+    return std::make_unique<GPUResourceHandle>(std::in_place_type<T>, std::forward<Params>(params)...);
+}
 
 }

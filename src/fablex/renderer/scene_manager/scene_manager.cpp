@@ -28,7 +28,9 @@ constexpr const char* MATERIAL_BUFFER_NAME = "MaterialBuffer";
 const std::string FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
 const std::string CAMERA_BUFFER_NAME = "CameraBuffer";
 
-SceneManager::SceneManager()
+constexpr uint32 TEXTURE_PLACEHOLDER_GPU_INDEX = 333;
+
+SceneManager::SceneManager() : m_gpuResources(this)
 {
     // For now some buffers support only CPU_TO_GPU memory usage
     FE_CHECK(rhi::has_capability(rhi::GPUCapability::CACHE_COHERENT_UMA));
@@ -67,11 +69,8 @@ SceneManager::~SceneManager()
         rhi::destroy_sampler(sampler);
 
     m_gpuModels.clear();
-    m_gpuResources.clear();
 
-    for (const DeleteHandlerArray& deleteHandlers : m_deleteHandlersPerFrame)
-        for (const DeleteHandler& deleteHandler : deleteHandlers)
-            deleteHandler();
+    m_resourceDestroyer.process_all();
 
     if (m_TLAS)
     {
@@ -84,13 +83,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 {
     set_cmd(cmd);
 
-    if (m_deleteHandlersPerFrame.size() < g_frameIndex + 1)
-        m_deleteHandlersPerFrame.emplace_back();
-
-    DeleteHandlerArray& deleteHandlers = m_deleteHandlersPerFrame[g_frameIndex];
-    for (const DeleteHandler& deleteHandler : deleteHandlers)
-        deleteHandler();
-    deleteHandlers.clear();
+    m_resourceDestroyer.process_current_frame();
 
     reset_per_frame_buffers();
 
@@ -120,7 +113,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     engine::ModelComponent::for_each([this, &taskGroup](engine::ModelComponent* modelComponent)
     {
         engine::Entity* owner = modelComponent->get_entity();
-        GPUModel* gpuModel = add_gpu_model(modelComponent->get_model(), taskGroup);
+        GPUModel* gpuModel = m_gpuResources.add_model(modelComponent->get_model_uuid(), taskGroup);
         GPUModelInstance& gpuModelInstance = gpuModel->add_instance(owner);
 
         gpuModelInstance.index(m_modelInstanceCount++);
@@ -134,7 +127,6 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
         m_modelInstanceBuffers.increase_entry_count(1);
         m_meshInstanceBuffers.increase_entry_count(meshCount);
-
         m_entitiesForTLAS.push_back(owner);
     });
 
@@ -142,7 +134,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     {
         for (UUID materialUUID : materialComponent->material_uuids())
         {
-            GPUMaterial* gpuMaterial = add_gpu_material(materialUUID, taskGroup);
+            GPUMaterial* gpuMaterial = m_gpuResources.add_material(materialUUID, taskGroup);
             gpuMaterial->index(m_materialCount++);
         }
 
@@ -155,39 +147,33 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
-        int32 index = 0;
+        m_gpuResources.for_each(fe::Utils::make_visitor(
+            [this](GPUModel& gpuModel) 
+            {
+                if (gpuModel.instance_count() == 0)
+                    return false;
 
-        for (const GPUResourceHandlePtr& handle : m_gpuResources)
-        {
-            handle->visit(fe::Utils::make_visitor(
-                [this, &index](GPUModel& gpuModel) 
-                { 
-                    if (gpuModel.instance_count() == 0)
-                    {
-                        --index;
-                        return;
-                    }
-
-                    gpuModel.index(m_gpuModels.size());
-                    gpuModel.fill_shader_data(this);
-                    m_gpuModels.push_back(&gpuModel);
-                },
-                [this](GPUMaterial& gpuMaterial)
+                gpuModel.index(m_gpuModels.size());
+                gpuModel.fill_shader_data(this);
+                m_gpuModels.push_back(&gpuModel);
+                return true;
+            },
+            [this](GPUMaterial& gpuMaterial)
+            {
+                gpuMaterial.fill_shader_data(this);
+                return true;
+            },
+            [this](GPUTexture& gpuTexture)
+            {
+                if (!gpuTexture.is_valid())
                 {
-                    gpuMaterial.fill_shader_data(this);
-                },
-                [this, index](GPUTexture& gpuTexture)
-                {
-                    if (!gpuTexture.is_valid())
-                    {
-                        gpuTexture.build(cmd_recorder(rhi::QueueType::GRAPHICS));
-                        gpuTexture.index(index);
-                    }
+                    gpuTexture.build(cmd_recorder(rhi::QueueType::GRAPHICS));
+                    gpuTexture.index(TEXTURE_PLACEHOLDER_GPU_INDEX);
                 }
-            ));
 
-            ++index;
-        }
+                return true;
+            }
+        ));
     });
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
@@ -255,7 +241,7 @@ void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
 {
     FE_CHECK(buffer);
     
-    add_delete_handler([buffer]()
+    m_resourceDestroyer.enqueue_destruction([buffer]()
     {
         rhi::destroy_buffer(buffer);
     });
@@ -264,14 +250,6 @@ void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
 const CommandRecorder& SceneManager::cmd_recorder(rhi::QueueType queueType) const
 {
     return *m_cmdRecorderPerQueue.at(rhi::get_queue_index(queueType));
-}
-
-uint32 SceneManager::resource_index(UUID resourceUUID) const
-{
-    auto it = m_gpuResourcesLookup.find(resourceUUID);
-    if (it == m_gpuResourcesLookup.end())
-        return -1;
-    return it->second;
 }
 
 void SceneManager::allocate_arrays()
@@ -286,12 +264,14 @@ void SceneManager::subscribe_to_events()
 {
     EventManager::subscribe<asset::TextureLoadedEvent>([this](const auto& event)
     {
-        add_gpu_texutre(event.get_handle());
+        TaskGroup taskGroup;    // TEMP
+        m_gpuResources.add_texture(event.get_handle()->get_uuid(), taskGroup);
     });
 
     EventManager::subscribe<asset::TextureImportedEvent>([this](const auto& event)
     {
-        add_gpu_texutre(event.get_handle());
+        TaskGroup taskGroup;    // TEMP
+        m_gpuResources.add_texture(event.get_handle()->get_uuid(), taskGroup);
     });
 }
 
@@ -364,66 +344,19 @@ void SceneManager::reset_per_frame_buffers()
     m_shaderEntityBuffers.reset();
 }
 
-GPUModel* SceneManager::add_gpu_model(asset::Model* model, TaskGroup& taskGroup)
-{
-    if (GPUModel* gpuModel = gpu_model(model->get_uuid()))
-        return gpuModel;
-
-    GPUModel* gpuModel = add_gpu_resource<GPUModelHandle>(model->get_uuid(), model);
-
-    TaskComposer::execute(taskGroup, [this, gpuModel](TaskExecutionInfo execInfo)
-    {
-        gpuModel->build(this, cmd_recorder(rhi::QueueType::GRAPHICS));
-    });
-    
-    return gpuModel;
-}
-
-GPUTexture* SceneManager::add_gpu_texutre(asset::Texture* texture)
-{
-    if (GPUTexture* gpuTexture = gpu_texture(texture->get_uuid()))
-        return gpuTexture;
-
-    GPUTexture* gpuTexture = add_gpu_resource<GPUTextureHandle>(texture->get_uuid(), texture);
-    gpuTexture->create();
-
-    return gpuTexture;
-}
-
-GPUMaterial* SceneManager::add_gpu_material(UUID materialUUID, TaskGroup& taskGroup)
-{
-    if (GPUMaterial* gpuMaterial = gpu_material(materialUUID))
-        return gpuMaterial;
-
-    asset::Material* materialAsset = asset::AssetManager::get_material(materialUUID);
-    GPUMaterial* gpuMaterial = add_gpu_resource<GPUMaterialHandle>(materialUUID, materialAsset);
-
-    TaskComposer::execute(taskGroup, [this, gpuMaterial](TaskExecutionInfo execInfo)
-    {
-        gpuMaterial->build(this, cmd_recorder(rhi::QueueType::GRAPHICS));
-    });
-
-    return gpuMaterial;
-}
-
-GPUResourceHandle* SceneManager::get_gpu_resource_handle(uint32 index) const
-{
-    return m_gpuResources.at(index).get();
-}
-
 GPUModel* SceneManager::gpu_model(UUID modelUUID) const
 {
-    return get_gpu_resource<GPUModel>(modelUUID);
+    return m_gpuResources.model(modelUUID);
 }
 
 GPUTexture* SceneManager::gpu_texture(UUID textureUUID) const
 {
-    return get_gpu_resource<GPUTexture>(textureUUID);
+    return m_gpuResources.texture(textureUUID);
 }
 
 GPUMaterial* SceneManager::gpu_material(UUID materialUUID) const
 {
-    return get_gpu_resource<GPUMaterial>(materialUUID);
+    return m_gpuResources.material(materialUUID);
 }
 
 void SceneManager::set_cmd(rhi::CommandBuffer* cmd)
@@ -494,14 +427,6 @@ void SceneManager::fill_camera_buffers()
     rhi::bind_uniform_buffer(buffer, g_frameIndex, UB_CAMERA_SLOT, shaderCameraBufferSize, 0);
 }
 
-void SceneManager::add_delete_handler(const DeleteHandler& deleteHandler)
-{
-    if (m_deleteHandlersPerFrame.size() < g_frameIndex + 1)
-        m_deleteHandlersPerFrame.emplace_back();
-
-    m_deleteHandlersPerFrame[g_frameIndex].push_back(deleteHandler);
-}
-
 void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
 {
     uint64 instanceSize = rhi::get_acceleration_structure_instance_size();
@@ -512,7 +437,7 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
         if (m_TLAS)
         {
             rhi::AccelerationStructure* oldTLAS = m_TLAS;
-            add_delete_handler([oldTLAS]()
+            m_resourceDestroyer.enqueue_destruction([oldTLAS]()
             {
                 rhi::Buffer* instanceBuffer = oldTLAS->info.tlas.instanceBuffer;
                 rhi::destroy_acceleration_structure(oldTLAS);

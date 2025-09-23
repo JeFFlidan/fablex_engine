@@ -16,7 +16,7 @@ class GPUMaterial : public GPUResource<asset::Material>
 public:
     GPUMaterial(asset::Material* material);
 
-    void build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder);
+    void build(SceneManager* sceneManager);
     void fill_shader_data(const SceneManager* sceneManager);
 };
 

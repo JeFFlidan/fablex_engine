@@ -22,10 +22,12 @@ protected:
     uint32 m_indexInBuffer = s_invalidIndex;
 };
 
-template<typename AssetType>
+template<typename AssetT>
 class GPUResource : public IndexedGPUObject
 {
 public:
+    using AssetType = AssetT;
+
     GPUResource(AssetType* asset) : m_asset(asset) { }
 
     AssetType* asset() const { return m_asset; }

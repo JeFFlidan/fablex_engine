@@ -33,10 +33,10 @@ void OutlinerWindow::draw(engine::World* world)
     ))
     {
         if (ImGui::MenuItem("Create Model"))
-            EventManager::enqueue_event(engine::ModelEntityCreationRequest());
+            EventManager::trigger_event(engine::ModelEntityCreationRequest());
 
         if (ImGui::MenuItem("Point Light"))
-            EventManager::enqueue_event(engine::PointLightEntityCreationRequest());
+            EventManager::trigger_event(engine::PointLightEntityCreationRequest());
 
         ImGui::EndPopup();
     }
@@ -104,7 +104,7 @@ void OutlinerWindow::draw_node(engine::Entity* entity)
 
             if (ImGui::MenuItem("Remove"))
             {
-                EventManager::enqueue_event(engine::EntityRemovalRequest(entity));
+                EventManager::trigger_event(engine::EntityRemovalRequest(entity));
                 remove_selected_entities();
             }
 
@@ -211,7 +211,7 @@ void OutlinerWindow::deselect_entity(engine::Entity* entity)
 void OutlinerWindow::remove_selected_entities()
 {
     for (engine::Entity* entity : m_selectedEntities)
-        EventManager::enqueue_event(engine::EntityRemovalRequest(entity));
+        EventManager::trigger_event(engine::EntityRemovalRequest(entity));
 
     m_selectedEntities.clear();
 }

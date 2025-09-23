@@ -9,7 +9,7 @@ GPUMaterial::GPUMaterial(asset::Material* material) : GPUResource(material)
 
 }
 
-void GPUMaterial::build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder)
+void GPUMaterial::build(SceneManager* sceneManager)
 {
     
 }

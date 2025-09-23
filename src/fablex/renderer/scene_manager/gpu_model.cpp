@@ -34,8 +34,10 @@ void GPUModel::reset()
     m_instances.clear();
 }
 
-void GPUModel::build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder)
+void GPUModel::build(SceneManager* sceneManager)
 {
+    const CommandRecorder& cmdRecorder = sceneManager->cmd_recorder(rhi::QueueType::GRAPHICS);
+
     destroy_buffer_views();
 
     const float targetPrecision = 1.0f / 1000.0f;

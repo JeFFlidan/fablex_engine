@@ -33,7 +33,7 @@ public:
 
     void reset();
 
-    void build(SceneManager* sceneManager, const CommandRecorder& cmdRecorder);
+    void build(SceneManager* sceneManager);
     void build_blas(const CommandRecorder& cmdRecorder);
     void destroy_buffer_views();
     void destroy_BLASes();

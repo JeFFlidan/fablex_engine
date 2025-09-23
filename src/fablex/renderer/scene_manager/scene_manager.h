@@ -4,6 +4,8 @@
 #include "command_recorder.h"
 #include "gpu_data_buffers.h"
 #include "gpu_resource_handle.h"
+#include "gpu_resource_container.h"
+#include "resource_destroyer.h"
 
 #include "core/fwd.h"
 #include "engine/entity/entity.h"
@@ -12,7 +14,6 @@
 
 #include <array>
 #include <memory>
-#include <functional>
 
 namespace fe::renderer
 {
@@ -40,7 +41,6 @@ public:
 
     void add_staging_buffer(rhi::Buffer* buffer);
     const CommandRecorder& cmd_recorder(rhi::QueueType queueType) const;
-    uint32 resource_index(UUID resourceUUID) const;
     int32 descriptor(asset::Texture* texture) const;
     int32 sampler_descriptor(ResourceName samplerName) const;
     const GPUTexture& blue_noise_texture() const;
@@ -61,14 +61,10 @@ private:
     using ShaderCameraArray = std::array<ShaderCamera, MAX_CAMERA_COUNT>;
     using BufferArray = std::vector<rhi::Buffer*>;
     using EntityArray = std::vector<engine::Entity*>;
-    using DeleteHandler = std::function<void()>;
-    using DeleteHandlerArray = std::vector<DeleteHandler>;
     using CommandRecorderPtr = std::unique_ptr<CommandRecorder>;
     using GPUResourceIndex = uint32;
 
-    using GPUResourceHandlePtr = std::unique_ptr<GPUResourceHandle>;
-    using GPUResourceHandleArray = std::vector<GPUResourceHandlePtr>;
-    using GPUResourceHandleArrayIterator = GPUResourceHandleArray::iterator;
+    using GPUResourceHandleMap = std::unordered_map<UUID, GPUResourceHandlePtr>;
 
     ModelBuffers m_modelBuffers;
     ModelInstanceBuffers m_modelInstanceBuffers;
@@ -76,8 +72,7 @@ private:
     MaterialBuffers m_materialBuffers;
     ShaderEntityBuffers m_shaderEntityBuffers;
 
-    GPUResourceHandleArray m_gpuResources;
-    std::unordered_map<UUID, GPUResourceIndex> m_gpuResourcesLookup;
+    GPUResourceContainer m_gpuResources;
 
     std::vector<GPUModel*> m_gpuModels;
 
@@ -93,10 +88,10 @@ private:
     
     std::mutex m_gpuPendingTexturesMutex;
 
-    std::vector<DeleteHandlerArray> m_deleteHandlersPerFrame;
-
     std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
     UUID m_blueNoiseTextureUUID = UUID::INVALID;
+
+    ResourceDestroyer m_resourceDestroyer;
 
     FrameUB m_frameData;
     ShaderCameraArray m_cameras;
@@ -115,40 +110,13 @@ private:
 
     void reset_per_frame_buffers();
 
-    GPUModel* add_gpu_model(asset::Model* model, TaskGroup& taskGroup);
-    GPUTexture* add_gpu_texutre(asset::Texture* texture);
-    GPUMaterial* add_gpu_material(UUID materialUUID, TaskGroup& taskGroup);
-
-    GPUResourceHandle* get_gpu_resource_handle(uint32 index) const;
-
     void set_cmd(rhi::CommandBuffer* cmd);
     void allocate_storage_buffers();
 
     void fill_frame_data();
     void fill_camera_buffers();
 
-    void add_delete_handler(const DeleteHandler& deleteHandler);
-
     void fill_tlas(rhi::CommandBuffer* cmd);
-
-    template<typename T>
-    T* get_gpu_resource(UUID uuid) const
-    {
-        auto it = m_gpuResourcesLookup.find(uuid);
-        if (it != m_gpuResourcesLookup.end())
-            return get_gpu_resource_handle(it->second)->get<T>();
-
-        return nullptr;
-    }
-
-    template<typename GPUResourceHandleType, typename... Params>
-    GPUResourceHandleType::Type* add_gpu_resource(UUID uuid, Params&&... params)
-    {
-        using Type = GPUResourceHandleType::Type;
-
-        m_gpuResourcesLookup[uuid] = m_gpuResources.size();
-        return m_gpuResources.emplace_back(new GPUResourceHandleType(std::forward<Params>(params)...))->template get<Type>();
-    }
 };
 
 }

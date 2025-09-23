@@ -30,7 +30,7 @@ Entity::Entity()
 Entity::~Entity()
 {
     for (Component* component : m_components)
-        memory_delete(component);
+        destroy_object(component);
 
     for (Entity* entity : m_children)
         m_world->remove_entity(entity);
