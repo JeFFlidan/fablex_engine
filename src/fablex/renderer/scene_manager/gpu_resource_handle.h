@@ -11,6 +11,8 @@
 namespace fe::renderer
 {
 
+class SceneManager;
+
 using GPUResourceVariant = std::variant<
     GPUModel,
     GPUTexture,
@@ -52,6 +54,16 @@ public:
     UUID asset_uuid() const
     {
         return std::visit([](auto& obj) { return obj.asset_uuid(); }, m_resource);
+    }
+
+    bool upload_to_gpu(const SceneManager* sceneManager)
+    {
+        return std::visit([sceneManager](auto& obj){ return obj.upload_to_gpu(sceneManager); }, m_resource);
+    }
+
+    void reset()
+    {
+        return std::visit([](auto& obj) { return obj.reset(); }, m_resource);
     }
 
     template<typename Visitor>

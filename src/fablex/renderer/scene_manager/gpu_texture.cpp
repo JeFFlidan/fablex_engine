@@ -1,10 +1,13 @@
 #include "gpu_texture.h"
 #include "command_recorder.h"
+#include "scene_manager.h"
 #include "rhi/rhi.h"
 #include "asset_manager/texture/texture.h"
 
 namespace fe::renderer
 {
+
+constexpr uint32 UPLOADED_TEXTURE_INDEX = 333;
 
 GPUTexture::GPUTexture(asset::Texture* textureAsset) : GPUResource(textureAsset)
 {
@@ -16,6 +19,11 @@ GPUTexture::~GPUTexture()
     rhi::destroy_texture_view(m_textureView);
     rhi::destroy_texture(m_texture);
     rhi::destroy_buffer(m_asset->upload_buffer());
+}
+
+void GPUTexture::reset()
+{
+    m_refCount = 0;
 }
 
 void GPUTexture::create()
@@ -46,15 +54,22 @@ void GPUTexture::create()
     rhi::set_name(m_textureView, m_asset->get_name() + "View");
 }
 
-void GPUTexture::build(const CommandRecorder& cmdRecorder)
+bool GPUTexture::upload_to_gpu(const SceneManager* sceneManager)
 {
-    cmdRecorder.record([&](rhi::CommandBuffer* cmd)
+    if (m_indexInBuffer != UPLOADED_TEXTURE_INDEX)
     {
-        rhi::TextureInitInfo initInfo;
-        initInfo.buffer = m_asset->upload_buffer();
-        initInfo.mipMaps = m_asset->mipmaps();
-        rhi::init_texture(cmd, m_texture, &initInfo);
-    });
+        sceneManager->cmd_recorder(rhi::QueueType::GRAPHICS).record([this](rhi::CommandBuffer* cmd)
+        {
+            rhi::TextureInitInfo initInfo;
+            initInfo.buffer = m_asset->upload_buffer();
+            initInfo.mipMaps = m_asset->mipmaps();
+            rhi::init_texture(cmd, m_texture, &initInfo);
+
+            m_indexInBuffer = UPLOADED_TEXTURE_INDEX;
+        });
+    }
+
+    return true;
 }
 
 rhi::TextureDimension GPUTexture::get_dimension() const

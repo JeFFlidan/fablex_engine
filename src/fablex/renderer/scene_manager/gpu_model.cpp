@@ -4,8 +4,8 @@
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
 #include "asset_manager/model/model.h"
-#include "engine/components/model_component.h"
 #include "core/primitives/aabb.h"
+#include "core/primitives/sphere.h"
 #include "shaders/shader_interop_renderer.h"
 #include "meshoptimizer.h"
 
@@ -13,12 +13,6 @@ namespace fe::renderer
 {
 
 GPUModel::GPUModel(asset::Model* model) : GPUResource(model)
-{
-
-}
-
-GPUModel::GPUModel(engine::ModelComponent* modelComponent)
-    : GPUModel(modelComponent->get_model())
 {
 
 }
@@ -31,7 +25,10 @@ GPUModel::~GPUModel()
 
 void GPUModel::reset()
 {
-    m_instances.clear();
+    Parent::reset();
+
+    m_nextModelInstanceIndex = INVALID_INSTANCE_INDEX;
+    m_nextMeshInstanceIndex = INVALID_INSTANCE_INDEX;
 }
 
 void GPUModel::build(SceneManager* sceneManager)
@@ -520,28 +517,26 @@ void GPUModel::destroy_BLASes()
     m_BLASState = BLASState::REQUIRES_REBUILD;
 }
 
-GPUModelInstance& GPUModel::add_instance(engine::Entity* entity)
+void GPUModel::update_instance_offsets(uint32& inOutModelInstanceOffset, uint32& inOutMeshInstanceOffset)
 {
-    FE_CHECK(entity);
-    m_instances.push_back(entity);
-    return m_instances.back();
+    if (m_nextModelInstanceIndex == INVALID_INSTANCE_INDEX)
+    {
+        m_nextModelInstanceIndex = inOutModelInstanceOffset;
+        inOutModelInstanceOffset += m_refCount;
+    }
+
+    if (m_nextMeshInstanceIndex == INVALID_INSTANCE_INDEX)
+    {
+        m_nextMeshInstanceIndex = inOutMeshInstanceOffset;
+        inOutMeshInstanceOffset += m_refCount * asset()->meshes().size();
+    }
 }
 
-void GPUModel::remove_instance(engine::Entity* entity)
+bool GPUModel::upload_to_gpu(const SceneManager* sceneManager)
 {
-    FE_CHECK(entity);
-    
-    auto it = std::find_if(m_instances.begin(), m_instances.end(), 
-        [&](const GPUModelInstance& instance)
-        {
-            return entity == instance.entity();
-        });
+    if (m_refCount == 0)
+        return false;
 
-    m_instances.erase(it);
-}
-
-void GPUModel::fill_shader_data(const SceneManager* sceneManager)
-{
     ShaderModel& shaderModel = sceneManager->model_buffers()[m_indexInBuffer];
 
     shaderModel.indexBuffer = srv_indices();
@@ -560,28 +555,40 @@ void GPUModel::fill_shader_data(const SceneManager* sceneManager)
     shaderModel.uvRangeMin = m_uvRangeMin;
     shaderModel.uvRangeMax = m_uvRangeMax;
 
+    return true;
+}
+
+void GPUModel::upload_model_instance(const SceneManager* sceneManager, engine::Entity* instanceEntity)
+{
+    engine::MaterialComponent* materialComponent = instanceEntity->get_component<engine::MaterialComponent>();
+
     const ModelInstanceBuffers& modelInstanceBuffers = sceneManager->model_instance_buffers();
     const MeshInstanceBuffers& meshInstanceBuffers = sceneManager->mesh_instance_buffers();
 
-    for (const GPUModelInstance& instance : m_instances)
+    ShaderModelInstance& modelInstance = modelInstanceBuffers[m_nextModelInstanceIndex++];
+
+    Sphere sphereBounds(aabb());
+    modelInstance.sphereBounds.center = sphereBounds.center;
+    modelInstance.sphereBounds.radius = sphereBounds.radius;
+    modelInstance.meshOffset = m_nextMeshInstanceIndex;
+
+    Matrix remapMat = aabb().get_unorm_remap_matrix();
+    Matrix transformMat = instanceEntity->get_world_transform();
+
+    modelInstance.scale = instanceEntity->get_scale();
+    modelInstance.transform.set_transfrom(remapMat * transformMat);
+    modelInstance.rawTransform.set_transfrom(instanceEntity->get_world_transform());
+    modelInstance.prevTransform.set_transfrom(remapMat * instanceEntity->get_prev_world_transform());
+    modelInstance.transformInverseTranspose.set_transfrom(transformMat.transpose().inverse());
+
+    for (auto& mesh : m_asset->meshes())
     {
-        ShaderModelInstance& shaderModelInstance = modelInstanceBuffers[instance.index()];
-        instance.fill_shader_model_instance(shaderModelInstance);
+        ShaderMeshInstance& shaderMeshInstance = meshInstanceBuffers[m_nextMeshInstanceIndex++];
+        shaderMeshInstance.modelIndex = m_indexInBuffer;
 
-        engine::MaterialComponent* matComponent = instance.material_component();
-
-        uint32 meshIndex = instance.mesh_instance_range_begin_index();
-
-        for (auto& mesh : m_asset->meshes())
-        {
-            ShaderMeshInstance& shaderMeshInstance = meshInstanceBuffers[meshIndex++];
-            shaderMeshInstance.modelIndex = m_indexInBuffer;
-
-            UUID materialUUID = matComponent->material_uuids()[mesh.materialIndex];
-
-            shaderMeshInstance.materialIndex = sceneManager->gpu_material(materialUUID)->index();
-            shaderMeshInstance.indexOffset = mesh.indexOffset;
-        }
+        UUID materialUUID = materialComponent->material_uuids()[mesh.materialIndex];
+        shaderMeshInstance.materialIndex = sceneManager->gpu_material(materialUUID)->index();
+        shaderMeshInstance.indexOffset = mesh.indexOffset;
     }
 }
 

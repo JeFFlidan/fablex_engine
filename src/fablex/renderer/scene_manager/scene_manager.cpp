@@ -99,8 +99,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     m_shaderEntityBuffers.increase_entry_count(engine::ShaderEntityComponent::count());
 
-    for (GPUModel* gpuModel : m_gpuModels)
-        gpuModel->reset();
+    m_gpuResources.reset();
 
     m_gpuModels.clear();
     m_entitiesForTLAS.clear();
@@ -112,22 +111,22 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     engine::ModelComponent::for_each([this, &taskGroup](engine::ModelComponent* modelComponent)
     {
-        engine::Entity* owner = modelComponent->get_entity();
         GPUModel* gpuModel = m_gpuResources.add_model(modelComponent->get_model_uuid(), taskGroup);
-        GPUModelInstance& gpuModelInstance = gpuModel->add_instance(owner);
-
-        gpuModelInstance.index(m_modelInstanceCount++);
-        gpuModelInstance.mesh_instance_range_begin_index(m_meshInstanceCount);
 
         uint32 meshCount = modelComponent->get_model()->meshes().size();
         m_meshInstanceCount += meshCount;
 
-        if (gpuModel->instance_count() == 0)
+        if (gpuModel->ref_count() == 0)
+        {
+            gpuModel->index(m_gpuModels.size());
+            
             m_modelBuffers.increase_entry_count(1);
-
+            m_gpuModels.push_back(gpuModel);
+        }
+        
+        gpuModel->increase_ref_count(1);
         m_modelInstanceBuffers.increase_entry_count(1);
         m_meshInstanceBuffers.increase_entry_count(meshCount);
-        m_entitiesForTLAS.push_back(owner);
     });
 
     engine::MaterialComponent::for_each([this, &taskGroup](engine::MaterialComponent* materialComponent)
@@ -135,7 +134,11 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         for (UUID materialUUID : materialComponent->material_uuids())
         {
             GPUMaterial* gpuMaterial = m_gpuResources.add_material(materialUUID, taskGroup);
-            gpuMaterial->index(m_materialCount++);
+
+            if (gpuMaterial->ref_count() == 0)
+                gpuMaterial->index(m_materialCount++);
+
+            gpuMaterial->increase_ref_count(1);
         }
 
         m_materialBuffers.increase_entry_count(materialComponent->material_uuids().size());
@@ -147,33 +150,25 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
-        m_gpuResources.for_each(fe::Utils::make_visitor(
-            [this](GPUModel& gpuModel) 
-            {
-                if (gpuModel.instance_count() == 0)
-                    return false;
+        m_gpuResources.process();
+    });
 
-                gpuModel.index(m_gpuModels.size());
-                gpuModel.fill_shader_data(this);
-                m_gpuModels.push_back(&gpuModel);
-                return true;
-            },
-            [this](GPUMaterial& gpuMaterial)
-            {
-                gpuMaterial.fill_shader_data(this);
-                return true;
-            },
-            [this](GPUTexture& gpuTexture)
-            {
-                if (!gpuTexture.is_valid())
-                {
-                    gpuTexture.build(cmd_recorder(rhi::QueueType::GRAPHICS));
-                    gpuTexture.index(TEXTURE_PLACEHOLDER_GPU_INDEX);
-                }
+    m_entitiesForTLAS.resize(engine::ModelComponent::count());
+    
+    TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
+    {
+        uint32 modelInstanceOffset = 0;
+        uint32 meshInstanceOffset = 0;
 
-                return true;
-            }
-        ));
+        engine::ModelComponent::for_each([&](engine::ModelComponent* modelComponent)
+        {
+            GPUModel* gpuModel = m_gpuResources.model(modelComponent->get_model_uuid());
+            FE_CHECK(gpuModel);
+
+            gpuModel->update_instance_offsets(modelInstanceOffset, meshInstanceOffset);
+            m_entitiesForTLAS[gpuModel->next_model_instance_index()] = modelComponent->get_entity();
+            gpuModel->upload_model_instance(this, modelComponent->get_entity());
+        });
     });
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)

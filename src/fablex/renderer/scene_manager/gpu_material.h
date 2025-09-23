@@ -17,7 +17,7 @@ public:
     GPUMaterial(asset::Material* material);
 
     void build(SceneManager* sceneManager);
-    void fill_shader_data(const SceneManager* sceneManager);
+    bool upload_to_gpu(const SceneManager* sceneManager);
 };
 
 }

@@ -7,16 +7,18 @@
 namespace fe::renderer
 {
 
-class CommandRecorder;
+class SceneManager;
 
 class GPUTexture : public GPUResource<asset::Texture>
 {
 public:
     GPUTexture(asset::Texture* textureAsset);
     ~GPUTexture();
+
+    void reset();
     
     void create();
-    void build(const CommandRecorder& cmdRecorder);
+    bool upload_to_gpu(const SceneManager* sceneManager);
 
     rhi::Texture* texture() const { return m_texture; }
     rhi::TextureView* texture_view() const { return m_textureView; }

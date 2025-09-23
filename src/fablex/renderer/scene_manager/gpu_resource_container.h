@@ -7,6 +7,7 @@
 #include "gpu_texture.h"
 #include "gpu_material.h"
 
+#include <mutex>
 #include <concepts>
 #include <unordered_map>
 
@@ -45,6 +46,9 @@ public:
         }
     }
 
+    void process();
+    void reset();
+
     GPUModel* add_model(UUID modelUUID, TaskGroup& taskGroup);
     GPUMaterial* add_material(UUID materialUUID, TaskGroup& taskGroup);
     GPUTexture* add_texture(UUID textureUUID, TaskGroup& taskGroup);
@@ -55,11 +59,15 @@ public:
 
 private:
     SceneManager* m_sceneManager;
+
+    mutable std::mutex m_resourcesMutex;
     std::unordered_map<UUID, GPUResourceHandlePtr> m_resources;
 
     template<typename T>
     T* resource(UUID uuid) const
     {
+        std::scoped_lock<std::mutex> locker(m_resourcesMutex);
+
         auto it = m_resources.find(uuid);
         if (it == m_resources.end())
             return nullptr;

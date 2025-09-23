@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gpu_resource.h"
-#include "gpu_model_instance.h"
 #include "rhi/resources.h"
 #include "asset_manager/model/model.h"
 #include "engine/entity/fwd.h"
@@ -27,8 +26,9 @@ enum class BLASState
 class GPUModel : public GPUResource<asset::Model>
 {
 public:
+    using Parent = GPUResource<asset::Model>;
+
     GPUModel(asset::Model* model);
-    GPUModel(engine::ModelComponent* modelComponent);
     ~GPUModel();
 
     void reset();
@@ -38,10 +38,11 @@ public:
     void destroy_buffer_views();
     void destroy_BLASes();
 
-    GPUModelInstance& add_instance(engine::Entity* entity);
-    void remove_instance(engine::Entity* entity);
+    uint32 next_model_instance_index() const { return m_nextModelInstanceIndex; } 
+    void update_instance_offsets(uint32& inOutModelInstanceOffset, uint32& inOutMeshInstanceOffset);
 
-    void fill_shader_data(const SceneManager* sceneManager);
+    bool upload_to_gpu(const SceneManager* sceneManager);
+    void upload_model_instance(const SceneManager* sceneManager, engine::Entity* instanceEntity);
 
     const AABB& aabb() const;
     uint32 mesh_count() const;
@@ -53,8 +54,7 @@ public:
     uint64 index_offset() const { return m_indices.offset; }
     uint64 index_count() const; 
     const std::vector<rhi::AccelerationStructure*>& blases() const { return m_BLASes; }
-    const std::vector<GPUModelInstance>& instances() const { return m_instances; }
-    uint32 instance_count() const { return m_instances.size(); }
+    uint32 instance_count() const { return m_refCount; }
 
     int32 srv_indices() const;
     int32 srv_positions_winds() const;
@@ -80,11 +80,16 @@ private:
         void cleanup();
     };
 
+    static constexpr uint32 INVALID_INSTANCE_INDEX = ~0u;
+
     rhi::Format m_positionFormat = rhi::Format::UNDEFINED;
     rhi::Format m_uvFormat = rhi::Format::UNDEFINED;
     Float2 m_uvRangeMin = Float2(0.0f, 0.0f);
     Float2 m_uvRangeMax = Float2(1.0f, 1.0f);
     uint64 m_meshletCount = 0;
+
+    uint32 m_nextModelInstanceIndex = INVALID_INSTANCE_INDEX;
+    uint32 m_nextMeshInstanceIndex = INVALID_INSTANCE_INDEX;
 
     rhi::Buffer* m_generalBuffer = nullptr;
     BufferView m_indices;
@@ -99,8 +104,6 @@ private:
 
     BLASState m_BLASState = BLASState::REQUIRES_REBUILD;
     std::vector<rhi::AccelerationStructure*> m_BLASes;
-
-    std::vector<GPUModelInstance> m_instances;
 
     void configure_buffer_view(BufferView& bufferView, rhi::Format format, std::string debugName, bool requireUAV = false);
 };
