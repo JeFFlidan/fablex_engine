@@ -25,10 +25,8 @@ constexpr const char* MODEL_INSTANCE_BUFFER_NAME = "ModelInstanceBuffer";
 constexpr const char* MESH_INSTANCE_BUFFER_NAME = "MeshInstanceBuffer";
 constexpr const char* ENTITY_BUFFER_NAME = "EntityBuffer";
 constexpr const char* MATERIAL_BUFFER_NAME = "MaterialBuffer";
-const std::string FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
-const std::string CAMERA_BUFFER_NAME = "CameraBuffer";
-
-constexpr uint32 TEXTURE_PLACEHOLDER_GPU_INDEX = 333;
+constexpr const char* FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
+constexpr const char* CAMERA_BUFFER_NAME = "CameraBuffer";
 
 SceneManager::SceneManager() : m_gpuResources(this)
 {
@@ -46,6 +44,8 @@ SceneManager::SceneManager() : m_gpuResources(this)
     m_meshInstanceBuffers.set_debug_name(MESH_INSTANCE_BUFFER_NAME);
     m_shaderEntityBuffers.set_debug_name(ENTITY_BUFFER_NAME);
     m_materialBuffers.set_debug_name(MATERIAL_BUFFER_NAME);
+    m_cameraBuffers.set_debug_name(CAMERA_BUFFER_NAME);
+    m_frameDataBuffers.set_debug_name(FRAME_DATA_BUFFER_NAME);
 }
 
 SceneManager::~SceneManager()
@@ -55,12 +55,8 @@ SceneManager::~SceneManager()
     m_meshInstanceBuffers.cleanup();
     m_materialBuffers.cleanup();
     m_shaderEntityBuffers.cleanup();
-
-    for (rhi::Buffer* buffer : m_cameraBuffers)
-        rhi::destroy_buffer(buffer);
-
-    for (rhi::Buffer* buffer : m_frameBuffers)
-        rhi::destroy_buffer(buffer);
+    m_frameDataBuffers.cleanup();
+    m_cameraBuffers.cleanup();
 
     for (rhi::Buffer* buffer : m_uploadBuffersForTLAS)
         rhi::destroy_buffer(buffer);
@@ -90,8 +86,6 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     TaskGroup taskGroup;
 
     m_modelCount = 0;
-    m_modelInstanceCount = 0;
-    m_meshInstanceCount = 0;
     m_materialCount = 0;
     
     m_lightEntityBufferOffset = 0;
@@ -104,17 +98,11 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     m_gpuModels.clear();
     m_entitiesForTLAS.clear();
 
-    engine::EditorCameraComponent::for_each([this](engine::EditorCameraComponent* cameraComponent)
-    {
-        m_mainCameraEntity = cameraComponent->get_entity();
-    });
-
     engine::ModelComponent::for_each([this, &taskGroup](engine::ModelComponent* modelComponent)
     {
         GPUModel* gpuModel = m_gpuResources.add_model(modelComponent->get_model_uuid(), taskGroup);
 
         uint32 meshCount = modelComponent->get_model()->meshes().size();
-        m_meshInstanceCount += meshCount;
 
         if (gpuModel->ref_count() == 0)
         {
@@ -146,7 +134,7 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::wait(taskGroup);
 
-    allocate_storage_buffers();
+    allocate_buffers();
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
@@ -185,8 +173,11 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
-        fill_frame_data();
-        fill_camera_buffers();
+        FE_LOG(LogDefault, INFO, "BEFORE DATA FRAME UB");
+        upload_frame_data_to_gpu();
+        FE_LOG(LogDefault, INFO, "BEFORE CAMERAS FRAME UB");
+        upload_cameras_to_gpu();
+        FE_LOG(LogDefault, INFO, "AFTER ALL UB");
     });
 
     TaskComposer::wait(taskGroup);
@@ -361,65 +352,53 @@ void SceneManager::set_cmd(rhi::CommandBuffer* cmd)
     cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
 }
 
-void SceneManager::allocate_storage_buffers()
+void SceneManager::allocate_buffers()
 {
     m_modelBuffers.allocate();
     m_modelInstanceBuffers.allocate();
     m_meshInstanceBuffers.allocate();
     m_materialBuffers.allocate();
     m_shaderEntityBuffers.allocate();
+    m_cameraBuffers.allocate();
+    m_frameDataBuffers.allocate();
 }
 
-void SceneManager::fill_frame_data()
+void SceneManager::upload_frame_data_to_gpu()
 {
-    if (m_frameBuffers.size() < g_frameIndex + 1)
-    {
-        m_frameBuffers.push_back(Utils::create_uma_uniform_buffer(sizeof(FrameUB)));
-        Utils::set_debug_name(m_frameBuffers.back(), FRAME_DATA_BUFFER_NAME);
-    }
-    
-    m_frameData.modelBufferIndex = m_modelBuffers.descriptor();
-    m_frameData.modelInstanceBufferIndex = m_modelInstanceBuffers.descriptor();
-    m_frameData.meshInstanceBufferIndex = m_meshInstanceBuffers.descriptor();
-    m_frameData.entityBufferIndex = m_shaderEntityBuffers.descriptor();
-    m_frameData.materialBufferIndex = m_materialBuffers.descriptor();
-    m_frameData.lightArrayCount = m_lightComponentCount;
-    m_frameData.lightArrayOffset = m_lightEntityBufferOffset;
+    FrameUB& frameData = m_frameDataBuffers[0];
+    frameData.modelBufferIndex = m_modelBuffers.descriptor();
+    frameData.modelInstanceBufferIndex = m_modelInstanceBuffers.descriptor();
+    frameData.meshInstanceBufferIndex = m_meshInstanceBuffers.descriptor();
+    frameData.entityBufferIndex = m_shaderEntityBuffers.descriptor();
+    frameData.materialBufferIndex = m_materialBuffers.descriptor();
+    frameData.lightArrayCount = m_lightComponentCount;
+    frameData.lightArrayOffset = m_lightEntityBufferOffset;
 
-    rhi::Buffer* buffer = m_frameBuffers.at(g_frameIndex);
-    memcpy(buffer->mappedData, &m_frameData, sizeof(FrameUB));
-    rhi::bind_uniform_buffer(buffer, g_frameIndex, UB_FRAME_SLOT, sizeof(FrameUB), 0);
+    m_frameDataBuffers.bind_uniform_buffer(UB_FRAME_SLOT);
 }
 
-void SceneManager::fill_camera_buffers()
+void SceneManager::upload_cameras_to_gpu()
 {
-    static constexpr uint64 shaderCameraBufferSize = sizeof(ShaderCamera) * MAX_CAMERA_COUNT;
+    uint32 index = 0;
 
-    if (m_cameraBuffers.size() < g_frameIndex + 1)
+    engine::CameraComponent::for_each([this, &index](engine::CameraComponent* cameraComponent)
     {
-        m_cameraBuffers.push_back(Utils::create_uma_uniform_buffer(shaderCameraBufferSize));
-        Utils::set_debug_name(m_cameraBuffers.back(), CAMERA_BUFFER_NAME);
-    }
-    
-    if (!m_mainCameraEntity)
-        return;
+        ShaderCamera& shaderCamera = m_cameraBuffers[index++];
 
-    engine::EditorCameraComponent* camera = m_mainCameraEntity->get_component<engine::EditorCameraComponent>();
-    m_cameras[0].position = m_mainCameraEntity->get_position();
-    m_cameras[0].view = camera->view;
-    m_cameras[0].projection = camera->projection;
-    m_cameras[0].viewProjection = camera->viewProjection;
-    m_cameras[0].prevViewProjection = camera->prevViewProjection;
-    m_cameras[0].inverseView = camera->inverseView;
-    m_cameras[0].inverseProjection = camera->inverseProjection;
-    m_cameras[0].inverseViewProjection = camera->inverseViewProjection;
-    m_cameras[0].zNear = camera->zNear;
-    m_cameras[0].zFar = camera->zFar;
-    m_cameras[0].create_frustum();
+        shaderCamera.position = cameraComponent->get_entity()->get_position();
+        shaderCamera.view = cameraComponent->view;
+        shaderCamera.projection = cameraComponent->projection;
+        shaderCamera.viewProjection = cameraComponent->viewProjection;
+        shaderCamera.prevViewProjection = cameraComponent->prevViewProjection;
+        shaderCamera.inverseView = cameraComponent->inverseView;
+        shaderCamera.inverseProjection = cameraComponent->inverseProjection;
+        shaderCamera.inverseViewProjection = cameraComponent->inverseViewProjection;
+        shaderCamera.zNear = cameraComponent->zNear;
+        shaderCamera.zFar = cameraComponent->zFar;
+        shaderCamera.create_frustum();
+    });
 
-    rhi::Buffer* buffer = m_cameraBuffers.at(g_frameIndex);
-    memcpy(buffer->mappedData, m_cameras.data(), shaderCameraBufferSize);
-    rhi::bind_uniform_buffer(buffer, g_frameIndex, UB_CAMERA_SLOT, shaderCameraBufferSize, 0);
+    m_cameraBuffers.bind_uniform_buffer(UB_CAMERA_SLOT);
 }
 
 void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
@@ -517,7 +496,7 @@ void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
 
     rhi::PipelineBarrier barrier(
         instanceBuffer,
-        rhi::ResourceLayout::TRANSFER_SRC,
+        rhi::ResourceLayout::TRANSFER_DST,
         rhi::ResourceLayout::SHADER_READ
     );
 

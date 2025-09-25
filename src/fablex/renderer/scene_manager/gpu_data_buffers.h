@@ -10,7 +10,7 @@ namespace fe::renderer
 {
 
 template<typename DataType>
-struct DefaultGPUDataBuffersAllocator
+struct DefaultGPUDataStorageBuffersAllocator
 {
     static uint32 get_new_buffer_size(uint32 currentSize, uint32 entryCount)
     {
@@ -50,7 +50,22 @@ struct DefaultGPUDataBuffersAllocator
     }
 };
 
-template<typename DataType, typename Allocator = DefaultGPUDataBuffersAllocator<DataType>>
+template<typename DataType, uint32 Count = 1>
+struct DefaultGPUDataUniformBuffersAllocator
+{
+    static void allocate(std::vector<rhi::Buffer*>& inOutBuffers, uint32 entryCount, const char* debugName)
+    {
+        constexpr uint32 bufferSize = sizeof(DataType) * Count;
+
+        if (inOutBuffers.size() < g_frameIndex + 1)
+        {
+            inOutBuffers.push_back(Utils::create_uma_uniform_buffer(bufferSize));
+            Utils::set_debug_name(inOutBuffers.back(), debugName);
+        }
+    }
+};
+
+template<typename DataType, typename Allocator>
 class GPUDataBuffers
 {
 public:
@@ -89,7 +104,7 @@ public:
 
     DataType& operator[](uint32 index) const
     {
-        rhi::Buffer* buffer = get_buffer();
+        rhi::Buffer* buffer = active_buffer();
 
         DataType* dataArray = static_cast<DataType*>(buffer->mappedData);
         FE_CHECK(buffer->size >= (index + 1) * sizeof(DataType));
@@ -99,18 +114,32 @@ public:
 
     uint32 descriptor() const
     {
-        return get_buffer()->descriptorIndex;
+        return active_buffer()->descriptorIndex;
+    }
+
+    rhi::Buffer* active_buffer() const
+    {
+        return m_buffers.at(g_frameIndex);
+    }
+
+    void bind_uniform_buffer(uint32 slot) const
+    {
+        rhi::Buffer* buffer = active_buffer();
+
+        if (has_flag(buffer->bufferUsage, rhi::ResourceUsage::UNIFORM_BUFFER))
+            rhi::bind_uniform_buffer(buffer, g_frameIndex, slot, buffer->size, 0);
     }
 
 private:
     uint32 m_entryCount = 0;
     std::vector<rhi::Buffer*> m_buffers;
     const char* m_debugName = "BufferPlaceholderName";
-
-    rhi::Buffer* get_buffer() const
-    {
-        return m_buffers.at(g_frameIndex);
-    }
 };
+
+template<typename T>
+using GPUDataStorageBuffers = GPUDataBuffers<T, DefaultGPUDataStorageBuffersAllocator<T>>;
+
+template<typename T>
+using GPUDataUniformBuffers = GPUDataBuffers<T, DefaultGPUDataUniformBuffersAllocator<T>>;
 
 }

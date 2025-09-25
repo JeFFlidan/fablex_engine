@@ -20,11 +20,13 @@ namespace fe::renderer
 
 class CommandRecorder;
 
-using ModelBuffers = GPUDataBuffers<ShaderModel>;
-using ModelInstanceBuffers = GPUDataBuffers<ShaderModelInstance>;
-using MeshInstanceBuffers = GPUDataBuffers<ShaderMeshInstance>;
-using MaterialBuffers = GPUDataBuffers<ShaderMaterial>;
-using ShaderEntityBuffers = GPUDataBuffers<ShaderEntity>;
+using ModelBuffers = GPUDataStorageBuffers<ShaderModel>;
+using ModelInstanceBuffers = GPUDataStorageBuffers<ShaderModelInstance>;
+using MeshInstanceBuffers = GPUDataStorageBuffers<ShaderMeshInstance>;
+using MaterialBuffers = GPUDataStorageBuffers<ShaderMaterial>;
+using ShaderEntityBuffers = GPUDataStorageBuffers<ShaderEntity>;
+using FrameDataBuffers = GPUDataUniformBuffers<FrameUB>;
+using CameraBuffers = GPUDataUniformBuffers<ShaderCamera>;
 
 class SceneManager
 {
@@ -58,27 +60,23 @@ public:
     GPUMaterial* gpu_material(UUID materialUUID) const;
 
 private:
-    using ShaderCameraArray = std::array<ShaderCamera, MAX_CAMERA_COUNT>;
     using BufferArray = std::vector<rhi::Buffer*>;
     using EntityArray = std::vector<engine::Entity*>;
     using CommandRecorderPtr = std::unique_ptr<CommandRecorder>;
-    using GPUResourceIndex = uint32;
-
-    using GPUResourceHandleMap = std::unordered_map<UUID, GPUResourceHandlePtr>;
 
     ModelBuffers m_modelBuffers;
     ModelInstanceBuffers m_modelInstanceBuffers;
     MeshInstanceBuffers m_meshInstanceBuffers;
     MaterialBuffers m_materialBuffers;
     ShaderEntityBuffers m_shaderEntityBuffers;
+    FrameDataBuffers m_frameDataBuffers;
+    CameraBuffers m_cameraBuffers;
 
     GPUResourceContainer m_gpuResources;
 
     std::vector<GPUModel*> m_gpuModels;
 
     uint32 m_modelCount = 0;
-    uint32 m_modelInstanceCount = 0;
-    uint32 m_meshInstanceCount = 0;
     uint32 m_materialCount = 0;
     
     uint64 m_lightComponentCount = 0;
@@ -86,18 +84,10 @@ private:
 
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
     
-    std::mutex m_gpuPendingTexturesMutex;
-
     std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
     UUID m_blueNoiseTextureUUID = UUID::INVALID;
 
     ResourceDestroyer m_resourceDestroyer;
-
-    FrameUB m_frameData;
-    ShaderCameraArray m_cameras;
-    engine::Entity* m_mainCameraEntity = nullptr;
-    BufferArray m_frameBuffers;
-    BufferArray m_cameraBuffers;
 
     EntityArray m_entitiesForTLAS;
     rhi::AccelerationStructure* m_TLAS = nullptr;
@@ -111,10 +101,10 @@ private:
     void reset_per_frame_buffers();
 
     void set_cmd(rhi::CommandBuffer* cmd);
-    void allocate_storage_buffers();
+    void allocate_buffers();
 
-    void fill_frame_data();
-    void fill_camera_buffers();
+    void upload_frame_data_to_gpu();
+    void upload_cameras_to_gpu();
 
     void fill_tlas(rhi::CommandBuffer* cmd);
 };
