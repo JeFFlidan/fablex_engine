@@ -58,7 +58,7 @@ bool GPUTexture::upload_to_gpu(const SceneManager* sceneManager)
 {
     if (m_indexInBuffer != UPLOADED_TEXTURE_INDEX)
     {
-        sceneManager->cmd_recorder(rhi::QueueType::GRAPHICS).record([this](rhi::CommandBuffer* cmd)
+        sceneManager->record_graphics_cmd([this](rhi::CommandBuffer* cmd)
         {
             rhi::TextureInitInfo initInfo;
             initInfo.buffer = m_asset->upload_buffer();

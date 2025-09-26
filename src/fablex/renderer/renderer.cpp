@@ -382,32 +382,29 @@ void Renderer::configure_pipeline_barriers()
     }
 }
 
-void Renderer::record_upload_cmd()
+void Renderer::record_upload_and_bvh_cmds()
 {
-    rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
-    rhi::begin_command_buffer(cmd);
-    m_sceneManager->upload(cmd);
-    rhi::end_command_buffer(cmd);
+    rhi::CommandBuffer* graphicsCmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
+    rhi::CommandBuffer* computeCmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
+    
+    rhi::begin_command_buffer(graphicsCmd);
+    rhi::begin_command_buffer(computeCmd);
+
+    m_sceneManager->upload({graphicsCmd, computeCmd});
+
+    rhi::end_command_buffer(graphicsCmd);
+    rhi::end_command_buffer(computeCmd);
 
     m_uploadSubmitInfo.clear();
-    m_uploadSubmitInfo.cmdBuffers.push_back(cmd);
+    m_uploadSubmitInfo.cmdBuffers.push_back(graphicsCmd);
     m_uploadSubmitInfo.signalSemaphores.push_back(m_uploadSemaphore);
     m_uploadSubmitInfo.waitSemaphores.push_back(m_acquireSemaphore);
-}
-
-void Renderer::record_bvh_build_cmd()
-{
-    m_bvhBuildSubmitInfo.queueType = rhi::QueueType::COMPUTE;
-
-    rhi::CommandBuffer* cmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
-    rhi::begin_command_buffer(cmd);
-    m_sceneManager->build_bvh(cmd);
-    rhi::end_command_buffer(cmd);
 
     m_bvhBuildSubmitInfo.clear();
-    m_bvhBuildSubmitInfo.cmdBuffers.push_back(cmd);
+    m_bvhBuildSubmitInfo.cmdBuffers.push_back(computeCmd);
     m_bvhBuildSubmitInfo.signalSemaphores.push_back(m_bvhBuildSemaphore);
     m_bvhBuildSubmitInfo.waitSemaphores.push_back(m_uploadSemaphore);
+    m_bvhBuildSubmitInfo.queueType = rhi::QueueType::COMPUTE;
 }
 
 void Renderer::record_predraw_cmds()
@@ -420,8 +417,7 @@ void Renderer::record_predraw_cmds()
     
     TaskComposer::execute(m_commandRecordingTaskGroup, [&](TaskExecutionInfo)
     {
-        record_upload_cmd();
-        record_bvh_build_cmd();
+        record_upload_and_bvh_cmds();
     });
 }
 

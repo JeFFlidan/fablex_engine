@@ -107,8 +107,7 @@ private:
     void configure_submit_contexts();
     void configure_pipeline_barriers();
 
-    void record_upload_cmd();
-    void record_bvh_build_cmd();
+    void record_upload_and_bvh_cmds();
     void record_predraw_cmds();
     void record_worker_cmds();
     void submit();

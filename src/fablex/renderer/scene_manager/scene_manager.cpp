@@ -28,7 +28,7 @@ constexpr const char* MATERIAL_BUFFER_NAME = "MaterialBuffer";
 constexpr const char* FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
 constexpr const char* CAMERA_BUFFER_NAME = "CameraBuffer";
 
-SceneManager::SceneManager() : m_gpuResources(this)
+SceneManager::SceneManager() : m_gpuResources(this), m_tlas(this)
 {
     // For now some buffers support only CPU_TO_GPU memory usage
     FE_CHECK(rhi::has_capability(rhi::GPUCapability::CACHE_COHERENT_UMA));
@@ -50,34 +50,16 @@ SceneManager::SceneManager() : m_gpuResources(this)
 
 SceneManager::~SceneManager()
 {
-    m_modelBuffers.cleanup();
-    m_modelInstanceBuffers.cleanup();
-    m_meshInstanceBuffers.cleanup();
-    m_materialBuffers.cleanup();
-    m_shaderEntityBuffers.cleanup();
-    m_frameDataBuffers.cleanup();
-    m_cameraBuffers.cleanup();
-
-    for (rhi::Buffer* buffer : m_uploadBuffersForTLAS)
-        rhi::destroy_buffer(buffer);
-
     for (auto [name, sampler] : m_samplerByName)
         rhi::destroy_sampler(sampler);
 
-    m_gpuModels.clear();
-
     m_resourceDestroyer.process_all();
-
-    if (m_TLAS)
-    {
-        rhi::destroy_buffer(m_TLAS->info.tlas.instanceBuffer);
-        rhi::destroy_acceleration_structure(m_TLAS);
-    }
 }
 
-void SceneManager::upload(rhi::CommandBuffer* cmd)
+void SceneManager::upload(const SceneManagerCmds& cmds)
 {
-    set_cmd(cmd);
+    set_cmd(cmds.graphicsCmd);
+    set_cmd(cmds.computeCmd);
 
     m_resourceDestroyer.process_current_frame();
 
@@ -92,11 +74,11 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
     m_lightComponentCount = engine::LightComponent::count();
 
     m_shaderEntityBuffers.increase_entry_count(engine::ShaderEntityComponent::count());
-
+    
     m_gpuResources.reset();
-
     m_gpuModels.clear();
-    m_entitiesForTLAS.clear();
+
+    m_tlas.allocate(engine::ModelComponent::count());
 
     engine::ModelComponent::for_each([this, &taskGroup](engine::ModelComponent* modelComponent)
     {
@@ -141,8 +123,6 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
         m_gpuResources.process();
     });
 
-    m_entitiesForTLAS.resize(engine::ModelComponent::count());
-    
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
         uint32 modelInstanceOffset = 0;
@@ -154,9 +134,10 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
             FE_CHECK(gpuModel);
 
             gpuModel->update_instance_offsets(modelInstanceOffset, meshInstanceOffset);
-            m_entitiesForTLAS[gpuModel->next_model_instance_index()] = modelComponent->get_entity();
             gpuModel->upload_model_instance(this, modelComponent->get_entity());
         });
+
+        m_tlas.build();
     });
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
@@ -173,26 +154,11 @@ void SceneManager::upload(rhi::CommandBuffer* cmd)
 
     TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
     {
-        FE_LOG(LogDefault, INFO, "BEFORE DATA FRAME UB");
         upload_frame_data_to_gpu();
-        FE_LOG(LogDefault, INFO, "BEFORE CAMERAS FRAME UB");
         upload_cameras_to_gpu();
-        FE_LOG(LogDefault, INFO, "AFTER ALL UB");
     });
 
     TaskComposer::wait(taskGroup);
-}
-
-void SceneManager::build_bvh(rhi::CommandBuffer* cmd)
-{
-    FE_CHECK(cmd->cmdPool->queueType == rhi::QueueType::COMPUTE);
-
-    set_cmd(cmd);
-
-    for (GPUModel* gpuModel : m_gpuModels)
-        gpuModel->build_blas(cmd_recorder(rhi::QueueType::COMPUTE));
-
-    fill_tlas(cmd);
 }
 
 void SceneManager::for_each_model(const ForEachModelHandler& handler)
@@ -223,6 +189,16 @@ const GPUTexture& SceneManager::blue_noise_texture() const
     return *gpuTexture;
 }
 
+void SceneManager::record_graphics_cmd(const CommandRecorder::CmdRecordHandler& handler) const
+{
+    cmd_recorder(rhi::QueueType::GRAPHICS).record(handler);
+}
+
+void SceneManager::record_compute_cmd(const CommandRecorder::CmdRecordHandler& handler) const
+{
+    cmd_recorder(rhi::QueueType::COMPUTE).record(handler);
+}
+
 void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
 {
     FE_CHECK(buffer);
@@ -236,6 +212,11 @@ void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
 const CommandRecorder& SceneManager::cmd_recorder(rhi::QueueType queueType) const
 {
     return *m_cmdRecorderPerQueue.at(rhi::get_queue_index(queueType));
+}
+
+void SceneManager::enqueue_destruction(const DestroyHandler& handler)
+{
+    m_resourceDestroyer.enqueue_destruction(handler);
 }
 
 void SceneManager::allocate_arrays()
@@ -347,9 +328,14 @@ GPUMaterial* SceneManager::gpu_material(UUID materialUUID) const
 
 void SceneManager::set_cmd(rhi::CommandBuffer* cmd)
 {
-    FE_CHECK(cmd);
-    
-    cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
+    if (cmd)
+    {    
+        cmd_recorder(cmd->cmdPool->queueType).set_cmd(cmd);
+    }
+    else
+    {
+        FE_LOG(LogRenderer, ERROR, "Cmd for SceneManager is not valid!");
+    }
 }
 
 void SceneManager::allocate_buffers()
@@ -399,108 +385,6 @@ void SceneManager::upload_cameras_to_gpu()
     });
 
     m_cameraBuffers.bind_uniform_buffer(UB_CAMERA_SLOT);
-}
-
-void SceneManager::fill_tlas(rhi::CommandBuffer* cmd)
-{
-    uint64 instanceSize = rhi::get_acceleration_structure_instance_size();
-    uint64 objectCount = m_entitiesForTLAS.size() + 1 * 2;
-
-    if (!m_TLAS || m_TLAS->info.tlas.count < objectCount)
-    {
-        if (m_TLAS)
-        {
-            rhi::AccelerationStructure* oldTLAS = m_TLAS;
-            m_resourceDestroyer.enqueue_destruction([oldTLAS]()
-            {
-                rhi::Buffer* instanceBuffer = oldTLAS->info.tlas.instanceBuffer;
-                rhi::destroy_acceleration_structure(oldTLAS);
-                rhi::destroy_buffer(instanceBuffer);
-            });
-        }
-    
-        rhi::AccelerationStructureInfo info;
-        info.flags = rhi::AccelerationStructureInfo::Flags::PREFER_FAST_BUILD;
-        info.type = rhi::AccelerationStructureInfo::TOP_LEVEL;
-        info.tlas.count = objectCount;
-    
-        rhi::BufferInfo bufferInfo;
-        bufferInfo.bufferUsage = 
-            rhi::ResourceUsage::STORAGE_BUFFER |
-            rhi::ResourceUsage::TRANSFER_DST;
-        bufferInfo.memoryUsage = rhi::MemoryUsage::GPU;
-        bufferInfo.size = info.tlas.count * instanceSize;
-        bufferInfo.flags = rhi::ResourceFlags::RAY_TRACING;
-    
-        rhi::create_buffer(&info.tlas.instanceBuffer, &bufferInfo);
-        rhi::create_acceleration_structure(&m_TLAS, &info);
-
-        rhi::set_name(m_TLAS->info.tlas.instanceBuffer, "TLASInstanceBuffer");
-        rhi::set_name(m_TLAS, "MainTLAS");
-    }
-
-    if (m_uploadBuffersForTLAS.size() < g_frameIndex + 1
-        || m_uploadBuffersForTLAS.at(g_frameIndex)->size / instanceSize < objectCount
-    )
-    {
-        if (m_uploadBuffersForTLAS.size() < g_frameIndex + 1)
-            m_uploadBuffersForTLAS.push_back(nullptr);
-
-        if (m_uploadBuffersForTLAS.at(g_frameIndex))
-            rhi::destroy_buffer(m_uploadBuffersForTLAS.at(g_frameIndex));
-
-        rhi::BufferInfo bufferInfo;
-        bufferInfo.bufferUsage = rhi::ResourceUsage::TRANSFER_SRC;
-        bufferInfo.memoryUsage = rhi::MemoryUsage::CPU;
-        bufferInfo.size = m_TLAS->info.tlas.count * instanceSize;
-        rhi::create_buffer(&m_uploadBuffersForTLAS.at(g_frameIndex), &bufferInfo);
-    }
-
-    rhi::Buffer* uploadBuffer = m_uploadBuffersForTLAS.at(g_frameIndex);
-    uint8* instanceBufferPtr = (uint8*)uploadBuffer->mappedData;
-    memset(instanceBufferPtr, 0, uploadBuffer->size);
-
-    uint32 instanceCount = 0;
-    for (engine::Entity* entity : m_entitiesForTLAS)
-    {
-        if (engine::ModelComponent* modelComponent = entity->get_component<engine::ModelComponent>())
-        {
-            GPUModel* gpuModel = gpu_model(modelComponent->get_model_uuid());
-            FE_CHECK(gpuModel);
-
-            rhi::TLAS::Instance instance;
-            instance.instanceID = instanceCount;
-
-            instance.blas = gpuModel->blases().at(0);
-            instance.instanceMask = 1 << 0; // TEMP
-            instance.instanceContributionToHitGroupIndex = 0;
-            instance.flags = rhi::TLAS::Instance::Flags::TRIANGLE_CULL_DISABLE;
-
-            Matrix remapMat = modelComponent->get_model()->aabb().get_unorm_remap_matrix();
-            Float4x4 transformMat = remapMat * entity->get_world_transform();
-
-            for (uint32 i = 0; i != ARRAYSIZE(instance.transform); ++i)
-                for (uint32 j = 0; j != ARRAYSIZE(instance.transform[i]); ++j)
-                    instance.transform[i][j] = transformMat.m[j][i];
-
-            void* dst = instanceBufferPtr + instanceCount * instanceSize;
-
-            rhi::write_top_level_acceleration_structure_instance(&instance, dst);
-
-            ++instanceCount;
-        }
-    }
-
-    rhi::Buffer* instanceBuffer = m_TLAS->info.tlas.instanceBuffer;
-    rhi::copy_buffer(cmd, uploadBuffer, instanceBuffer, uploadBuffer->size, 0, 0);
-
-    rhi::PipelineBarrier barrier(
-        instanceBuffer,
-        rhi::ResourceLayout::TRANSFER_DST,
-        rhi::ResourceLayout::SHADER_READ
-    );
-
-    rhi::build_acceleration_structure(cmd, m_TLAS, nullptr);
 }
 
 }

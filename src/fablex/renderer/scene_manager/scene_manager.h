@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "tlas.h"
 #include "command_recorder.h"
 #include "gpu_data_buffers.h"
 #include "gpu_resource_handle.h"
@@ -12,7 +13,6 @@
 #include "engine/components/fwd.h"
 #include "shaders/shader_interop_renderer.h"
 
-#include <array>
 #include <memory>
 
 namespace fe::renderer
@@ -28,6 +28,15 @@ using ShaderEntityBuffers = GPUDataStorageBuffers<ShaderEntity>;
 using FrameDataBuffers = GPUDataUniformBuffers<FrameUB>;
 using CameraBuffers = GPUDataUniformBuffers<ShaderCamera>;
 
+struct SceneManagerCmds
+{
+    // Graphics cmd is main.
+    rhi::CommandBuffer* graphicsCmd = nullptr;
+
+    // Compute cmd is use to build tlases and blases
+    rhi::CommandBuffer* computeCmd = nullptr;
+};
+
 class SceneManager
 {
 public:
@@ -36,18 +45,22 @@ public:
     SceneManager();
     ~SceneManager();
 
-    void upload(rhi::CommandBuffer* cmd);
-    void build_bvh(rhi::CommandBuffer* cmd);
+    void upload(const SceneManagerCmds& cmds);
 
     void for_each_model(const ForEachModelHandler& handler);
 
     void add_staging_buffer(rhi::Buffer* buffer);
     const CommandRecorder& cmd_recorder(rhi::QueueType queueType) const;
+    void enqueue_destruction(const DestroyHandler& handler);
     int32 descriptor(asset::Texture* texture) const;
     int32 sampler_descriptor(ResourceName samplerName) const;
     const GPUTexture& blue_noise_texture() const;
 
-    rhi::AccelerationStructure* scene_tlas() const { return m_TLAS; }
+    void record_graphics_cmd(const CommandRecorder::CmdRecordHandler& handler) const;
+    void record_compute_cmd(const CommandRecorder::CmdRecordHandler& handler) const;
+
+    const TLAS& tlas() const { return m_tlas; }
+    uint32 tlas_descriptor() const { return m_tlas.descriptor(); }
 
     const ModelBuffers& model_buffers() const { return m_modelBuffers; }
     const ModelInstanceBuffers& model_instance_buffers() const { return m_modelInstanceBuffers; }
@@ -73,8 +86,9 @@ private:
     CameraBuffers m_cameraBuffers;
 
     GPUResourceContainer m_gpuResources;
-
     std::vector<GPUModel*> m_gpuModels;
+
+    TLAS m_tlas;
 
     uint32 m_modelCount = 0;
     uint32 m_materialCount = 0;
@@ -89,10 +103,6 @@ private:
 
     ResourceDestroyer m_resourceDestroyer;
 
-    EntityArray m_entitiesForTLAS;
-    rhi::AccelerationStructure* m_TLAS = nullptr;
-    BufferArray m_uploadBuffersForTLAS;
-
     void allocate_arrays();
     void subscribe_to_events();
     void load_resources();
@@ -105,8 +115,6 @@ private:
 
     void upload_frame_data_to_gpu();
     void upload_cameras_to_gpu();
-
-    void fill_tlas(rhi::CommandBuffer* cmd);
 };
 
 }

@@ -33,8 +33,6 @@ void GPUModel::reset()
 
 void GPUModel::build(SceneManager* sceneManager)
 {
-    const CommandRecorder& cmdRecorder = sceneManager->cmd_recorder(rhi::QueueType::GRAPHICS);
-
     destroy_buffer_views();
 
     const float targetPrecision = 1.0f / 1000.0f;
@@ -404,7 +402,7 @@ void GPUModel::build(SceneManager* sceneManager)
         bufferOffset += rhi::align_to(m_meshletBounds.size, alignment);
     }
 
-    cmdRecorder.record([&](rhi::CommandBuffer* cmd)
+    sceneManager->record_graphics_cmd([&](rhi::CommandBuffer* cmd)
     {
         rhi::copy_buffer(cmd, stagingBuffer, m_generalBuffer, stagingBuffer->size, 0, 0);
     });
@@ -435,10 +433,7 @@ void GPUModel::build(SceneManager* sceneManager)
 
     if (m_vertexColors.is_valid())
         configure_buffer_view(m_vertexColors, VertexColor::FORMAT, "VertexColors");
-}
 
-void GPUModel::build_blas(const CommandRecorder& cmdRecorder)
-{
     if (m_BLASes.empty())
     {
         rhi::AccelerationStructureInfo asInfo;
@@ -465,7 +460,7 @@ void GPUModel::build_blas(const CommandRecorder& cmdRecorder)
     {
     case BLASState::REQUIRES_REBUILD:
     {
-        cmdRecorder.record([&](rhi::CommandBuffer* cmd)
+        sceneManager->record_compute_cmd([&](rhi::CommandBuffer* cmd)
         {
             for (rhi::AccelerationStructure* as : m_BLASes)
                 rhi::build_acceleration_structure(cmd, as, nullptr);
@@ -477,7 +472,7 @@ void GPUModel::build_blas(const CommandRecorder& cmdRecorder)
     }
     case BLASState::REQUIRES_REFIT:
     {
-        cmdRecorder.record([&](rhi::CommandBuffer* cmd)
+        sceneManager->record_compute_cmd([&](rhi::CommandBuffer* cmd)
         {
             for (rhi::AccelerationStructure* as : m_BLASes)
                 rhi::build_acceleration_structure(cmd, as, as);
@@ -565,7 +560,7 @@ void GPUModel::upload_model_instance(const SceneManager* sceneManager, engine::E
     const ModelInstanceBuffers& modelInstanceBuffers = sceneManager->model_instance_buffers();
     const MeshInstanceBuffers& meshInstanceBuffers = sceneManager->mesh_instance_buffers();
 
-    ShaderModelInstance& modelInstance = modelInstanceBuffers[m_nextModelInstanceIndex++];
+    ShaderModelInstance& modelInstance = modelInstanceBuffers[m_nextModelInstanceIndex];
 
     Sphere sphereBounds(aabb());
     modelInstance.sphereBounds.center = sphereBounds.center;
@@ -590,6 +585,8 @@ void GPUModel::upload_model_instance(const SceneManager* sceneManager, engine::E
         shaderMeshInstance.materialIndex = sceneManager->gpu_material(materialUUID)->index();
         shaderMeshInstance.indexOffset = mesh.indexOffset;
     }
+
+    sceneManager->tlas().write(this, instanceEntity, m_nextModelInstanceIndex++);
 }
 
 const AABB& GPUModel::aabb() const

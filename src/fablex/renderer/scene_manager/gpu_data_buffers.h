@@ -69,6 +69,11 @@ template<typename DataType, typename Allocator>
 class GPUDataBuffers
 {
 public:
+    ~GPUDataBuffers()
+    {
+        cleanup();
+    }
+
     void set_debug_name(const char* debugName)
     {
         m_debugName = debugName;
@@ -102,6 +107,16 @@ public:
         m_entryCount -= value;
     }
 
+    uint32 entry_count() const
+    {
+        return m_entryCount;
+    }
+
+    void entry_count(uint32 newValue)
+    {
+        m_entryCount = newValue;
+    }
+
     DataType& operator[](uint32 index) const
     {
         rhi::Buffer* buffer = active_buffer();
@@ -112,6 +127,17 @@ public:
         return dataArray[index];
     }
 
+    // In bytes
+    uint32 size() const
+    {
+        return active_buffer()->size;
+    }
+
+    uint8* data() const
+    {
+        return static_cast<uint8*>(active_buffer()->mappedData);
+    }
+
     uint32 descriptor() const
     {
         return active_buffer()->descriptorIndex;
@@ -120,6 +146,11 @@ public:
     rhi::Buffer* active_buffer() const
     {
         return m_buffers.at(g_frameIndex);
+    }
+
+    void memset(int32 value)
+    {
+        std::memset(data(), value, size());
     }
 
     void bind_uniform_buffer(uint32 slot) const
