@@ -52,8 +52,6 @@ SceneManager::~SceneManager()
 {
     for (auto [name, sampler] : m_samplerByName)
         rhi::destroy_sampler(sampler);
-
-    m_resourceDestroyer.process_all();
 }
 
 void SceneManager::upload(const SceneManagerCmds& cmds)

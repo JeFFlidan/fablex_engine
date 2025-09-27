@@ -4,15 +4,15 @@
 namespace fe::renderer
 {
 
-void ResourceDestroyer::process_current_frame()
-{
-    process_handler_array(get_per_frame_handler_array());
-}
-
-void ResourceDestroyer::process_all()
+ResourceDestroyer::~ResourceDestroyer()
 {
     for (DestroyHandlerArray& handlers : m_handlersPerFrame)
         process_handler_array(handlers);
+}
+
+void ResourceDestroyer::process_current_frame()
+{
+    process_handler_array(get_per_frame_handler_array());
 }
 
 void ResourceDestroyer::enqueue_destruction(const DestroyHandler& handler)

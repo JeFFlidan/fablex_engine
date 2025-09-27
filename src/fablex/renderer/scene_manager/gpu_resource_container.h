@@ -35,7 +35,7 @@ public:
     {
         for (auto it = m_resources.begin(); it != m_resources.end(); )
         {
-            if (!it->second->visit(visitor))
+            if (!it->second.visit(visitor))
             {
                 it = m_resources.erase(it);
             }
@@ -61,7 +61,7 @@ private:
     SceneManager* m_sceneManager;
 
     mutable std::mutex m_resourcesMutex;
-    std::unordered_map<UUID, GPUResourceHandlePtr> m_resources;
+    std::unordered_map<UUID, GPUResourceHandle> m_resources;
 
     template<typename T>
     T* resource(UUID uuid) const
@@ -72,7 +72,7 @@ private:
         if (it == m_resources.end())
             return nullptr;
 
-        return it->second->get<T>();
+        return it->second.get<T>();
     }
 
     template<typename ResourceType>
@@ -81,13 +81,8 @@ private:
         using AssetType = ResourceType::AssetType;
 
         AssetType* asset = asset::AssetManager::get_asset<AssetType>(uuid);
-
-        m_resources.emplace(
-            uuid,
-            create_gpu_resource_handle<ResourceType>(asset)
-        );
-
-        return m_resources.at(uuid)->template get<ResourceType>();
+        m_resources.emplace(uuid, GPUResourceHandle(new ResourceType(asset)));
+        return m_resources.at(uuid).template get<ResourceType>();
     }
 };
 

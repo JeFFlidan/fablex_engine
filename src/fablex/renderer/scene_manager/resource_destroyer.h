@@ -12,8 +12,9 @@ using DestroyHandler = std::function<void()>;
 class ResourceDestroyer
 {
 public:
+    ~ResourceDestroyer();
+
     void process_current_frame();
-    void process_all();
 
     void enqueue_destruction(const DestroyHandler& handler);
 

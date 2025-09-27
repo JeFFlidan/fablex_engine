@@ -17,7 +17,7 @@ void GPUResourceContainer::process()
 {
     for (auto it = m_resources.begin(); it != m_resources.end(); )
     {
-        if (!it->second->upload_to_gpu(m_sceneManager))
+        if (!it->second.upload_to_gpu(m_sceneManager))
         {
             std::scoped_lock<std::mutex> locker(m_resourcesMutex);
             it = m_resources.erase(it);
@@ -32,7 +32,7 @@ void GPUResourceContainer::process()
 void GPUResourceContainer::reset()
 {
     for (auto& [uuid, handle] : m_resources)
-        handle->reset();
+        handle.reset();
 }
 
 GPUModel* GPUResourceContainer::add_model(UUID modelUUID, TaskGroup& taskGroup)
