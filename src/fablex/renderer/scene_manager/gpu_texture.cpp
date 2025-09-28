@@ -18,7 +18,6 @@ GPUTexture::~GPUTexture()
 {
     rhi::destroy_texture_view(m_textureView);
     rhi::destroy_texture(m_texture);
-    rhi::destroy_buffer(m_asset->upload_buffer());
 }
 
 void GPUTexture::reset()
@@ -56,6 +55,10 @@ void GPUTexture::create()
 
 bool GPUTexture::upload_to_gpu(const SceneManager* sceneManager)
 {
+    // Transient resources are built in (editor icons, etc.), so we don't need to remove them if the ref count is 0
+    if (m_refCount == 0 && !asset()->has_flag(asset::AssetFlag::TRANSIENT))
+        return false;
+
     if (m_indexInBuffer != UPLOADED_TEXTURE_INDEX)
     {
         sceneManager->record_graphics_cmd([this](rhi::CommandBuffer* cmd)

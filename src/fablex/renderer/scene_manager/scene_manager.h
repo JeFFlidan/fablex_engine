@@ -97,7 +97,7 @@ private:
     uint64 m_lightEntityBufferOffset = 0;   // NOT IN BYTES!!!
 
     std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
-    
+
     std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
     UUID m_blueNoiseTextureUUID = UUID::INVALID;
 

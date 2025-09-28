@@ -36,10 +36,15 @@ public:
         return m_materialSettings->material_type(); 
     }
     
-    void fill_shader_material(ShaderMaterial& shaderMaterial) 
+    void fill_shader_material(ShaderMaterial& shaderMaterial) const
     {
         FE_CHECK(m_materialSettings);
         m_materialSettings->fill_shader_material(shaderMaterial); 
+    }
+
+    void get_texture_uuids(std::vector<UUID>& outTextureUUIDs) const
+    {
+        m_materialSettings->get_texture_uuids(outTextureUUIDs);
     }
 
     MaterialSettings& material_settings() { return *m_materialSettings; }

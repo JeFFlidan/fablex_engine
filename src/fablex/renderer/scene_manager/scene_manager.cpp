@@ -1,17 +1,14 @@
 #include "scene_manager.h"
 #include "renderer/globals.h"
-#include "renderer/utils.h"
 
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
 #include "engine/entity/events.h"
 #include "engine/components/events.h"
 #include "engine/components/model_component.h"
-#include "engine/components/editor_camera_component.h"
 #include "engine/components/light_components.h"
+#include "engine/components/camera_component.h"
 
-#include "core/utils.h"
-#include "core/primitives/sphere.h"
 #include "core/task_composer.h"
 #include "asset_manager/asset_manager.h"
 #include "asset_manager/events.h"
@@ -99,14 +96,25 @@ void SceneManager::upload(const SceneManagerCmds& cmds)
 
     engine::MaterialComponent::for_each([this, &taskGroup](engine::MaterialComponent* materialComponent)
     {
+        std::vector<UUID> textureUUIDs;
+
         for (UUID materialUUID : materialComponent->material_uuids())
         {
             GPUMaterial* gpuMaterial = m_gpuResources.add_material(materialUUID, taskGroup);
 
             if (gpuMaterial->ref_count() == 0)
                 gpuMaterial->index(m_materialCount++);
-
+            
             gpuMaterial->increase_ref_count(1);
+            gpuMaterial->asset()->get_texture_uuids(textureUUIDs);
+
+            for (UUID textureUUID : textureUUIDs)
+            {
+                GPUTexture* gpuTexture = m_gpuResources.add_texture(textureUUID, taskGroup);
+                gpuTexture->increase_ref_count(1); 
+            }
+
+            textureUUIDs.clear();
         }
 
         m_materialBuffers.increase_entry_count(materialComponent->material_uuids().size());
@@ -227,16 +235,15 @@ void SceneManager::allocate_arrays()
 
 void SceneManager::subscribe_to_events()
 {
-    EventManager::subscribe<asset::TextureLoadedEvent>([this](const auto& event)
-    {
-        TaskGroup taskGroup;    // TEMP
-        m_gpuResources.add_texture(event.get_handle()->get_uuid(), taskGroup);
-    });
-
+    // Temp solution for built in resources
     EventManager::subscribe<asset::TextureImportedEvent>([this](const auto& event)
     {
-        TaskGroup taskGroup;    // TEMP
-        m_gpuResources.add_texture(event.get_handle()->get_uuid(), taskGroup);
+        asset::Texture* texture = event.get_handle();
+        if (texture->has_flag(asset::AssetFlag::TRANSIENT))
+        {
+            TaskGroup taskGroup;
+            m_gpuResources.add_texture(texture->get_uuid(), taskGroup);
+        }
     });
 }
 

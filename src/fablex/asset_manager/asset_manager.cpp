@@ -41,6 +41,11 @@ void AssetManager::init()
     );
 }
 
+void AssetManager::cleanup()
+{
+    s_assetStorage.cleanup();
+}
+
 Model* AssetManager::create_model(const ModelCreateInfo& createInfo)
 {
     Model* model = allocate<Model>();

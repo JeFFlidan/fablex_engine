@@ -23,8 +23,9 @@ class MaterialSettings : public Object
     FE_DECLARE_OBJECT(MaterialSettings);
 
 public:
-    virtual void fill_shader_material(ShaderMaterial& outShaderMaterial) { };
-    virtual MaterialType material_type() const { return MaterialType::UNDEFINED; };
+    virtual void fill_shader_material(ShaderMaterial& outShaderMaterial) { }
+    virtual MaterialType material_type() const { return MaterialType::UNDEFINED; }
+    virtual void get_texture_uuids(std::vector<UUID>& outTextureUUIDs) const { }
 
 protected:
     void set_texture(ShaderMaterial& outShaderMaterial, uint32 textureSlot, Texture* textureAsset) const;

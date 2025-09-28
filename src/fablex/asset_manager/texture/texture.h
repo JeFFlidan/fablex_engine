@@ -65,6 +65,7 @@ public:
 
     // ========== Begin Asset interface ==========
 
+    virtual void cleanup() override;
     virtual Type get_type() const override { return Type::TEXTURE; }
 
     // ========== End Asset interface ==========

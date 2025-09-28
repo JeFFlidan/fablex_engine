@@ -16,6 +16,7 @@ class OpaqueMaterialSettings : public MaterialSettings
 public:
     virtual void fill_shader_material(ShaderMaterial& outShaderMaterial) override;
     virtual MaterialType material_type() const override { return MaterialType::OPAQUE; }
+    virtual void get_texture_uuids(std::vector<UUID>& outTextureUUIDs) const override;
 
     // ========== Begin Object interface ==========
 

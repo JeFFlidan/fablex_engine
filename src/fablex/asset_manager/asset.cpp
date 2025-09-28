@@ -45,4 +45,9 @@ uint32 get_asset_type_count()
     return std::to_underlying(Type::COUNT);
 }
 
+bool Asset::has_flag(AssetFlag flag) const
+{
+    return ::has_flag(m_assetFlag, flag);
+}
+
 }

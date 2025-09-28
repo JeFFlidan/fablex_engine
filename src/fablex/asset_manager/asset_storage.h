@@ -10,6 +10,8 @@ namespace fe::asset
 class AssetStorage
 {
 public:
+    void cleanup();
+
     void add_asset(Asset* asset);
     Asset* get_asset(UUID uuid) const;
 

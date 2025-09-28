@@ -6,6 +6,12 @@
 namespace fe::asset
 {
 
+void AssetStorage::cleanup()
+{
+    for (auto [uuid, asset] : m_assetByUUID)
+        asset->cleanup();
+}
+
 void AssetStorage::add_asset(Asset* asset)
 {
     FE_CHECK(asset);

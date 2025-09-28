@@ -25,6 +25,8 @@ public:
 
     // ========== End Object interface ==========
 
+    virtual void cleanup() { }
+
     void make_dirty() { m_isDirty = true; }
 
     bool is_dirty() const { return m_isDirty; }
@@ -35,6 +37,8 @@ public:
     const std::string& get_original_file_path() const { return m_originalFilePath; }
     
     virtual Type get_type() const { return Type::COUNT; };
+
+    bool has_flag(AssetFlag flag) const;
 
 protected:
     UUID m_uuid = UUID();

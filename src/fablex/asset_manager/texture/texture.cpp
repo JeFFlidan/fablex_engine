@@ -14,6 +14,11 @@ FE_BEGIN_PROPERTY_REGISTER(Texture)
 }
 FE_END_PROPERTY_REGISTER(Texture);
 
+void Texture::cleanup()
+{
+    rhi::destroy_buffer(m_uploadBuffer);
+}
+
 void Texture::serialize(Archive& archive) const
 {
     Asset::serialize(archive);

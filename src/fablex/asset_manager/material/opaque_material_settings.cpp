@@ -28,6 +28,22 @@ void OpaqueMaterialSettings::fill_shader_material(ShaderMaterial& outShaderMater
     set_texture(outShaderMaterial, TEXTURE_SLOT_ARM, arm_texture());
 }
 
+void OpaqueMaterialSettings::get_texture_uuids(std::vector<UUID>& outTextureUUIDs) const
+{
+    if (has_base_color_texture())
+        outTextureUUIDs.push_back(m_baseColorTextureUUID);
+    if (has_roughness_texture())
+        outTextureUUIDs.push_back(m_roughnessTextureUUID);
+    if (has_metallic_texture())
+        outTextureUUIDs.push_back(m_metallicTextureUUID);
+    if (has_normal_texture())
+        outTextureUUIDs.push_back(m_normalTextureUUID);
+    if (has_arm_texture())
+        outTextureUUIDs.push_back(m_armTextureUUID);
+    if (has_ambient_occlusion_texture())
+        outTextureUUIDs.push_back(m_ambientOcclusionTextureUUID);
+}
+
 void OpaqueMaterialSettings::serialize(Archive& archive) const
 {
     MaterialSettings::serialize(archive);

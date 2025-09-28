@@ -56,6 +56,7 @@ Application::Application()
 
 Application::~Application()
 {
+    asset::AssetManager::cleanup();
     m_renderer.reset();
     TypeManager::cleanup();
     Core::cleanup();

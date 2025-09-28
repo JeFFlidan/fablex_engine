@@ -18,6 +18,7 @@ class AssetManager
 {
 public:
     static void init();
+    static void cleanup();
 
     static Model* create_model(const ModelCreateInfo& createInfo);
     static Texture* create_texture(const TextureCreateInfo& createInfo);
