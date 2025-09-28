@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gpu_resource_container.h"
+#include "gpu_resource_counters.h"
 #include "core/task_composer.h"
 #include "scene_manager.h"
 
@@ -38,7 +39,12 @@ void GPUResourceContainer::reset()
 GPUModel* GPUResourceContainer::add_model(UUID modelUUID, TaskGroup& taskGroup)
 {
     if (GPUModel* gpuModel = model(modelUUID))
+    {
+        if (gpuModel->ref_count() == 0)
+            gpuModel->index(GPUResourceCounters::next_model_index());
+
         return gpuModel;
+    }
 
     GPUModel* gpuModel = add_resource<GPUModel>(modelUUID);
 
@@ -46,6 +52,8 @@ GPUModel* GPUResourceContainer::add_model(UUID modelUUID, TaskGroup& taskGroup)
     {
         gpuModel->build(m_sceneManager);
     });
+
+    gpuModel->index(GPUResourceCounters::next_model_index());
     
     return gpuModel;
 }
@@ -53,7 +61,12 @@ GPUModel* GPUResourceContainer::add_model(UUID modelUUID, TaskGroup& taskGroup)
 GPUMaterial* GPUResourceContainer::add_material(UUID materialUUID, TaskGroup& taskGroup)
 {
     if (GPUMaterial* gpuMaterial = material(materialUUID))
+    {
+        if (gpuMaterial->ref_count() == 0)
+            gpuMaterial->index(GPUResourceCounters::next_material_index());
+
         return gpuMaterial;
+    }
 
     GPUMaterial* gpuMaterial = add_resource<GPUMaterial>(materialUUID);
 
@@ -61,6 +74,8 @@ GPUMaterial* GPUResourceContainer::add_material(UUID materialUUID, TaskGroup& ta
     {
         gpuMaterial->build(m_sceneManager);
     });
+
+    gpuMaterial->index(GPUResourceCounters::next_material_index());
 
     return gpuMaterial;
 }

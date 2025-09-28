@@ -2,18 +2,15 @@
 
 #include "common.h"
 #include "tlas.h"
-#include "command_recorder.h"
+#include "frame_data.h"
+#include "camera_data.h"
 #include "gpu_data_buffers.h"
 #include "gpu_resource_handle.h"
 #include "gpu_resource_container.h"
 #include "resource_destroyer.h"
+#include "command_recorder_manager.h"
 
-#include "core/fwd.h"
-#include "engine/entity/entity.h"
-#include "engine/components/fwd.h"
 #include "shaders/shader_interop_renderer.h"
-
-#include <memory>
 
 namespace fe::renderer
 {
@@ -25,8 +22,8 @@ using ModelInstanceBuffers = GPUDataStorageBuffers<ShaderModelInstance>;
 using MeshInstanceBuffers = GPUDataStorageBuffers<ShaderMeshInstance>;
 using MaterialBuffers = GPUDataStorageBuffers<ShaderMaterial>;
 using ShaderEntityBuffers = GPUDataStorageBuffers<ShaderEntity>;
-using FrameDataBuffers = GPUDataUniformBuffers<FrameUB>;
-using CameraBuffers = GPUDataUniformBuffers<ShaderCamera>;
+using FrameDataBuffers = GPUDataUniformBuffers<FrameData>;
+using CameraBuffers = GPUDataUniformBuffers<CameraData>;
 
 struct SceneManagerCmds
 {
@@ -50,7 +47,6 @@ public:
     void for_each_model(const ForEachModelHandler& handler);
 
     void add_staging_buffer(rhi::Buffer* buffer);
-    const CommandRecorder& cmd_recorder(rhi::QueueType queueType) const;
     void enqueue_destruction(const DestroyHandler& handler);
     int32 descriptor(asset::Texture* texture) const;
     int32 sampler_descriptor(ResourceName samplerName) const;
@@ -73,10 +69,6 @@ public:
     GPUMaterial* gpu_material(UUID materialUUID) const;
 
 private:
-    using BufferArray = std::vector<rhi::Buffer*>;
-    using EntityArray = std::vector<engine::Entity*>;
-    using CommandRecorderPtr = std::unique_ptr<CommandRecorder>;
-
     ModelBuffers m_modelBuffers;
     ModelInstanceBuffers m_modelInstanceBuffers;
     MeshInstanceBuffers m_meshInstanceBuffers;
@@ -86,31 +78,19 @@ private:
     CameraBuffers m_cameraBuffers;
 
     GPUResourceContainer m_gpuResources;
-    std::vector<GPUModel*> m_gpuModels;
 
     TLAS m_tlas;
-
-    uint32 m_modelCount = 0;
-    uint32 m_materialCount = 0;
-    
-    uint64 m_lightComponentCount = 0;
-    uint64 m_lightEntityBufferOffset = 0;   // NOT IN BYTES!!!
-
-    std::vector<CommandRecorderPtr> m_cmdRecorderPerQueue;
 
     std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
     UUID m_blueNoiseTextureUUID = UUID::INVALID;
 
     ResourceDestroyer m_resourceDestroyer;
+    CommandRecorderManager m_commandRecorderManager;
 
-    void allocate_arrays();
     void subscribe_to_events();
     void load_resources();
     void create_samplers();
 
-    void reset_per_frame_buffers();
-
-    void set_cmd(rhi::CommandBuffer* cmd);
     void allocate_buffers();
 
     void upload_frame_data_to_gpu();

@@ -6,6 +6,7 @@
 #include "asset_manager/model/model.h"
 #include "core/primitives/aabb.h"
 #include "core/primitives/sphere.h"
+#include "engine/entity/entity.h"
 #include "shaders/shader_interop_renderer.h"
 #include "meshoptimizer.h"
 

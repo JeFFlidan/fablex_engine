@@ -85,36 +85,9 @@ public:
             rhi::destroy_buffer(buffer);
     }
 
-    // Must be called before any invocation of increase_entry_count (in the beginning of the SceneManager update)
-    void reset()
+    void allocate(uint32 entryCount)
     {
-        m_entryCount = 0;
-    }
-
-    // Must be called after entry count was fully updated using increase_entry_count function
-    void allocate()
-    {
-        Allocator::allocate(m_buffers, m_entryCount, m_debugName);
-    }
-
-    void increase_entry_count(uint32 value)
-    {
-        m_entryCount += value;
-    }
-
-    void decrease_entry_count(uint32 value)
-    {
-        m_entryCount -= value;
-    }
-
-    uint32 entry_count() const
-    {
-        return m_entryCount;
-    }
-
-    void entry_count(uint32 newValue)
-    {
-        m_entryCount = newValue;
+        Allocator::allocate(m_buffers, entryCount, m_debugName);
     }
 
     DataType& operator[](uint32 index) const
@@ -162,7 +135,6 @@ public:
     }
 
 private:
-    uint32 m_entryCount = 0;
     std::vector<rhi::Buffer*> m_buffers;
     const char* m_debugName = "BufferPlaceholderName";
 };

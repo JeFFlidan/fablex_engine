@@ -24,9 +24,6 @@ TLAS::~TLAS()
 
 void TLAS::allocate(uint32 inObjectCount)
 {
-    // if (m_tlas)
-    //     FE_LOG(LogDefault, INFO, "Object Count: {}; TLAS instance count: {}", objectCount, m_tlas->info.tlas.count);
-
     if (!m_tlas || m_tlas->info.tlas.count <= inObjectCount)
     {
         if (m_tlas)
@@ -47,8 +44,6 @@ void TLAS::allocate(uint32 inObjectCount)
         info.type = rhi::AccelerationStructureInfo::TOP_LEVEL;
         info.tlas.count = newObjectCount;
 
-        m_uploadBuffers.entry_count(newObjectCount);
-    
         rhi::BufferInfo bufferInfo;
         bufferInfo.bufferUsage = 
             rhi::ResourceUsage::STORAGE_BUFFER |
@@ -64,7 +59,7 @@ void TLAS::allocate(uint32 inObjectCount)
         rhi::set_name(m_tlas, "MainTLAS");
     }
 
-    m_uploadBuffers.allocate();
+    m_uploadBuffers.allocate(m_tlas->info.tlas.count);
     m_uploadBuffers.memset(0);
 }
 
