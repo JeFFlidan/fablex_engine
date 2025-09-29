@@ -14,13 +14,28 @@ GPUResourceContainer::GPUResourceContainer(SceneManager* sceneManager)
 
 }
 
+GPUResourceContainer::~GPUResourceContainer()
+{
+    for (auto [uuid, resource] : m_resources)
+    {
+        GPUResourceFreeHandler freeHandler = resource->free_handler();
+        freeHandler(resource);
+    }
+}
+
 void GPUResourceContainer::process()
 {
-    for (auto it = m_resources.begin(); it != m_resources.end(); )
+    for (auto it = m_resources.begin(); it != m_resources.end();)
     {
-        if (!it->second.upload_to_gpu(m_sceneManager))
+        GPUResourceBase* resource = it->second;
+
+        if (!resource->upload_to_gpu(m_sceneManager))
         {
             std::scoped_lock<std::mutex> locker(m_resourcesMutex);
+            
+            GPUResourceFreeHandler freeHandler = resource->free_handler();
+            freeHandler(resource);
+
             it = m_resources.erase(it);
         }
         else
@@ -32,8 +47,8 @@ void GPUResourceContainer::process()
 
 void GPUResourceContainer::reset()
 {
-    for (auto& [uuid, handle] : m_resources)
-        handle.reset();
+    for (auto& [uuid, resource] : m_resources)
+        resource->reset();
 }
 
 GPUModel* GPUResourceContainer::add_model(UUID modelUUID, TaskGroup& taskGroup)
@@ -86,7 +101,7 @@ GPUTexture* GPUResourceContainer::add_texture(UUID textureUUID, TaskGroup& taskG
         return gpuTexture;
 
     GPUTexture* gpuTexture = add_resource<GPUTexture>(textureUUID);
-    gpuTexture->create();
+    gpuTexture->build(m_sceneManager);
 
     return gpuTexture;
 }

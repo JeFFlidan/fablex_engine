@@ -23,24 +23,24 @@ enum class BLASState
     READY
 };
 
-class GPUModel : public GPUResource<asset::Model>
+class GPUModel : public GPUResource<GPUModel, asset::Model>
 {
 public:
-    using Parent = GPUResource<asset::Model>;
+    using Parent = GPUResource<GPUModel, asset::Model>;
 
     GPUModel(asset::Model* model);
     ~GPUModel();
 
-    void reset();
+    virtual void reset() override;
 
-    void build(SceneManager* sceneManager);
+    virtual void build(SceneManager* sceneManager) override;
     void destroy_buffer_views();
     void destroy_BLASes();
 
     uint32 next_model_instance_index() const { return m_nextModelInstanceIndex; } 
     void update_instance_offsets(uint32& inOutModelInstanceOffset, uint32& inOutMeshInstanceOffset);
 
-    bool upload_to_gpu(const SceneManager* sceneManager);
+    virtual bool upload_to_gpu(const SceneManager* sceneManager) override;
     void upload_model_instance(const SceneManager* sceneManager, engine::Entity* instanceEntity);
 
     const AABB& aabb() const;

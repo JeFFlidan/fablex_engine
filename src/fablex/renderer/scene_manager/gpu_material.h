@@ -11,13 +11,13 @@ namespace fe::renderer
 class SceneManager;
 class CommandRecorder;
 
-class GPUMaterial : public GPUResource<asset::Material>
+class GPUMaterial : public GPUResource<GPUMaterial, asset::Material>
 {
 public:
     GPUMaterial(asset::Material* material);
 
-    void build(SceneManager* sceneManager);
-    bool upload_to_gpu(const SceneManager* sceneManager);
+    virtual void build(SceneManager* sceneManager) override;
+    virtual bool upload_to_gpu(const SceneManager* sceneManager) override;
 };
 
 }

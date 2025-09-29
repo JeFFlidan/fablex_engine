@@ -5,7 +5,6 @@
 #include "frame_data.h"
 #include "camera_data.h"
 #include "gpu_data_buffers.h"
-#include "gpu_resource_handle.h"
 #include "gpu_resource_container.h"
 #include "resource_destroyer.h"
 #include "command_recorder_manager.h"

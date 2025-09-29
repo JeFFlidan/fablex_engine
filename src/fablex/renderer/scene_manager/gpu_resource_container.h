@@ -1,6 +1,5 @@
 #pragma once
 
-#include "gpu_resource_handle.h"
 #include "core/task_types.h"
 #include "asset_manager/asset_manager.h"
 #include "gpu_model.h"
@@ -8,7 +7,6 @@
 #include "gpu_material.h"
 
 #include <mutex>
-#include <concepts>
 #include <unordered_map>
 
 namespace fe::renderer
@@ -16,35 +14,11 @@ namespace fe::renderer
 
 class SceneManager;
 
-template<typename Visitor>
-concept GPUResourceVisitor =
-    std::invocable<Visitor, GPUModel&> &&
-    std::invocable<Visitor, GPUTexture&> &&
-    std::invocable<Visitor, GPUMaterial&> &&
-    std::same_as<std::invoke_result_t<Visitor, GPUModel&>, bool> &&
-    std::same_as<std::invoke_result_t<Visitor, GPUTexture&>, bool> &&
-    std::same_as<std::invoke_result_t<Visitor, GPUMaterial&>, bool>;
-
 class GPUResourceContainer
 {
 public:
     GPUResourceContainer(SceneManager* sceneManager);
-
-    template<GPUResourceVisitor Visitor>
-    void for_each(Visitor&& visitor)
-    {
-        for (auto it = m_resources.begin(); it != m_resources.end(); )
-        {
-            if (!it->second.visit(visitor))
-            {
-                it = m_resources.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
+    ~GPUResourceContainer();
 
     void process();
     void reset();
@@ -61,10 +35,10 @@ private:
     SceneManager* m_sceneManager;
 
     mutable std::mutex m_resourcesMutex;
-    std::unordered_map<UUID, GPUResourceHandle> m_resources;
+    std::unordered_map<UUID, GPUResourceBase*> m_resources;
 
-    template<typename T>
-    T* resource(UUID uuid) const
+    template<typename ResourceType>
+    ResourceType* resource(UUID uuid) const
     {
         std::scoped_lock<std::mutex> locker(m_resourcesMutex);
 
@@ -72,7 +46,7 @@ private:
         if (it == m_resources.end())
             return nullptr;
 
-        return it->second.get<T>();
+        return static_cast<ResourceType*>(it->second);
     }
 
     template<typename ResourceType>
@@ -81,8 +55,8 @@ private:
         using AssetType = ResourceType::AssetType;
 
         AssetType* asset = asset::AssetManager::get_asset<AssetType>(uuid);
-        m_resources.emplace(uuid, GPUResourceHandle(new ResourceType(asset)));
-        return m_resources.at(uuid).template get<ResourceType>();
+        m_resources.emplace(uuid, GPUResourceAllocator<ResourceType>::allocate(asset));
+        return static_cast<ResourceType*>(m_resources.at(uuid));
     }
 };
 

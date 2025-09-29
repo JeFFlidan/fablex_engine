@@ -25,7 +25,7 @@ void GPUTexture::reset()
     m_refCount = 0;
 }
 
-void GPUTexture::create()
+void GPUTexture::build(SceneManager* sceneManager)
 {
     rhi::TextureInfo textureInfo;
     textureInfo.width = m_asset->width();

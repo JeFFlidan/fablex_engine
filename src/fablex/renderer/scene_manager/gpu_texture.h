@@ -9,16 +9,16 @@ namespace fe::renderer
 
 class SceneManager;
 
-class GPUTexture : public GPUResource<asset::Texture>
+class GPUTexture : public GPUResource<GPUTexture, asset::Texture>
 {
 public:
     GPUTexture(asset::Texture* textureAsset);
-    ~GPUTexture();
+    virtual ~GPUTexture() override;
 
     void reset();
     
-    void create();
-    bool upload_to_gpu(const SceneManager* sceneManager);
+    virtual void build(SceneManager* sceneManager) override;
+    virtual bool upload_to_gpu(const SceneManager* sceneManager) override;
 
     rhi::Texture* texture() const { return m_texture; }
     rhi::TextureView* texture_view() const { return m_textureView; }
