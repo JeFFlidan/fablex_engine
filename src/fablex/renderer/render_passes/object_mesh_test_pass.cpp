@@ -6,7 +6,7 @@
 namespace fe::renderer
 {
 
-FE_DEFINE_OBJECT(ObjectMeshTestPass, RenderPass);
+FE_DEFINE_OBJECT(ObjectMeshTestPass, rg::RenderPass);
 
 void ObjectMeshTestPass::create_pipeline()
 {

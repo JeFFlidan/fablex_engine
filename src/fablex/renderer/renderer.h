@@ -1,15 +1,15 @@
 #pragma once
 
 #include "renderer_config.h"
-#include "render_graph.h"
-#include "render_pass_container.h"
-#include "render_graph_resource_manager.h"
+#include "render_graph/render_graph.h"
+#include "render_graph/render_pass_container.h"
+#include "render_graph/resource_manager.h"
 #include "pipeline_manager.h"
 #include "command_manager.h"
 #include "scene_manager/scene_manager.h"
 #include "synchronization_manager.h"
 #include "shader_manager.h"
-#include "resource_layout_tracker.h"
+#include "render_graph/resource_layout_tracker.h"
 #include "deletion_queue.h"
 #include "imgui_renderer.h"
 #include "render_context.h"
@@ -43,7 +43,7 @@ private:
 
         rhi::CommandBuffer* workerCmd = nullptr;
         uint32 dependencyLevelIndex = s_undefinedDependencyLevel;
-        std::vector<const RenderGraph::Node*> nodesToRecord;
+        std::vector<const rg::RenderGraph::Node*> nodesToRecord;
     };
 
     struct SubmitContext
@@ -58,10 +58,10 @@ private:
     using SubmitInfoArray = std::vector<rhi::SubmitInfo>;
     using PipelineBarrierArray = std::vector<rhi::PipelineBarrier>;
 
-    std::unique_ptr<RenderGraph> m_renderGraph = nullptr;
-    std::unique_ptr<RenderPassContainer> m_renderPassContainer = nullptr;
-    std::unique_ptr<ResourceLayoutTracker> m_resourceLayoutTracker = nullptr;
-    std::unique_ptr<RenderGraphResourceManager> m_resourceManager = nullptr;
+    std::unique_ptr<rg::RenderGraph> m_renderGraph = nullptr;
+    std::unique_ptr<rg::RenderPassContainer> m_renderPassContainer = nullptr;
+    std::unique_ptr<rg::ResourceLayoutTracker> m_resourceLayoutTracker = nullptr;
+    std::unique_ptr<rg::ResourceManager> m_resourceManager = nullptr;
     std::unique_ptr<PipelineManager> m_pipelineManager = nullptr;
     std::unique_ptr<CommandManager> m_commandManager = nullptr;
     std::unique_ptr<SceneManager> m_sceneManager = nullptr;
@@ -83,7 +83,7 @@ private:
     rhi::SubmitInfo m_uploadSubmitInfo;
     rhi::SubmitInfo m_bvhBuildSubmitInfo;
 
-    const RenderGraph::Node* m_backBufferNode = nullptr;
+    const rg::RenderGraph::Node* m_backBufferNode = nullptr;
 
     SubmitContextArray m_submitContexts;
     std::unordered_map<RenderPassName, PipelineBarrierArray> m_pipelineBarriersByPassName;

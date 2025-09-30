@@ -14,17 +14,17 @@ public:
     Texture(rhi::TextureHandle handle, Name textureName);
     ~Texture();
 
-    rhi::TextureHandle get_handle() const { return m_handle; }
+    rhi::TextureHandle handle() const { return m_handle; }
 
-    rhi::TextureViewHandle get_dsv() const;
-    rhi::TextureViewHandle get_srv() const;
-    rhi::TextureViewHandle get_rtv(uint32 mipLevel = 0) const;
-    rhi::TextureViewHandle get_uav(uint32 mipLevel = 0) const;
+    rhi::TextureViewHandle dsv() const;
+    rhi::TextureViewHandle srv() const;
+    rhi::TextureViewHandle rtv(uint32 mipLevel = 0) const;
+    rhi::TextureViewHandle uav(uint32 mipLevel = 0) const;
 
-    uint32 get_dsv_descriptor() const;
-    uint32 get_srv_descriptor() const;
-    uint32 get_rtv_descriptor(uint32 mipLevel = 0) const;
-    uint32 get_uav_descriptor(uint32 mipLevel = 0) const;
+    uint32 dsv_descriptor() const;
+    uint32 srv_descriptor() const;
+    uint32 rtv_descriptor(uint32 mipLevel = 0) const;
+    uint32 uav_descriptor(uint32 mipLevel = 0) const;
 
 private:
     Name m_name;

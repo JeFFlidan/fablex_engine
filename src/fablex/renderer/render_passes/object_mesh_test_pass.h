@@ -1,11 +1,11 @@
 #pragma once
 
-#include "renderer/render_pass.h"
+#include "renderer/render_graph/render_pass.h"
 
 namespace fe::renderer
 {
 
-class ObjectMeshTestPass : public RenderPass
+class ObjectMeshTestPass : public rg::RenderPass
 {
     FE_DECLARE_OBJECT(ObjectMeshTestPass)
 

@@ -30,7 +30,7 @@ Texture::~Texture()
     if (m_handle) rhi::destroy_texture(m_handle);
 }
 
-rhi::TextureViewHandle Texture::get_dsv() const
+rhi::TextureViewHandle Texture::dsv() const
 {
     if (!m_dsTextureView)
     {
@@ -43,7 +43,7 @@ rhi::TextureViewHandle Texture::get_dsv() const
     return m_dsTextureView;
 }
 
-rhi::TextureViewHandle Texture::get_srv() const
+rhi::TextureViewHandle Texture::srv() const
 {
     if (!m_srTextureView)
     {
@@ -56,7 +56,7 @@ rhi::TextureViewHandle Texture::get_srv() const
     return m_srTextureView;
 }
 
-rhi::TextureViewHandle Texture::get_rtv(uint32 mipLevel) const
+rhi::TextureViewHandle Texture::rtv(uint32 mipLevel) const
 {
     FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested RT texture view exceeds texture's amount of mip level.");
 
@@ -72,7 +72,7 @@ rhi::TextureViewHandle Texture::get_rtv(uint32 mipLevel) const
     return m_rtTextureViews[mipLevel];
 }
 
-rhi::TextureViewHandle Texture::get_uav(uint32 mipLevel) const
+rhi::TextureViewHandle Texture::uav(uint32 mipLevel) const
 {
     FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested UA texture view exceeds texture's amount of mip level.");
 
@@ -88,24 +88,24 @@ rhi::TextureViewHandle Texture::get_uav(uint32 mipLevel) const
     return m_uaTextureViews[mipLevel];
 }
 
-uint32 Texture::get_dsv_descriptor() const
+uint32 Texture::dsv_descriptor() const
 {
-    return get_dsv()->descriptorIndex;
+    return dsv()->descriptorIndex;
 }
 
-uint32 Texture::get_srv_descriptor() const
+uint32 Texture::srv_descriptor() const
 {
-    return get_srv()->descriptorIndex;
+    return srv()->descriptorIndex;
 }
 
-uint32 Texture::get_rtv_descriptor(uint32 mipLevel) const
+uint32 Texture::rtv_descriptor(uint32 mipLevel) const
 {
-    return get_rtv(mipLevel)->descriptorIndex;
+    return rtv(mipLevel)->descriptorIndex;
 }
 
-uint32 Texture::get_uav_descriptor(uint32 mipLevel) const
+uint32 Texture::uav_descriptor(uint32 mipLevel) const
 {
-    return get_uav(mipLevel)->descriptorIndex;
+    return uav(mipLevel)->descriptorIndex;
 }
 
 void Texture::reserve_texture_view_arrays()

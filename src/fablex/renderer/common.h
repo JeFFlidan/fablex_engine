@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fwd.h"
 #include "core/name.h"
 #include "core/logger.h"
 

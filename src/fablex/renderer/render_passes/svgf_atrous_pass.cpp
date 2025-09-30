@@ -5,7 +5,7 @@
 namespace fe::renderer
 {
 
-FE_DEFINE_OBJECT(SVGFAtrousPass, RenderPass);
+FE_DEFINE_OBJECT(SVGFAtrousPass, rg::RenderPass);
 
 void SVGFAtrousPass::create_pipeline()
 {

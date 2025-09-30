@@ -12,10 +12,6 @@
 namespace fe::renderer
 {
 
-struct PipelineMetadata;
-class ShaderManager;
-class RenderPassContainer;
-
 class PipelineManager
 {
 public:
@@ -25,14 +21,14 @@ public:
     PipelineManager(ShaderManager* shaderManager);
     ~PipelineManager();
 
-    void create_graphics_pipeline(const PipelineMetadata& pipelineMetadata);
-    void create_graphics_pipeline(const PipelineMetadata& pipelineMetadata, const GraphicsPipelineConfigurator& configurator);
-    void create_compute_pipeline(const PipelineMetadata& pipelineMetadata);
-    void create_ray_tracing_pipeline(const PipelineMetadata& pipelineMetadata);
-    void create_ray_tracing_pipeline(const PipelineMetadata& pipelineMetadata, const RayTracingPipelineConfigurator& configurator);
+    void create_graphics_pipeline(const rg::PipelineMetadata& pipelineMetadata);
+    void create_graphics_pipeline(const rg::PipelineMetadata& pipelineMetadata, const GraphicsPipelineConfigurator& configurator);
+    void create_compute_pipeline(const rg::PipelineMetadata& pipelineMetadata);
+    void create_ray_tracing_pipeline(const rg::PipelineMetadata& pipelineMetadata);
+    void create_ray_tracing_pipeline(const rg::PipelineMetadata& pipelineMetadata, const RayTracingPipelineConfigurator& configurator);
     
     // Create pipeline for all passes in container using multithreading. Wait function must be called manually. 
-    void create_pipelines(RenderPassContainer* renderPassContainer);
+    void create_pipelines(rg::RenderPassContainer* renderPassContainer);
     void wait_pipelines_creation();
     
     void bind_pipeline(rhi::CommandBuffer* cmd, PipelineName name) const;
@@ -50,8 +46,8 @@ private:
     ShaderManager* m_shaderManager = nullptr;
     TaskGroup* m_taskGroup = nullptr;
 
-    void configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo, const PipelineMetadata& pipelineMetadata);
-    void configure_pipeline_info(rhi::RayTracingPipelineInfo& outInfo, const PipelineMetadata& pipelineMetadata);
+    void configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata);
+    void configure_pipeline_info(rhi::RayTracingPipelineInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata);
     void create_pipeline(PipelineName pipelineName, PipelineInfoVariant infoVariant);
 };
 

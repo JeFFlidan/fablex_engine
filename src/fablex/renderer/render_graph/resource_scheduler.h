@@ -5,10 +5,8 @@
 #include "core/types.h"
 #include "rhi/resources.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
-
-class ResourceSchedulingInfo;
 
 enum class TextureReadContext : uint8
 {

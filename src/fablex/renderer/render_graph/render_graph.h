@@ -5,10 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
-
-class RenderPassContainer;
 
 class RenderGraph
 {
@@ -123,13 +121,13 @@ public:
     void build();
     void clear();
 
-    Node* get_node(RenderPassName renderPassName) const;
-    const RenderGraphMetadata* get_metadata() const { return m_metadata.get(); }
-    const OrderedNodeArray& get_nodes_in_global_exec_order() const { return m_nodesInGlobalExecOrder; }
-    const NodeArray& get_nodes() const { return m_passNodes; }
-    NodeArray& get_nodes() { return m_passNodes; }
-    const DependencyLevelArray& get_dependency_levels() const { return m_dependencyLevels; }
-    uint32 get_detected_queue_count() const { return m_detectedQueueCount; }
+    Node* node(RenderPassName renderPassName) const;
+    const RenderGraphMetadata* metadata() const { return m_metadata.get(); }
+    const OrderedNodeArray& nodes_in_global_exec_order() const { return m_nodesInGlobalExecOrder; }
+    const NodeArray& nodes() const { return m_passNodes; }
+    NodeArray& nodes() { return m_passNodes; }
+    const DependencyLevelArray& dependency_levels() const { return m_dependencyLevels; }
+    uint32 detected_queue_count() const { return m_detectedQueueCount; }
 
     static ViewName encode_view_name(ResourceName resourceName, uint32 viewIndex);
     static std::pair<ResourceName, uint32> decode_view_name(ViewName viewName);

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "render_pass.h"
+#include "render_graph/render_pass.h"
 
 namespace fe::renderer
 {
 
-class RTTestPass : public RenderPass
+class RTTestPass : public rg::RenderPass
 {
     FE_DECLARE_OBJECT(RTTestPass)
 

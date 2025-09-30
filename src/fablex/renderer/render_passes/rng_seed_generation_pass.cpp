@@ -7,7 +7,7 @@
 namespace fe::renderer
 {
 
-FE_DEFINE_OBJECT(RNGSeedGenerationPass, RenderPass);
+FE_DEFINE_OBJECT(RNGSeedGenerationPass, rg::RenderPass);
 
 void RNGSeedGenerationPass::create_pipeline()
 {

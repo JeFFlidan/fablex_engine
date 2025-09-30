@@ -1,13 +1,14 @@
 #include "render_graph_metadata.h"
 #include "shader_manager.h"
 #include "render_context.h"
-#include "core/json_serialization.h"
-#include "rhi/json_serialization.h"
 #include "json_serialization.h"
-#include "rhi/utils.h"
-#include "core/file_system/file_system.h"
 
-namespace fe::renderer
+#include "core/json_serialization.h"
+#include "core/file_system/file_system.h"
+#include "rhi/json_serialization.h"
+#include "rhi/utils.h"
+
+namespace fe::renderer::rg
 {
 
 constexpr const char* RENDER_TEXTURES_KEY = "RenderTextures";
@@ -330,7 +331,7 @@ void RenderGraphMetadata::deserialize(const std::string& path)
                     pipelineMetadata.colorAttachmentFormats.push_back(renderTargetMetadata.format);
             }
         };
-        
+
         if (renderPassMetadataJson.contains(PIPELINE_KEY))
         {
             const JSON& pipelineMetadataJson = renderPassMetadataJson[PIPELINE_KEY];

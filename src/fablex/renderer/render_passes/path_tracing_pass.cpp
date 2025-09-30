@@ -1,8 +1,8 @@
 #pragma once
 
 #include "path_tracing_pass.h"
-#include "resource_scheduler.h"
-#include "render_graph_resource_manager.h"
+#include "render_graph/resource_scheduler.h"
+#include "render_graph/resource_manager.h"
 #include "globals.h"
 
 #include "rhi/rhi.h"
@@ -14,7 +14,7 @@ namespace fe::renderer
 
 constexpr uint32 MAX_ACCUMULATION_FACTOR = 4096;
 
-FE_DEFINE_OBJECT(PathTracingPass, RenderPass);
+FE_DEFINE_OBJECT(PathTracingPass, rg::RenderPass);
 
 PathTracingPass::PathTracingPass()
 {
@@ -31,14 +31,14 @@ void PathTracingPass::create_pipeline()
 
 void PathTracingPass::schedule_resources()
 {
-    RenderPass::schedule_resources();
-    ResourceScheduler::use_ray_tracing(get_name());
+    rg::RenderPass::schedule_resources();
+    rg::ResourceScheduler::use_ray_tracing(name());
 }
 
 void PathTracingPass::execute(rhi::CommandBuffer* cmd)
 {
-    RenderGraphResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
-    Resource* finalIllumination = resourceManager->get_resource("FilteredIllumination0");
+    rg::ResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
+    rg::Resource* finalIllumination = resourceManager->get_resource("FilteredIllumination0");
     FE_CHECK(finalIllumination);
 
     ++m_accumulationFactor;
@@ -57,7 +57,7 @@ void PathTracingPass::execute(rhi::CommandBuffer* cmd)
     pushConstants.accumulationFactor = m_accumulationFactor;
     pushConstants.alpha = 0.05f;
     pushConstants.momentsAlpha = 0.2f;
-    pushConstants.inPrevIllumination = finalIllumination->get_texture().get_srv_descriptor();
+    pushConstants.inPrevIllumination = finalIllumination->texture().srv_descriptor();
 
     push_constants(cmd, &pushConstants);
     

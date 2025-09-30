@@ -7,7 +7,7 @@
 #include <optional>
 #include <unordered_map>
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 class ResourceSchedulingInfo
@@ -27,10 +27,10 @@ public:
 
     void add_view_info(RenderPassName renderPassName, uint64 viewIndex, rhi::ResourceLayout layout);
 
-    ResourceName get_name() const { return m_name; }
-    uint64 get_view_count() const { return m_viewCount; }
-    RenderPassInfo* get_render_pass_info(RenderPassName renderPassName);
-    const RenderPassInfo* get_render_pass_info(RenderPassName renderPassName) const;
+    ResourceName name() const { return m_name; }
+    uint64 view_count() const { return m_viewCount; }
+    RenderPassInfo* render_pass_info(RenderPassName renderPassName);
+    const RenderPassInfo* render_pass_info(RenderPassName renderPassName) const;
 
 private:
     ResourceName m_name;

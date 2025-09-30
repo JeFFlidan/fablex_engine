@@ -1,14 +1,13 @@
 #pragma once
 
 #include "common.h"
+#include "fwd.h"
 #include "rhi/resources.h"
 #include <optional>
 #include <unordered_map>
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
-
-class Resource;
 
 class ResourceLayoutTracker
 {

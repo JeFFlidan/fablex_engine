@@ -1,7 +1,7 @@
 #include "resource_scheduling_info.h"
 #include "core/macro.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 ResourceSchedulingInfo::ResourceSchedulingInfo(ResourceName resourceName, uint64 viewCount)
@@ -20,13 +20,13 @@ void ResourceSchedulingInfo::add_view_info(RenderPassName renderPassName, uint64
     passInfo.viewInfos[viewIndex]->requestedLayout = layout;
 }
 
-ResourceSchedulingInfo::RenderPassInfo* ResourceSchedulingInfo::get_render_pass_info(RenderPassName renderPassName)
+ResourceSchedulingInfo::RenderPassInfo* ResourceSchedulingInfo::render_pass_info(RenderPassName renderPassName)
 {
     auto it = m_renderPassInfoMap.find(renderPassName);
     return it != m_renderPassInfoMap.end() ? &it->second : nullptr;
 }
 
-const ResourceSchedulingInfo::RenderPassInfo* ResourceSchedulingInfo::get_render_pass_info(RenderPassName renderPassName) const
+const ResourceSchedulingInfo::RenderPassInfo* ResourceSchedulingInfo::render_pass_info(RenderPassName renderPassName) const
 {
     auto it = m_renderPassInfoMap.find(renderPassName);
     return it != m_renderPassInfoMap.end() ? &it->second : nullptr;

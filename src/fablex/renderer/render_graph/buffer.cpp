@@ -1,7 +1,7 @@
 #include "buffer.h"
 #include "rhi/rhi.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 Buffer::Buffer(rhi::BufferHandle handle, Name bufferName) 

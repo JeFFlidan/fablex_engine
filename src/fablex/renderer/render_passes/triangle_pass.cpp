@@ -5,7 +5,7 @@
 namespace fe::renderer
 {
 
-FE_DEFINE_OBJECT(TrianglePass, RenderPass);
+FE_DEFINE_OBJECT(TrianglePass, rg::RenderPass);
 
 void TrianglePass::create_pipeline()
 {

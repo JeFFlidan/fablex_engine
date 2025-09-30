@@ -1,7 +1,6 @@
 #include "resource.h"
-#include "core/macro.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 Resource::Resource(ResourceName name, uint64 viewCount) 

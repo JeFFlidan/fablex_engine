@@ -1,7 +1,7 @@
 #include "resource_layout_tracker.h"
 #include "resource.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 void ResourceLayoutTracker::begin_frame()
@@ -16,14 +16,14 @@ void ResourceLayoutTracker::end_frame()
 
 void ResourceLayoutTracker::begin_resource_tracking(const Resource* resource)
 {
-    auto it = m_viewLayoutsByName.find(resource->get_name());
+    auto it = m_viewLayoutsByName.find(resource->name());
     if (it != m_viewLayoutsByName.end())
-        FE_LOG(LogRenderer, WARNING, "Resource {} has been already tracked.", resource->get_name());
+        FE_LOG(LogRenderer, WARNING, "Resource {} has been already tracked.", resource->name());
 
-    ViewLayoutArray& viewLayouts = m_viewLayoutsByName[resource->get_name()];
-    viewLayouts.resize(resource->get_view_count());
+    ViewLayoutArray& viewLayouts = m_viewLayoutsByName[resource->name()];
+    viewLayouts.resize(resource->view_count());
     
-    for (uint32 i = 0; i != resource->get_view_count(); ++i)
+    for (uint32 i = 0; i != resource->view_count(); ++i)
         viewLayouts[i].viewIndex = i;
 }
 
@@ -38,7 +38,7 @@ std::optional<rhi::PipelineBarrier> ResourceLayoutTracker::get_transition_to_lay
     ViewLayoutArray& viewStates = get_view_layouts(resource);
     
     if (viewIndex >= viewStates.size())
-        FE_LOG(LogRenderer, FATAL, "Resource {} does not have view with index {}", resource->get_name(), viewIndex);
+        FE_LOG(LogRenderer, FATAL, "Resource {} does not have view with index {}", resource->name(), viewIndex);
     
     rhi::ResourceLayout currentLayout = viewStates[viewIndex].layout;
 
@@ -48,10 +48,10 @@ std::optional<rhi::PipelineBarrier> ResourceLayoutTracker::get_transition_to_lay
     viewStates[viewIndex].layout = newLayout;
 
     if (resource->is_buffer())
-        return rhi::PipelineBarrier(resource->get_buffer().get_handle(), currentLayout, newLayout);
+        return rhi::PipelineBarrier(resource->buffer().handle(), currentLayout, newLayout);
 
     return rhi::PipelineBarrier(
-        resource->get_texture().get_handle(),
+        resource->texture().handle(),
         currentLayout,
         newLayout,
         viewIndex,
@@ -61,7 +61,7 @@ std::optional<rhi::PipelineBarrier> ResourceLayoutTracker::get_transition_to_lay
 
 ResourceLayoutTracker::ViewLayoutArray& ResourceLayoutTracker::get_view_layouts(const Resource* resource)
 {
-    auto it = m_viewLayoutsByName.find(resource->get_name());
+    auto it = m_viewLayoutsByName.find(resource->name());
     FE_CHECK(it != m_viewLayoutsByName.end());
     return it->second;
 }

@@ -1,7 +1,7 @@
 #include "rt_test_pass.h"
-#include "resource_scheduler.h"
 #include "render_context.h"
 #include "scene_manager/scene_manager.h"
+#include "render_graph/resource_scheduler.h"
 
 #include "rhi/rhi.h"
 #include "shaders/shader_interop_renderer.h"
@@ -9,7 +9,7 @@
 namespace fe::renderer
 {
 
-FE_DEFINE_OBJECT(RTTestPass, Object);
+FE_DEFINE_OBJECT(RTTestPass, rg::RenderPass);
 
 void RTTestPass::create_pipeline()
 {
@@ -18,8 +18,8 @@ void RTTestPass::create_pipeline()
 
 void RTTestPass::schedule_resources()
 {
-    RenderPass::schedule_resources();
-    ResourceScheduler::use_ray_tracing(get_name());
+    rg::RenderPass::schedule_resources();
+    rg::ResourceScheduler::use_ray_tracing(name());
 }
 
 void RTTestPass::execute(rhi::CommandBuffer* cmd)

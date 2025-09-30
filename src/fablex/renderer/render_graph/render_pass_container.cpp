@@ -2,7 +2,7 @@
 #include "resource_metadata.h"
 #include "render_pass.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 RenderPassContainer::RenderPassContainer(const RenderContext* renderContext)
@@ -28,7 +28,7 @@ void RenderPassContainer::cleanup()
         destroy_object(it.second);
 }
 
-RenderPass* RenderPassContainer::get_render_pass(RenderPassName name) const
+RenderPass* RenderPassContainer::render_pass(RenderPassName name) const
 {
     auto it = m_renderPassByName.find(name);
     if (it == m_renderPassByName.end())

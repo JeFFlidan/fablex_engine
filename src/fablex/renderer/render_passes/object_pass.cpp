@@ -6,7 +6,7 @@
 namespace fe::renderer
 {
 
-FE_DEFINE_OBJECT(ObjectPass, RenderPass);
+FE_DEFINE_OBJECT(ObjectPass, rg::RenderPass);
 
 void ObjectPass::create_pipeline()
 {

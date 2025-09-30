@@ -9,7 +9,7 @@
 #include <functional>
 #include <memory>
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 enum class ResourceMetadataFlag
@@ -28,9 +28,9 @@ enum class ResourceMetadataFlag
 
 }
 
-ENABLE_BIT_MASK(fe::renderer::ResourceMetadataFlag);
+ENABLE_BIT_MASK(fe::renderer::rg::ResourceMetadataFlag);
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 template<typename NameType>
@@ -115,9 +115,9 @@ namespace std
 {
 
 template<>
-struct hash<fe::renderer::ShaderMetadata>
+struct hash<fe::renderer::rg::ShaderMetadata>
 {
-    std::size_t operator()(const fe::renderer::ShaderMetadata& m) const
+    std::size_t operator()(const fe::renderer::rg::ShaderMetadata& m) const
     {
         std::size_t seed = 0;
         fe::Utils::hash_combine(seed, m.filePath);

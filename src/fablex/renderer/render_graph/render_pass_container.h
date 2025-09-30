@@ -3,12 +3,8 @@
 #include "common.h"
 #include <unordered_map>
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
-
-class RenderPass;
-class RenderContext;
-struct RenderPassMetadata;
 
 class RenderPassContainer
 {
@@ -19,10 +15,9 @@ public:
     RenderPass* add_render_pass(const RenderPassMetadata& metadata);
     void cleanup();
 
-    RenderPass* get_render_pass(RenderPassName name) const;
-    RenderPassMap& get_render_passes() { return m_renderPassByName; }
-    const RenderPassMap& get_render_pass_map() const { return m_renderPassByName; }
-    const RenderContext* get_render_context() const { return m_renderContext; }
+    RenderPass* render_pass(RenderPassName name) const;
+    RenderPassMap& render_passes() { return m_renderPassByName; }
+    const RenderContext* render_context() const { return m_renderContext; }
 
 private:
     const RenderContext* m_renderContext;

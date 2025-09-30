@@ -1,5 +1,5 @@
 #include "shader_manager.h"
-#include "resource_metadata.h"
+#include "render_graph/resource_metadata.h"
 #include "core/utils.h"
 #include "core/logger.h"
 #include "core/file_system/file_system.h"
@@ -444,7 +444,7 @@ ShaderManager::~ShaderManager()
         rhi::destroy_shader(shader);
 }
 
-rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
+rhi::Shader* ShaderManager::get_shader(const rg::ShaderMetadata& shaderMetadata)
 {
     auto it = m_shaderByMetadataHash.find(get_hash(shaderMetadata));
 
@@ -467,7 +467,7 @@ rhi::Shader* ShaderManager::get_shader(const ShaderMetadata& shaderMetadata)
     return shader;
 }
 
-void ShaderManager::request_shader_loading(const ShaderMetadata& shaderMetadata)
+void ShaderManager::request_shader_loading(const rg::ShaderMetadata& shaderMetadata)
 {
     TaskComposer::execute(*m_taskGroup, [&shaderMetadata, this](TaskExecutionInfo execInfo)
     {
@@ -543,9 +543,9 @@ rhi::Shader* ShaderManager::load_shader(
     return shader;
 }
 
-uint64 ShaderManager::get_hash(const ShaderMetadata& metadata) const
+uint64 ShaderManager::get_hash(const rg::ShaderMetadata& metadata) const
 {
-    return std::hash<ShaderMetadata>()(metadata);
+    return std::hash<rg::ShaderMetadata>()(metadata);
 }
 
 }

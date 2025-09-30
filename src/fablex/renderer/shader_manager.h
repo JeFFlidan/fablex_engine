@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fwd.h"
 #include "rhi/resources.h"
 #include "core/task_types.h"
 
@@ -10,8 +11,6 @@
 
 namespace fe::renderer
 {
-
-struct ShaderMetadata;
 
 struct ShaderInputInfo
 {
@@ -45,9 +44,9 @@ public:
     ShaderManager();
     ~ShaderManager();
     
-    rhi::Shader* get_shader(const ShaderMetadata& shaderMetadata);
+    rhi::Shader* get_shader(const rg::ShaderMetadata& shaderMetadata);
     
-    void request_shader_loading(const ShaderMetadata& shaderMetadata);
+    void request_shader_loading(const rg::ShaderMetadata& shaderMetadata);
     void wait_shaders_loading();
 
 private:
@@ -65,7 +64,7 @@ private:
         const std::vector<std::string>& defines = {}
     );
 
-    uint64 get_hash(const ShaderMetadata& metadata) const;
+    uint64 get_hash(const rg::ShaderMetadata& metadata) const;
 };
 
 }

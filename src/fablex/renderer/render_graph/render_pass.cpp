@@ -2,14 +2,14 @@
 #include "render_context.h"
 #include "render_graph_metadata.h"
 #include "render_graph.h"
-#include "render_graph_resource_manager.h"
+#include "resource_manager.h"
 #include "resource_scheduler.h"
 #include "globals.h"
 #include "utils.h"
 #include "rhi/utils.h"
 #include "rhi/rhi.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 FE_DEFINE_OBJECT(RenderPass, Object)
@@ -59,23 +59,23 @@ void RenderPass::schedule_resources()
         if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
         {
             auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.name);
-            ResourceScheduler::read_texture(get_name(), prevFrameName);
-            ResourceScheduler::read_texture(get_name(), curFrameName);
+            ResourceScheduler::read_texture(name(), prevFrameName);
+            ResourceScheduler::read_texture(name(), curFrameName);
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ_NO_HISTORY))
         {
             rhi::TextureInfo info;
             fill_texture_info(textureMetadata, info);
-            ResourceScheduler::read_previous_texture(get_name(), textureName, &info);
+            ResourceScheduler::read_previous_texture(name(), textureName, &info);
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::PING_PONG))
         {
             ResourceName pingPong0 = textureName.to_string() + "0";
-            ResourceScheduler::read_texture(get_name(), pingPong0);
+            ResourceScheduler::read_texture(name(), pingPong0);
         }
         else
         {
-            ResourceScheduler::read_texture(get_name(), textureName);
+            ResourceScheduler::read_texture(name(), textureName);
         }
     }
 
@@ -92,30 +92,30 @@ void RenderPass::schedule_resources()
                 auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.name);
                 if (rhi::is_depth_stencil_format(textureMetadata.format))
                 {
-                    ResourceScheduler::create_depth_stencil(get_name(), prevFrameName, &info);
-                    ResourceScheduler::create_depth_stencil(get_name(), curFrameName, &info);
+                    ResourceScheduler::create_depth_stencil(name(), prevFrameName, &info);
+                    ResourceScheduler::create_depth_stencil(name(), curFrameName, &info);
                 }
                 else
                 {
-                    ResourceScheduler::create_render_target(get_name(), prevFrameName, &info);
-                    ResourceScheduler::create_render_target(get_name(), curFrameName, &info);
+                    ResourceScheduler::create_render_target(name(), prevFrameName, &info);
+                    ResourceScheduler::create_render_target(name(), curFrameName, &info);
                 }
             }
             else
             {
                 if (rhi::is_depth_stencil_format(textureMetadata.format))
                 {
-                    ResourceScheduler::create_depth_stencil(get_name(), textureMetadata.name, &info);
+                    ResourceScheduler::create_depth_stencil(name(), textureMetadata.name, &info);
                 }
                 else
                 {
-                    ResourceScheduler::create_render_target(get_name(), textureMetadata.name, &info);
+                    ResourceScheduler::create_render_target(name(), textureMetadata.name, &info);
                 }
             }
         }
         else
         {
-            ResourceScheduler::write_to_back_buffer(get_name());
+            ResourceScheduler::write_to_back_buffer(name());
         }
     }
 
@@ -128,30 +128,30 @@ void RenderPass::schedule_resources()
         if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
         {
             auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureName);
-            ResourceScheduler::read_previous_texture(get_name(), prevFrameName, &info);
-            ResourceScheduler::create_storage_texture(get_name(), curFrameName, &info);
+            ResourceScheduler::read_previous_texture(name(), prevFrameName, &info);
+            ResourceScheduler::create_storage_texture(name(), curFrameName, &info);
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ_NO_HISTORY))
         {
-            ResourceScheduler::create_storage_texture(get_name(), textureName, &info);
+            ResourceScheduler::create_storage_texture(name(), textureName, &info);
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::PING_PONG))
         {
             ResourceName pingPong0 = textureName.to_string() + "0";
             ResourceName pingPong1 = textureName.to_string() + "1";
-            ResourceScheduler::create_storage_texture(get_name(), pingPong0, &info);
-            ResourceScheduler::create_storage_texture(get_name(), pingPong1, &info);
+            ResourceScheduler::create_storage_texture(name(), pingPong0, &info);
+            ResourceScheduler::create_storage_texture(name(), pingPong1, &info);
 
             s_pingPongResourceRegistry[textureName] = {pingPong0, pingPong1};
         }
         else
         {
-            ResourceScheduler::create_storage_texture(get_name(), textureName, &info);
+            ResourceScheduler::create_storage_texture(name(), textureName, &info);
         }
     }
 }
 
-RenderPassInfo RenderPass::get_info() const
+RenderPassInfo RenderPass::info() const
 {
     return RenderPassInfo(
         m_metadata->name,
@@ -162,7 +162,7 @@ RenderPassInfo RenderPass::get_info() const
 
 void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo) const
 {
-    RenderGraphResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
+    ResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
 
     switch (outBeginInfo.type)
     {
@@ -170,17 +170,17 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
     {
         for (const RenderTargetMetadata& renderTargetMetadata : m_metadata->renderTargetsMetadata)
         {
-            Texture& texture = resourceManager->get_resource(renderTargetMetadata.textureName)->get_texture();
-            FE_CHECK(texture.get_handle());
+            Texture& texture = resourceManager->get_resource(renderTargetMetadata.textureName)->texture();
+            FE_CHECK(texture.handle());
             
             const TextureMetadata& textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
 
             rhi::RenderTarget& renderTarget = outBeginInfo.offscreenPass.renderTargets.emplace_back();
             
             if (rhi::is_depth_stencil_format(textureMetadata.format))
-                renderTarget.target = texture.get_dsv();
+                renderTarget.target = texture.dsv();
             else
-                renderTarget.target = texture.get_rtv();
+                renderTarget.target = texture.rtv();
 
             FE_CHECK(renderTarget.target);
 
@@ -199,7 +199,7 @@ void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo
     }
 }
 
-RenderPassName RenderPass::get_name() const
+RenderPassName RenderPass::name() const
 {
     return m_metadata->name;
 }
@@ -288,12 +288,12 @@ void RenderPass::dispatch(rhi::CommandBuffer* cmd, const RenderSurface& surface,
 
 const RenderGraphMetadata& RenderPass::get_render_graph_metadata() const
 {
-    return *m_renderContext->render_graph()->get_metadata();
+    return *m_renderContext->render_graph()->metadata();
 }
 
 const PipelineMetadata& RenderPass::get_pipeline_metadata() const
 {
-    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->get_metadata();
+    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->metadata();
     const PipelineMetadata* pipelineMetadata = renderGraphMetadata->get_pipeline_metadata(m_metadata->pipelineName);
     if (!pipelineMetadata)
         FE_LOG(LogRenderer, FATAL, "No pipeline metadata for name {}", m_metadata->pipelineName);
@@ -302,7 +302,7 @@ const PipelineMetadata& RenderPass::get_pipeline_metadata() const
 
 const PipelineMetadata& RenderPass::get_pipeline_metadata(Name pipelineName) const
 {
-    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->get_metadata();
+    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->metadata();
     const PipelineMetadata* pipelineMetadata = renderGraphMetadata->get_pipeline_metadata(pipelineName);
     if (!pipelineMetadata)
         FE_LOG(LogRenderer, FATAL, "No pipeline metadata for name {}", pipelineName);
@@ -313,7 +313,7 @@ const TextureMetadata& RenderPass::get_texture_metadata(ResourceName textureName
 {
     FE_CHECK(textureName.is_valid());
 
-    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->get_metadata();
+    const RenderGraphMetadata* renderGraphMetadata = m_renderContext->render_graph()->metadata();
     const TextureMetadata* textureMetadata = renderGraphMetadata->get_texture_metadata(textureName);
     if (!textureMetadata)
         FE_LOG(LogRenderer, FATAL, "No metadata for resource with name {}", textureName);
@@ -390,7 +390,7 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
     uint8* typedData = static_cast<uint8*>(data);
     uint64 offset = 0;
 
-    RenderGraphResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
+    ResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
     std::unordered_set<ResourceName> pingPongResources;
 
     for (const auto& resourceMetadata : pushConstantsMetadata->resourcesMetadata)
@@ -435,9 +435,9 @@ void RenderPass::fill_push_constants(PushConstantsName pushConstantsName, void* 
         uint32 descriptor = ~0u;
 
         if (resourceMetadata.has_flag(ResourceMetadataFlag::WRITABLE) || isWritePingPong)
-            descriptor = resourceManager->get_texture_uav_descriptor(get_name(), resourceName);
+            descriptor = resourceManager->texture_uav_descriptor(name(), resourceName);
         else
-            descriptor = resourceManager->get_texture_srv_descriptor(get_name(), resourceName);
+            descriptor = resourceManager->texture_srv_descriptor(name(), resourceName);
 
         memcpy(typedData + offset, &descriptor, sizeof(uint32));
         offset += sizeof(uint32);

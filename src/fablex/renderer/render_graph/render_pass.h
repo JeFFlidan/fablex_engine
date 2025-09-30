@@ -1,18 +1,12 @@
 #pragma once
 
 #include "common.h"
+#include "fwd.h"
 #include "core/object/object.h"
 #include "pipeline_manager.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
-
-class RenderContext;
-class SceneManager;
-class RenderGraphMetadata;
-struct RenderSurface;
-struct RenderPassMetadata;
-struct TextureMetadata;
 
 struct RenderPassInfo
 {
@@ -37,11 +31,11 @@ public:
     void create_pipelines();
     virtual void execute(rhi::CommandBuffer* cmd) { }
 
-    RenderPassInfo get_info() const;
+    RenderPassInfo info() const;
     void fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo) const;
 
-    RenderPassName get_name() const;
-    const RenderPassMetadata& get_metadata() const { return *m_metadata; }
+    RenderPassName name() const;
+    const RenderPassMetadata& metadata() const { return *m_metadata; }
 
 protected:
     const RenderPassMetadata* m_metadata;

@@ -1,8 +1,8 @@
 #include "pipeline_manager.h"
-#include "resource_metadata.h"
 #include "shader_manager.h"
-#include "render_pass_container.h"
-#include "render_pass.h"
+#include "render_graph/render_pass.h"
+#include "render_graph/resource_metadata.h"
+#include "render_graph/render_pass_container.h"
 #include "core/task_composer.h"
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
@@ -27,7 +27,7 @@ PipelineManager::~PipelineManager()
         rhi::destroy_buffer(identifier.buffer);
 }
 
-void PipelineManager::create_graphics_pipeline(const PipelineMetadata& pipelineMetadata)
+void PipelineManager::create_graphics_pipeline(const rg::PipelineMetadata& pipelineMetadata)
 {
     rhi::GraphicsPipelineInfo info;
     configure_pipeline_info(info, pipelineMetadata);
@@ -36,7 +36,7 @@ void PipelineManager::create_graphics_pipeline(const PipelineMetadata& pipelineM
 }
 
 void PipelineManager::create_graphics_pipeline(
-    const PipelineMetadata& pipelineMetadata, 
+    const rg::PipelineMetadata& pipelineMetadata, 
     const GraphicsPipelineConfigurator& configurator
 )
 {
@@ -47,12 +47,12 @@ void PipelineManager::create_graphics_pipeline(
     create_pipeline(pipelineMetadata.name, &info);
 }
 
-void PipelineManager::create_compute_pipeline(const PipelineMetadata& pipelineMetadata)
+void PipelineManager::create_compute_pipeline(const rg::PipelineMetadata& pipelineMetadata)
 {
     rhi::ComputePipelineInfo info;
 
-    const ShaderMetadata* shaderMetadata = nullptr;
-    for (const ShaderMetadata& metadata : pipelineMetadata.shadersMetadata)
+    const rg::ShaderMetadata* shaderMetadata = nullptr;
+    for (const rg::ShaderMetadata& metadata : pipelineMetadata.shadersMetadata)
     {
         if (metadata.type == rhi::ShaderType::COMPUTE)
         {
@@ -68,7 +68,7 @@ void PipelineManager::create_compute_pipeline(const PipelineMetadata& pipelineMe
     create_pipeline(pipelineMetadata.name, &info);
 }
 
-void PipelineManager::create_ray_tracing_pipeline(const PipelineMetadata& pipelineMetadata)
+void PipelineManager::create_ray_tracing_pipeline(const rg::PipelineMetadata& pipelineMetadata)
 {
     rhi::RayTracingPipelineInfo info;
     configure_pipeline_info(info, pipelineMetadata);
@@ -77,7 +77,7 @@ void PipelineManager::create_ray_tracing_pipeline(const PipelineMetadata& pipeli
 }
 
 void PipelineManager::create_ray_tracing_pipeline(
-    const PipelineMetadata& pipelineMetadata, 
+    const rg::PipelineMetadata& pipelineMetadata, 
     const RayTracingPipelineConfigurator& configurator
 )
 {
@@ -88,16 +88,16 @@ void PipelineManager::create_ray_tracing_pipeline(
     create_pipeline(pipelineMetadata.name, &info);
 }
 
-void PipelineManager::create_pipelines(RenderPassContainer* renderPassContainer)
+void PipelineManager::create_pipelines(rg::RenderPassContainer* renderPassContainer)
 {
     m_shaderManager->wait_shaders_loading();
-    RenderPassContainer::RenderPassMap& renderPassMap = renderPassContainer->get_render_passes();
+    rg::RenderPassContainer::RenderPassMap& renderPassMap = renderPassContainer->render_passes();
 
     for (auto [renderPassName, renderPass] : renderPassMap)
     {
         FE_CHECK(renderPass);
 
-        const RenderPassMetadata& passMetadata = renderPass->get_metadata();
+        const rg::RenderPassMetadata& passMetadata = renderPass->metadata();
         if (get_pipeline(passMetadata.pipelineName))
             continue;
 
@@ -143,7 +143,7 @@ void PipelineManager::push_constants(rhi::CommandBuffer* cmd, PipelineName name,
     rhi::push_constants(cmd, pipeline, data);
 }
 
-void PipelineManager::configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo, const PipelineMetadata& pipelineMetadata)
+void PipelineManager::configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata)
 {
     outInfo.assemblyState.topologyType = rhi::TopologyType::TRIANGLE;
     
@@ -168,13 +168,13 @@ void PipelineManager::configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo
     outInfo.depthFormat = pipelineMetadata.depthStencilFormat;
     outInfo.colorAttachmentFormats = pipelineMetadata.colorAttachmentFormats;
 
-    for (const ShaderMetadata& shaderMetadata : pipelineMetadata.shadersMetadata)
+    for (const rg::ShaderMetadata& shaderMetadata : pipelineMetadata.shadersMetadata)
     {
         outInfo.shaderStages.push_back(m_shaderManager->get_shader(shaderMetadata));
     }
 }
 
-void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outInfo, const PipelineMetadata& pipelineMetadata)
+void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata)
 {
     auto getHitGroupName = [](std::string entryPoint, rhi::ShaderType shaderType)
     {
@@ -198,7 +198,7 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
     };
 
     auto fillGeometryHitGroup = [getHitGroupName](
-        const ShaderMetadata& shaderMetadata,
+        const rg::ShaderMetadata& shaderMetadata,
         std::vector<rhi::ShaderHitGroup>& hitGroups,
         const std::vector<rhi::ShaderLibrary>& shaderLibs
     )
@@ -258,10 +258,10 @@ void PipelineManager::configure_pipeline_info(rhi::RayTracingPipelineInfo& outIn
         *hitShaderIndex = shaderLibs.size() - 1;
     };
 
-    const std::vector<ShaderMetadata>& shadersMetadata = pipelineMetadata.shadersMetadata;
+    const std::vector<rg::ShaderMetadata>& shadersMetadata = pipelineMetadata.shadersMetadata;
     for (uint32 i = 0; i != shadersMetadata.size(); ++i)
     {
-        const ShaderMetadata& shaderMetadata = shadersMetadata[i];
+        const rg::ShaderMetadata& shaderMetadata = shadersMetadata[i];
         rhi::Shader* shader = m_shaderManager->get_shader(shaderMetadata);
         FE_CHECK(shader);
 

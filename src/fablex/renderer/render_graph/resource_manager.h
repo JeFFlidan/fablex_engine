@@ -7,31 +7,29 @@
 #include <unordered_map>
 #include <functional>
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 using ResourceInfoVariant = std::variant<rhi::BufferInfo, rhi::TextureInfo>;
 
-class ResourceLayoutTracker;
-
 // Must be used to create resources that are used as input and output by render passes in render graph. 
 // In most cases those resources are color/depth targets and storage textures.
 // Resources like vertex, index buffers, model textures, etc. must be allocated by another objects
-class RenderGraphResourceManager
+class ResourceManager
 {
 public:
     using SchedulingInfoConfigurator = std::function<void(ResourceSchedulingInfo&)>;
 
-    RenderGraphResourceManager(ResourceLayoutTracker* resourceLayoutTracker);
-    ~RenderGraphResourceManager();
+    ResourceManager(ResourceLayoutTracker* resourceLayoutTracker);
+    ~ResourceManager();
 
     void begin_frame();
     void end_frame();
 
-    uint32 get_rtv_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
-    uint32 get_dsv_desciptor(RenderPassName renderPassName, ResourceName textureName) const;
-    uint32 get_texture_uav_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
-    uint32 get_texture_srv_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
+    uint32 rtv_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
+    uint32 dsv_desciptor(RenderPassName renderPassName, ResourceName textureName) const;
+    uint32 texture_uav_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
+    uint32 texture_srv_descriptor(RenderPassName renderPassName, ResourceName textureName, uint32 mipLevel = 0) const;
 
     Resource* get_resource(ResourceName resourceName);
     const Resource* get_resource(ResourceName resourceName) const;
@@ -52,7 +50,8 @@ public:
 private:
     using ResourceMap = std::unordered_map<Name, uint64>;
     using ResourceList = std::vector<Resource>;
-    using IntersectionEntryList = std::vector<Resource::IntersectionEntry>;
+    using ResourceIntersectionEntry = Resource::IntersectionEntry;
+    using IntersectionEntryList = std::vector<ResourceIntersectionEntry>;
 
     struct SchedulingRequest
     {

@@ -1,7 +1,7 @@
 #include "render_graph.h"
 #include "render_pass_container.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPassContainer* renderPassContainer)
@@ -10,7 +10,7 @@ void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPass
 
     clear();
     
-    m_metadata = std::make_unique<RenderGraphMetadata>(renderPassContainer->get_render_context());
+    m_metadata = std::make_unique<RenderGraphMetadata>(renderPassContainer->render_context());
     m_metadata->deserialize(metadataPath);
 
     const std::vector<RenderPassMetadata*>& renderPassesMetadata = m_metadata->get_render_passes_metadata();
@@ -18,7 +18,7 @@ void RenderGraph::load_from_metadata(const std::string& metadataPath, RenderPass
     for (RenderPassMetadata* metadata : renderPassesMetadata)
     {
         RenderPass* renderPass = renderPassContainer->add_render_pass(*metadata);
-        add_node(renderPass->get_info());
+        add_node(renderPass->info());
     }
 
     FE_LOG(LogRenderer, INFO, "Loading render graph from metadata completed.");
@@ -58,7 +58,7 @@ void RenderGraph::clear()
         node.clear();
 }
 
-RenderGraph::Node* RenderGraph::get_node(RenderPassName renderPassName) const
+RenderGraph::Node* RenderGraph::node(RenderPassName renderPassName) const
 {
     auto it = m_nodeIndexByName.find(renderPassName);
     if (it == m_nodeIndexByName.end())

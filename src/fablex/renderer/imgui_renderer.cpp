@@ -2,7 +2,7 @@
 #include "deletion_queue.h"
 #include "shader_manager.h"
 #include "globals.h"
-#include "resource_metadata.h"
+#include "render_graph/resource_metadata.h"
 #include "imgui_interop_editor.h"
 #include "accessor.h"
 #include "utils.h"
@@ -51,12 +51,12 @@ void ImGuiRenderer::begin_frame()
 
 void ImGuiRenderer::create_pipeline()
 {
-    ShaderMetadata vertShaderMetadata;
+    rg::ShaderMetadata vertShaderMetadata;
     vertShaderMetadata.filePath = VERT_SHADER_PATH;
     vertShaderMetadata.type = rhi::ShaderType::VERTEX;
     m_shaderManager->request_shader_loading(vertShaderMetadata);
 
-    ShaderMetadata fragShaderMetadata;
+    rg::ShaderMetadata fragShaderMetadata;
     fragShaderMetadata.filePath = FRAG_SHADER_PATH;
     fragShaderMetadata.type = rhi::ShaderType::FRAGMENT;
     m_shaderManager->request_shader_loading(fragShaderMetadata);

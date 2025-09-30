@@ -1,13 +1,11 @@
 #pragma once
 
+#include "fwd.h"
 #include "resource_metadata.h"
 #include "json.hpp"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
-
-class RenderContext;
-class ShaderManager;
 
 class RenderGraphMetadata
 {

@@ -6,26 +6,16 @@
 namespace fe::renderer
 {
 
-class RenderGraphResourceManager;
-class RenderGraph;
-class PipelineManager;
-class PushConstantsManager;
-class CommandManager;
-class SceneManager;
-class SynchronizationManager;
-class ShaderManager;
-class ImGuiRenderer;
-
 struct RenderContextInfo
 {
     RenderSurface renderSurface;
-    RenderGraphResourceManager* renderGraphResourceManager = nullptr;
+    rg::ResourceManager* renderGraphResourceManager = nullptr;
     PipelineManager* pipelineManager = nullptr;
     CommandManager* commandManager = nullptr;
     SceneManager* sceneManager = nullptr;
     SynchronizationManager* syncManager = nullptr;
     ShaderManager* shaderManager = nullptr;
-    RenderGraph* renderGraph = nullptr;
+    rg::RenderGraph* renderGraph = nullptr;
     ImGuiRenderer* imGuiRenderer = nullptr;
 };
 
@@ -45,13 +35,13 @@ public:
     }
 
     const RenderSurface& render_surface() const { return m_info.renderSurface; }
-    RenderGraphResourceManager* render_graph_resource_manager() const { return m_info.renderGraphResourceManager; }
+    rg::ResourceManager* render_graph_resource_manager() const { return m_info.renderGraphResourceManager; }
     PipelineManager* pipeline_manager() const { return m_info.pipelineManager; }
     CommandManager* command_manager() const { return m_info.commandManager; }
     SceneManager* scene_manager() const { return m_info.sceneManager; }
     SynchronizationManager* sync_manager() const { return m_info.syncManager; }
     ShaderManager* shader_manager() const { return m_info.shaderManager; }
-    RenderGraph* render_graph() const { return m_info.renderGraph; }
+    rg::RenderGraph* render_graph() const { return m_info.renderGraph; }
     ImGuiRenderer* imgui_renderer() const { return m_info.imGuiRenderer; }
 
     void set_main_swap_chain(rhi::SwapChain* mainSwapChain) { m_info.renderSurface.mainSwapChain = mainSwapChain; }

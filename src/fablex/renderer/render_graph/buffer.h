@@ -4,7 +4,7 @@
 #include "core/name.h"
 #include "rhi/resources.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 class Buffer
@@ -14,7 +14,7 @@ public:
     Buffer(rhi::BufferHandle handle, Name bufferName);
     ~Buffer();
 
-    rhi::BufferHandle get_handle() const { return m_handle; }
+    rhi::BufferHandle handle() const { return m_handle; }
     uint32 descriptor() const { return m_handle->descriptorIndex; }
 
 private:

@@ -2,7 +2,7 @@
 #include "globals.h"
 #include "accessor.h"
 #include "utils.h"
-#include "resource_scheduler.h"
+#include "render_graph/resource_scheduler.h"
 #include "rhi/utils.h"
 #include "core/task_composer.h"
 
@@ -87,7 +87,7 @@ void Renderer::predraw()
 
 void Renderer::draw()
 {
-    if (m_renderGraph->get_nodes().empty())
+    if (m_renderGraph->nodes().empty())
         return;
 
     ++g_frameNumber;
@@ -119,9 +119,9 @@ void Renderer::init_managers()
 {
     FE_LOG(LogRenderer, INFO, "Starting renderer systems initialization");
 
-    m_renderGraph = std::make_unique<RenderGraph>();
-    m_resourceLayoutTracker = std::make_unique<ResourceLayoutTracker>();
-    m_resourceManager = std::make_unique<RenderGraphResourceManager>(m_resourceLayoutTracker.get());
+    m_renderGraph = std::make_unique<rg::RenderGraph>();
+    m_resourceLayoutTracker = std::make_unique<rg::ResourceLayoutTracker>();
+    m_resourceManager = std::make_unique<rg::ResourceManager>(m_resourceLayoutTracker.get());
     m_commandManager = std::make_unique<CommandManager>();
     m_syncManager = std::make_unique<SynchronizationManager>();
     m_shaderManager = std::make_unique<ShaderManager>();
@@ -153,9 +153,9 @@ void Renderer::init_render_context()
     info.renderSurface.depthStencilFormat = rhi::Format::D32_SFLOAT;
 
     m_renderContext = std::make_unique<RenderContext>(info);
-    m_renderPassContainer = std::make_unique<RenderPassContainer>(m_renderContext.get());
+    m_renderPassContainer = std::make_unique<rg::RenderPassContainer>(m_renderContext.get());
 
-    ResourceScheduler::init(m_renderContext.get());
+    rg::ResourceScheduler::init(m_renderContext.get());
     Accessor::init(m_renderContext.get());
 
     FE_LOG(LogRenderer, INFO, "Render context initialization completed.");
@@ -233,7 +233,7 @@ void Renderer::schedule_frame()
     m_renderGraph->clear();
     m_resourceManager->begin_resource_scheduling();
 
-    for (auto& [renderPasName, renderPass] : m_renderPassContainer->get_render_passes())
+    for (auto& [renderPasName, renderPass] : m_renderPassContainer->render_passes())
         renderPass->schedule_resources();
     m_resourceManager->end_resource_scheduling();
     m_renderGraph->build();
@@ -264,11 +264,11 @@ void Renderer::present()
 
 void Renderer::configure_submit_contexts()
 {
-    std::vector<SubmitContext*> lastSubmitContextPerQueue(m_renderGraph->get_detected_queue_count(), nullptr);
-    std::unordered_map<const RenderGraph::Node*, rhi::Semaphore*> signalSemaphoreByNode;
+    std::vector<SubmitContext*> lastSubmitContextPerQueue(m_renderGraph->detected_queue_count(), nullptr);
+    std::unordered_map<const rg::RenderGraph::Node*, rhi::Semaphore*> signalSemaphoreByNode;
     bool requiresWaitingBVH = true;
 
-    for (const RenderGraph::Node* node : m_renderGraph->get_nodes_in_global_exec_order())
+    for (const rg::RenderGraph::Node* node : m_renderGraph->nodes_in_global_exec_order())
     {
         uint32 nodeDependencyLevelIdx = node->get_dependency_level_index();
         uint32 nodeQueueIdx = node->get_queue_index();
@@ -295,7 +295,7 @@ void Renderer::configure_submit_contexts()
 
         if (!node->get_nodes_to_sync_with().empty())
         {
-            for (const RenderGraph::Node* nodeToSync : node->get_nodes_to_sync_with())
+            for (const rg::RenderGraph::Node* nodeToSync : node->get_nodes_to_sync_with())
             {
                 lastSubmitContext->waitSemaphores.push_back(signalSemaphoreByNode.at(nodeToSync));
             }
@@ -320,29 +320,29 @@ void Renderer::configure_submit_contexts()
 void Renderer::configure_pipeline_barriers()
 {
     // TODO: Need to add split barriers
-    for (const RenderGraph::DependencyLevel& dependencyLevel : m_renderGraph->get_dependency_levels())
+    for (const rg::RenderGraph::DependencyLevel& dependencyLevel : m_renderGraph->dependency_levels())
     {
         auto getViewReadLayotsInDependencyLevel = [&](
-            RenderGraph::ViewName viewName, 
-            const ResourceSchedulingInfo::RenderPassInfo& passInfo
+            rg::RenderGraph::ViewName viewName, 
+            const rg::ResourceSchedulingInfo::RenderPassInfo& passInfo
         )
         {
-            auto [resourceName, viewIndex] = RenderGraph::decode_view_name(viewName);
+            auto [resourceName, viewIndex] = rg::RenderGraph::decode_view_name(viewName);
 
             rhi::ResourceLayout result = rhi::ResourceLayout::UNDEFINED;
 
-            for (const RenderGraph::Node* node : dependencyLevel.get_nodes())
+            for (const rg::RenderGraph::Node* node : dependencyLevel.get_nodes())
                 if (node->get_read_views().contains(viewName))
                     result |= passInfo.viewInfos.at(viewIndex)->requestedLayout;
 
             return result;
         };
 
-        for (const RenderGraph::Node* node : dependencyLevel.get_nodes())
+        for (const rg::RenderGraph::Node* node : dependencyLevel.get_nodes())
         {
-            auto addTransition = [&](RenderGraph::ViewName viewName, bool isReadDependency)
+            auto addTransition = [&](rg::RenderGraph::ViewName viewName, bool isReadDependency)
             {
-                auto [resourceName, viewIndex] = RenderGraph::decode_view_name(viewName);
+                auto [resourceName, viewIndex] = rg::RenderGraph::decode_view_name(viewName);
                 
                 if (resourceName == BACK_BUFFER_NAME)
                 {
@@ -351,9 +351,9 @@ void Renderer::configure_pipeline_barriers()
                 }
     
                 RenderPassName passName = node->get_info().renderPassName;
-                Resource* resource = m_resourceManager->get_resource(resourceName);
-                const ResourceSchedulingInfo& schedulingInfo = resource->get_scheduling_info();
-                const ResourceSchedulingInfo::RenderPassInfo* passInfo = schedulingInfo.get_render_pass_info(passName);
+                rg::Resource* resource = m_resourceManager->get_resource(resourceName);
+                const rg::ResourceSchedulingInfo& schedulingInfo = resource->scheduling_info();
+                const rg::ResourceSchedulingInfo::RenderPassInfo* passInfo = schedulingInfo.render_pass_info(passName);
                 FE_CHECK(passInfo);
     
                 bool isResourceReadByMultipleQueue = 
@@ -373,10 +373,10 @@ void Renderer::configure_pipeline_barriers()
                 // PIPELINE BARREIR REROUTING FROM COMPUTE TO GRAPHICS????????
             };
 
-            for (RenderGraph::ViewName viewName : node->get_read_views())
+            for (rg::RenderGraph::ViewName viewName : node->get_read_views())
                 addTransition(viewName, true);
         
-            for (RenderGraph::ViewName viewName : node->get_written_views())
+            for (rg::RenderGraph::ViewName viewName : node->get_written_views())
                 addTransition(viewName, false);
         }
     }
@@ -443,12 +443,12 @@ void Renderer::record_worker_cmds()
                 rhi::CommandBuffer* cmd = dependencyLevelContext.workerCmd;
                 rhi::begin_command_buffer(cmd);
 
-                for (const RenderGraph::Node* node : dependencyLevelContext.nodesToRecord)
+                for (const rg::RenderGraph::Node* node : dependencyLevelContext.nodesToRecord)
                 {
-                    RenderPass* renderPass = m_renderPassContainer->get_render_pass(node->get_info().renderPassName);
+                    rg::RenderPass* renderPass = m_renderPassContainer->render_pass(node->get_info().renderPassName);
                     FE_CHECK(renderPass);
 
-                    const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->get_name()];
+                    const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->name()];
                     rhi::add_pipeline_barriers(cmd, barriers);
                     rhi::SwapChain* usedSwapChain = nullptr;
                     bool requiresBeginRendering = queueType == rhi::QueueType::GRAPHICS && !node->useRayTracing;

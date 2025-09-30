@@ -1,10 +1,10 @@
 #include "resource_scheduler.h"
-#include "render_graph_resource_manager.h"
+#include "resource_manager.h"
 #include "render_graph.h"
 #include "globals.h"
 #include "rhi/utils.h"
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 void ResourceScheduler::init(const RenderContext* renderContext)
@@ -153,7 +153,7 @@ void ResourceScheduler::read_previous_texture(
 
 void ResourceScheduler::write_to_back_buffer(RenderPassName renderPassName)
 {
-    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->node(renderPassName);
     FE_CHECK(node);
 
     node->add_write_dependency(BACK_BUFFER_NAME, 1);
@@ -161,7 +161,7 @@ void ResourceScheduler::write_to_back_buffer(RenderPassName renderPassName)
 
 void ResourceScheduler::use_ray_tracing(RenderPassName renderPassName)
 {
-    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->node(renderPassName);
     FE_CHECK(node);
     
     node->useRayTracing = true;
@@ -173,7 +173,7 @@ void ResourceScheduler::add_render_graph_read_dependency(
     uint32 mipCount
 )
 {
-    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->node(renderPassName);
     FE_CHECK(node);
 
     node->add_read_dependency(resourceName, mipCount);
@@ -185,7 +185,7 @@ void ResourceScheduler::add_render_graph_write_dependency(
     uint32 mipCount
 )
 {
-    RenderGraph::Node* node = s_renderContext->render_graph()->get_node(renderPassName);
+    RenderGraph::Node* node = s_renderContext->render_graph()->node(renderPassName);
     FE_CHECK(node);
 
     node->add_write_dependency(resourceName, mipCount);
