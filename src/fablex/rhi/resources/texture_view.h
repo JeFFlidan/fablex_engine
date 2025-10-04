@@ -22,6 +22,8 @@ struct TextureInitInfo
 
 struct TextureViewInfo
 {
+    const Texture* texture = nullptr;
+
     uint32 baseMipLevel = 0;
     uint32 baseLayer = 0;
     uint32 mipLevels = 1;

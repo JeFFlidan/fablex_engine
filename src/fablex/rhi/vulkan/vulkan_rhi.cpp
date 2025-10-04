@@ -3478,12 +3478,13 @@ void destroy_texture(Texture* texture)
     g_allocator.textureAllocator.free(texture);
 }
 
-void create_texture_view(TextureView** textureView, const TextureViewInfo* info, const Texture* texture)
+void create_texture_view(TextureView** textureView, const TextureViewInfo* info)
 {
     FE_CHECK(textureView);
     FE_CHECK(info);
-    FE_CHECK(texture);
+    FE_CHECK(info->texture);
 
+    const Texture* texture = info->texture;
     TextureView* textureViewPtr = g_allocator.textureViewAllocator.allocate();
     FE_CHECK(textureViewPtr);
     textureViewPtr->init_vk();
@@ -3597,11 +3598,13 @@ void destroy_texture_view(TextureView* textureView)
     g_allocator.textureViewAllocator.free(textureView);
 }
 
-void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info, const Buffer* buffer)
+void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info)
 {
     FE_CHECK(bufferView);
     FE_CHECK(info);
-    FE_CHECK(buffer);
+    FE_CHECK(info->buffer);
+
+    const Buffer* buffer = info->buffer;
 
     if (buffer->size < info->offset + info->size)
         FE_LOG(LogVulkanRHI, FATAL, "create_buffer_view(): Buffer view needs more memory than buffer can provide. Buffer size: {}; View offset: {}; View size: {}", buffer->size, info->offset, info->size);

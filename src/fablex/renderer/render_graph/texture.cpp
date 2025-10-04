@@ -36,7 +36,8 @@ rhi::TextureView* Texture::dsv() const
     {
         rhi::TextureViewInfo info;
         info.type = rhi::ViewType::DSV;
-        rhi::create_texture_view(&m_dsTextureView, &info, m_handle);
+        info.texture = m_handle;
+        rhi::create_texture_view(&m_dsTextureView, &info);
         rhi::set_name(m_handle, get_view_name(0));
     }
 
@@ -49,7 +50,8 @@ rhi::TextureView* Texture::srv() const
     {
         rhi::TextureViewInfo info;
         info.type = rhi::ViewType::SRV;
-        rhi::create_texture_view(&m_srTextureView, &info, m_handle);
+        info.texture = m_handle;
+        rhi::create_texture_view(&m_srTextureView, &info);
         rhi::set_name(m_handle, get_view_name(0));
     }
 
@@ -65,7 +67,8 @@ rhi::TextureView* Texture::rtv(uint32 mipLevel) const
         rhi::TextureViewInfo info;
         info.baseMipLevel = mipLevel;
         info.type = rhi::ViewType::RTV;
-        rhi::create_texture_view(&m_rtTextureViews[mipLevel], &info, m_handle);
+        info.texture = m_handle;
+        rhi::create_texture_view(&m_rtTextureViews[mipLevel], &info);
         rhi::set_name(m_handle, get_view_name(mipLevel));
     }
 
@@ -81,7 +84,8 @@ rhi::TextureView* Texture::uav(uint32 mipLevel) const
         rhi::TextureViewInfo info;
         info.baseMipLevel = mipLevel;
         info.type = rhi::ViewType::UAV;
-        rhi::create_texture_view(&m_uaTextureViews[mipLevel], &info, m_handle);
+        info.texture = m_handle;
+        rhi::create_texture_view(&m_uaTextureViews[mipLevel], &info);
         rhi::set_name(m_handle, get_view_name(mipLevel));
     }
 

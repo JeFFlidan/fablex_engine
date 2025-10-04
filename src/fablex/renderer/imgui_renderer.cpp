@@ -269,7 +269,8 @@ void ImGuiRenderer::create_font_texture(rhi::CommandBuffer* cmd)
 
     rhi::TextureViewInfo textureViewInfo;
     textureViewInfo.type = rhi::ViewType::SRV;
-    rhi::create_texture_view(&m_fontTextureView, &textureViewInfo, m_fontTexture);
+    textureViewInfo.texture = m_fontTexture;
+    rhi::create_texture_view(&m_fontTextureView, &textureViewInfo);
 
     io.Fonts->SetTexID(m_fontTextureView->descriptorIndex);
 

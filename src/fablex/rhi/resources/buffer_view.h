@@ -5,10 +5,12 @@
 namespace fe::rhi
 {
 
-class Buffer;
+struct Buffer;
 
 struct BufferViewInfo
 {
+    const Buffer* buffer = nullptr;
+
     uint64 offset = 0;
     uint64 size = 0;
     ViewType type = ViewType::AUTO;

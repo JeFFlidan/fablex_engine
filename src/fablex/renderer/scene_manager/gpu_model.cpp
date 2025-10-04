@@ -661,17 +661,18 @@ int32 GPUModel::srv_colors() const
 void GPUModel::configure_buffer_view(BufferView& bufferView, rhi::Format format, std::string debugName, bool requireUAV)
 {
     rhi::BufferViewInfo bufferViewInfo;
+    bufferViewInfo.buffer = m_generalBuffer;
     bufferViewInfo.newFormat = format;
     bufferViewInfo.offset = bufferView.offset;
     bufferViewInfo.size = bufferView.size;
     bufferViewInfo.type = rhi::ViewType::SRV;
-    rhi::create_buffer_view(&bufferView.srv, &bufferViewInfo, m_generalBuffer);
+    rhi::create_buffer_view(&bufferView.srv, &bufferViewInfo);
     rhi::set_name(bufferView.srv, m_asset->get_name() + debugName + "SRV");
 
     if (requireUAV)
     {
         bufferViewInfo.type = rhi::ViewType::UAV;
-        rhi::create_buffer_view(&bufferView.uav, &bufferViewInfo, m_generalBuffer);
+        rhi::create_buffer_view(&bufferView.uav, &bufferViewInfo);
         rhi::set_name(bufferView.srv, m_asset->get_name() + debugName + "UAV");
     }
 }

@@ -21,10 +21,10 @@ using PFN_DestroyBuffer = void(*)(Buffer* buffer);
 
 using PFN_CreateTexture = void(*)(Texture** texture, const TextureInfo* info);
 using PFN_DestroyTexture = void(*)(Texture* texture);
-using PFN_CreateTextureView = void(*)(TextureView** textureView, const TextureViewInfo* info, const Texture* texture);
+using PFN_CreateTextureView = void(*)(TextureView** textureView, const TextureViewInfo* info);
 using PFN_DestroyTextureView = void(*)(TextureView* textureView);
 
-using PFN_CreateBufferView = void(*)(BufferView** bufferView, const BufferViewInfo* info, const Buffer* buffer);
+using PFN_CreateBufferView = void(*)(BufferView** bufferView, const BufferViewInfo* info);
 using PFN_DestroyBufferView = void(*)(BufferView* bufferView);
 
 using PFN_CreateSampler = void(*)(Sampler** sampler, const SamplerInfo* info);

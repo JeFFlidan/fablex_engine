@@ -42,12 +42,13 @@ void GPUTexture::build(SceneManager* sceneManager)
 
     rhi::TextureViewInfo textureViewInfo;
     textureViewInfo.type = rhi::ViewType::SRV;
+    textureViewInfo.texture = m_texture;
     textureViewInfo.aspect = rhi::TextureAspect::COLOR;
     textureViewInfo.baseLayer = 0;
     textureViewInfo.layerCount = 1;
     textureViewInfo.baseMipLevel = 0;
     textureViewInfo.mipLevels = m_asset->mipmaps().size();
-    rhi::create_texture_view(&m_textureView, &textureViewInfo, m_texture);
+    rhi::create_texture_view(&m_textureView, &textureViewInfo);
 
     rhi::set_name(m_texture, m_asset->get_name());
     rhi::set_name(m_textureView, m_asset->get_name() + "View");
