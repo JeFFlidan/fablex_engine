@@ -1,5 +1,6 @@
 #include "render_surface.h"
 #include "rhi/rhi.h"
+#include "rhi/resources/viewport.h"
 
 namespace fe::renderer
 {
@@ -30,7 +31,7 @@ void RenderSurface::set_viewport(rhi::CommandBuffer* cmd, uint32 inWidth, uint32
     viewport.width = inWidth;
     viewport.height = inHeight;
     std::vector<rhi::Viewport> viewports = { viewport };
-    rhi::set_viewports(cmd, viewports);
+    rhi::set_viewports(cmd, viewports.data(), viewports.size());
 }
 
 void RenderSurface::set_scissor(rhi::CommandBuffer* cmd, int32 inWidth, int32 inHeight) const
@@ -39,7 +40,7 @@ void RenderSurface::set_scissor(rhi::CommandBuffer* cmd, int32 inWidth, int32 in
     scissor.right = inWidth;
     scissor.bottom = inHeight;
     std::vector<rhi::Scissor> scissors = { scissor };
-    rhi::set_scissors(cmd, scissors);
+    rhi::set_scissors(cmd, scissors.data(), scissors.size());
 }
 
 }

@@ -3,6 +3,7 @@
 #include "globals.h"
 #include "utils.h"
 #include "rhi/rhi.h"
+#include "rhi/resources/buffer.h"
 #include "core/types.h"
 #include <vector>
 

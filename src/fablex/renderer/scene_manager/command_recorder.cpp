@@ -1,4 +1,5 @@
 #include "command_recorder.h"
+#include "core/macro.h"
 
 namespace fe::renderer
 {

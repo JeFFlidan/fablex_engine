@@ -4,7 +4,7 @@
 namespace fe::renderer::rg
 {
 
-Buffer::Buffer(rhi::BufferHandle handle, Name bufferName) 
+Buffer::Buffer(rhi::Buffer* handle, Name bufferName) 
     : m_name(bufferName), m_handle(handle)
 {
     rhi::set_name(m_handle, m_name.to_string());

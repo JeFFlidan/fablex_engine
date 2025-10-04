@@ -1,7 +1,7 @@
 #pragma once
 
 #include "command_recorder.h"
-#include "rhi/resources.h"
+#include "rhi/rhi.h"
 #include <array>
 
 namespace fe::renderer

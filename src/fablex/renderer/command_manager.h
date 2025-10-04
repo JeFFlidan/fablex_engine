@@ -1,6 +1,7 @@
 #pragma once
 
-#include "rhi/resources.h"
+#include "rhi/fwd.h"
+
 #include <thread>
 #include <unordered_map>
 #include <mutex>

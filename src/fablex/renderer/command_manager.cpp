@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "utils.h"
 #include "rhi/rhi.h"
+#include "rhi/resources/cmd.h"
 #include "rhi/utils.h"
 #include <sstream>
 

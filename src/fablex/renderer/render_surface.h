@@ -1,6 +1,7 @@
 #pragma once
 
-#include "rhi/resources.h"
+#include "rhi/fwd.h"
+#include "rhi/resources/swap_chain.h"
 
 namespace fe::renderer
 {

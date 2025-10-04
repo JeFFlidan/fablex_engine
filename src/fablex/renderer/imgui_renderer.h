@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rhi/fwd.h"
-#include "rhi/enums.h"
+#include "rhi/resources/enums.h"
 #include "core/types.h"
 #include <vector>
 #include <string>

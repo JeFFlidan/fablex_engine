@@ -10,9 +10,11 @@
 #endif
 
 #include "vulkan_rhi.h"
+
 #include "rhi/rhi.h"
-#include "rhi/resources.h"
 #include "rhi/utils.h"
+#include "rhi/resources.h"
+
 #include "core/logger.h"
 #include "core/memory/pool_allocator.h"
 #include "core/utils.h"
@@ -3779,16 +3781,6 @@ void destroy_shader(Shader* shader)
     g_allocator.shaderAllocator.free(shader);
 }
 
-void create_graphics_pipelines(const std::vector<GraphicsPipelineInfo>& infos, std::vector<Pipeline*>& outPipelines)
-{
-    outPipelines.reserve(outPipelines.size() + infos.size());
-
-    for (const GraphicsPipelineInfo& info : infos)
-    {
-        create_graphics_pipeline(&outPipelines.emplace_back(), &info);
-    }
-}
-
 void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* info)
 {
     FE_CHECK(pipeline);
@@ -4044,16 +4036,6 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     *pipeline = pipelinePtr;
 }
 
-void create_compute_pipelines(const std::vector<ComputePipelineInfo>& infos, std::vector<Pipeline*>& outPipelines)
-{
-    outPipelines.reserve(outPipelines.size() + infos.size());
-
-    for (const ComputePipelineInfo& info : infos)
-    {
-        create_compute_pipeline(&outPipelines.emplace_back(), &info);
-    }
-}
-
 void create_compute_pipeline(Pipeline** pipeline, const ComputePipelineInfo* info)
 {
     FE_CHECK(pipeline);
@@ -4288,7 +4270,7 @@ void destroy_acceleration_structure(AccelerationStructure* accelerationStructure
     g_allocator.accelerationStructureAllocator.free(accelerationStructure);
 }
 
-void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, void* dst)
+void write_top_level_acceleration_structure_instance(TLASInstance* instance, void* dst)
 {
     FE_CHECK(instance);
     FE_CHECK(instance->blas);
@@ -4300,13 +4282,13 @@ void write_top_level_acceleration_structure_instance(TLAS::Instance* instance, v
     vkInstance.instanceShaderBindingTableRecordOffset = instance->instanceContributionToHitGroupIndex;
     vkInstance.flags = 0;
 
-    if (has_flag(instance->flags, TLAS::Instance::Flags::TRIANGLE_CULL_DISABLE))
+    if (has_flag(instance->flags, TLASInstance::Flags::TRIANGLE_CULL_DISABLE))
         vkInstance.flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-    if (has_flag(instance->flags, TLAS::Instance::Flags::TRIANGLE_FRONT_COUNTERCLOCKWISE))
+    if (has_flag(instance->flags, TLASInstance::Flags::TRIANGLE_FRONT_COUNTERCLOCKWISE))
         vkInstance.flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR;
-    if (has_flag(instance->flags, TLAS::Instance::Flags::FORCE_OPAQUE))
+    if (has_flag(instance->flags, TLASInstance::Flags::FORCE_OPAQUE))
         vkInstance.flags |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR;
-    if (has_flag(instance->flags, TLAS::Instance::Flags::FORCE_NON_OPAQUE))
+    if (has_flag(instance->flags, TLASInstance::Flags::FORCE_NON_OPAQUE))
         vkInstance.flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR;
 
     vkInstance.accelerationStructureReference = instance->blas->vk().accelerationStructureAddress;
@@ -4739,17 +4721,17 @@ void blit_texture(
     vkCmdBlitImage2(cmd->vk().cmdBuffer, &blitImageInfo);
 }
 
-void set_viewports(CommandBuffer* cmd, const std::vector<Viewport>& viewports)
+void set_viewports(CommandBuffer* cmd, const Viewport* viewports, uint32 viewportCount)
 {
     FE_CHECK(cmd);
 
     constexpr uint32 maxViewportCount = 16;
 
 	VkViewport vulkanViewports[maxViewportCount];
-	if (viewports.size() > maxViewportCount)
-		FE_LOG(LogVulkanRHI, FATAL, "set_viewports(): You want to set {} viewports if there cannot be more than {} viewports.", viewports.size(), maxViewportCount);
+	if (viewportCount > maxViewportCount)
+		FE_LOG(LogVulkanRHI, FATAL, "set_viewports(): You want to set {} viewports if there cannot be more than {} viewports.", viewportCount, maxViewportCount);
 
-	for (uint32_t i = 0; i != viewports.size(); ++i)
+	for (uint32_t i = 0; i != viewportCount; ++i)
 	{
 		const Viewport& viewport = viewports[i];
 		vulkanViewports[i].x = viewport.x;
@@ -4760,20 +4742,20 @@ void set_viewports(CommandBuffer* cmd, const std::vector<Viewport>& viewports)
 		vulkanViewports[i].maxDepth = viewport.maxDepth;
 	}
 
-	vkCmdSetViewport(cmd->vk().cmdBuffer, 0, viewports.size(), vulkanViewports);
+	vkCmdSetViewport(cmd->vk().cmdBuffer, 0, viewportCount, vulkanViewports);
 }
 
-void set_scissors(CommandBuffer* cmd, const std::vector<Scissor>& scissors)
+void set_scissors(CommandBuffer* cmd, const Scissor* scissors, uint32 scissorCount)
 {
     FE_CHECK(cmd);
 
     constexpr uint32 maxScissorCount = 16;
 
     VkRect2D vulkanScissors[maxScissorCount];
-    if (scissors.size() > maxScissorCount)
-        FE_LOG(LogVulkanRHI, FATAL, "set_scissors(): You want to set {} scissors if there cannot be more than {} scissors.", scissors.size(), maxScissorCount);
+    if (scissorCount > maxScissorCount)
+        FE_LOG(LogVulkanRHI, FATAL, "set_scissors(): You want to set {} scissors if there cannot be more than {} scissors.", scissorCount, maxScissorCount);
 
-    for (uint32_t i = 0; i != scissors.size(); ++i)
+    for (uint32_t i = 0; i != scissorCount; ++i)
     {
         const Scissor& scissor = scissors[i];
         vulkanScissors[i].extent.width = abs(scissor.right - scissor.left);
@@ -4782,7 +4764,7 @@ void set_scissors(CommandBuffer* cmd, const std::vector<Scissor>& scissors)
         vulkanScissors[i].offset.y = std::max(0, scissor.top);
     }
 
-    vkCmdSetScissor(cmd->vk().cmdBuffer, 0, scissors.size(), vulkanScissors);
+    vkCmdSetScissor(cmd->vk().cmdBuffer, 0, scissorCount, vulkanScissors);
 }
 
 void push_constants(CommandBuffer* cmd, Pipeline* pipeline, void* data)
@@ -5126,18 +5108,20 @@ void dispatch_rays(CommandBuffer* cmd, const DispatchRaysInfo* info)
     );
 }
 
-void add_pipeline_barriers(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers)
+void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, uint32 barrierCount)
 {
     FE_CHECK(cmd);
-    if (barriers.empty())
+    if (!barrierCount)
         return;
 
     std::vector<VkMemoryBarrier2> memoryBarriers;
     std::vector<VkBufferMemoryBarrier2> bufferBarriers;
     std::vector<VkImageMemoryBarrier2> imageBarriers;
 
-    for (auto& pipelineBarrier : barriers)
+    for (uint32 i = 0; i != barrierCount; ++i)
     {
+        const PipelineBarrier& pipelineBarrier = barriers[barrierCount];
+
         switch (pipelineBarrier.type)
         {
         case rhi::PipelineBarrier::MEMORY:
@@ -5368,16 +5352,17 @@ void wait_queue_idle(QueueType queueType)
     VK_CHECK(vkQueueWaitIdle(g_device.get_queue(queueType).handle));
 }
 
-void wait_for_fences(const std::vector<Fence*>& fences)
+void wait_for_fences(Fence* const* fences, uint32 fenceCount)
 {
-    if (fences.empty())
+    if (!fenceCount)
         return;
 
     std::vector<VkFence> vkFences;
-    vkFences.reserve(fences.size());
+    vkFences.reserve(fenceCount);
 
-    for (Fence* fence : fences)
+    for (uint32 i = 0; i != fenceCount; ++i)
     {
+        const Fence* fence = fences[i];
         vkFences.push_back(fence->vk().fence);
     }
 
@@ -5553,9 +5538,7 @@ void fill_function_table()
     fe::rhi::destroy_sampler = destroy_sampler;
     fe::rhi::create_shader = create_shader;
     fe::rhi::destroy_shader = destroy_shader;
-    fe::rhi::create_graphics_pipelines = create_graphics_pipelines;
     fe::rhi::create_graphics_pipeline = create_graphics_pipeline;
-    fe::rhi::create_compute_pipelines = create_compute_pipelines;
     fe::rhi::create_compute_pipeline = create_compute_pipeline;
     fe::rhi::create_ray_tracing_pipeline = create_ray_tracing_pipeline;
     fe::rhi::destroy_pipeline = destroy_pipeline;

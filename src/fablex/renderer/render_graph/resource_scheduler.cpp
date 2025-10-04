@@ -3,6 +3,7 @@
 #include "render_graph.h"
 #include "globals.h"
 #include "rhi/utils.h"
+#include "rhi/resources/texture.h"
 
 namespace fe::renderer::rg
 {

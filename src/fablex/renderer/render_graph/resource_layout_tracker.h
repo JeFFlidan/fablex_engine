@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "fwd.h"
-#include "rhi/resources.h"
+#include "rhi/resources/pipeline_barrier.h"
 #include <optional>
 #include <unordered_map>
 

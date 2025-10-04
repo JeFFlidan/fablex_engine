@@ -9,12 +9,12 @@ Resource::Resource(ResourceName name, uint64 viewCount)
 
 }
 
-void Resource::set_texture(rhi::TextureHandle textureHandle)
+void Resource::set_texture(rhi::Texture* textureHandle)
 {
     m_texture.reset(new Texture(textureHandle, m_name));
 }
 
-void Resource::set_buffer(rhi::BufferHandle bufferHanlde)
+void Resource::set_buffer(rhi::Buffer* bufferHanlde)
 {
     m_buffer.reset(new Buffer(bufferHanlde, m_name));
 }

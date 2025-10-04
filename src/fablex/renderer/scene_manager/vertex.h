@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rhi/enums.h"
+#include "rhi/resources/enums.h"
 #include "core/math.h"
 #include "core/primitives/aabb.h"
 

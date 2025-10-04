@@ -1,7 +1,7 @@
 #include "synchronization_manager.h"
 #include "globals.h"
 #include "rhi/rhi.h"
-
+#include "core/logger.h"
 namespace fe::renderer
 {
 
@@ -60,7 +60,7 @@ void SynchronizationManager::end_frame()
 void SynchronizationManager::wait_fences()
 {
     CurrentFrameFenceArrays fenceArrays = get_current_frame_fences();
-    rhi::wait_for_fences(fenceArrays.usedFences);
+    rhi::wait_for_fences(fenceArrays.usedFences.data(), fenceArrays.usedFences.size());
 
     for (rhi::Fence* fence : fenceArrays.usedFences)
         fenceArrays.freeFences.push_back(fence);

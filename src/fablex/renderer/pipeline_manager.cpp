@@ -6,6 +6,12 @@
 #include "core/task_composer.h"
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
+#include "rhi/resources/cmd.h"
+#include "rhi/resources/buffer.h"
+#include "rhi/resources/pipeline.h"
+#include "rhi/resources/graphics_pipeline_info.h"
+#include "rhi/resources/compute_pipeline_info.h"
+#include "rhi/resources/ray_tracing_pipeline_info.h"
 #include "core/math.h"
 #include "core/utils.h"
 

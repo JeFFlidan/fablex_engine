@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rhi/resources.h"
+#include "rhi/fwd.h"
 #include <mutex>
 #include <functional>
 

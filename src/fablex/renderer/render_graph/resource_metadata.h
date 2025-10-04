@@ -2,7 +2,9 @@
 
 #include "common.h"
 #include "core/window.h"
-#include "rhi/resources.h"
+#include "rhi/fwd.h"
+#include "rhi/resources/render_pass.h"
+#include "rhi/resources/ray_tracing_pipeline_info.h"
 #include "core/utils.h"
 #include "core/flags_operations.h"
 

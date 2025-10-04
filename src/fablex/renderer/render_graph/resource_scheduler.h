@@ -3,7 +3,7 @@
 #include "common.h"
 #include "render_context.h"
 #include "core/types.h"
-#include "rhi/resources.h"
+#include "rhi/fwd.h"
 
 namespace fe::renderer::rg
 {

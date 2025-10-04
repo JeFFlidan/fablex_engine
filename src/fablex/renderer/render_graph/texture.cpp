@@ -6,7 +6,7 @@
 namespace fe::renderer
 {
 
-Texture::Texture(rhi::TextureHandle handle, Name textureName) 
+Texture::Texture(rhi::Texture* handle, Name textureName) 
     : m_name(textureName), m_handle(handle) 
 {
     reserve_texture_view_arrays();
@@ -20,8 +20,8 @@ Texture::~Texture()
 
     for (uint32 i = 0; i < m_handle->mipLevels; ++i)
     {
-        rhi::TextureViewHandle rtv = m_rtTextureViews[i];
-        rhi::TextureViewHandle uav = m_uaTextureViews[i];
+        rhi::TextureView* rtv = m_rtTextureViews[i];
+        rhi::TextureView* uav = m_uaTextureViews[i];
 
         if (rtv) rhi::destroy_texture_view(rtv);
         if (uav) rhi::destroy_texture_view(uav);
@@ -30,7 +30,7 @@ Texture::~Texture()
     if (m_handle) rhi::destroy_texture(m_handle);
 }
 
-rhi::TextureViewHandle Texture::dsv() const
+rhi::TextureView* Texture::dsv() const
 {
     if (!m_dsTextureView)
     {
@@ -43,7 +43,7 @@ rhi::TextureViewHandle Texture::dsv() const
     return m_dsTextureView;
 }
 
-rhi::TextureViewHandle Texture::srv() const
+rhi::TextureView* Texture::srv() const
 {
     if (!m_srTextureView)
     {
@@ -56,7 +56,7 @@ rhi::TextureViewHandle Texture::srv() const
     return m_srTextureView;
 }
 
-rhi::TextureViewHandle Texture::rtv(uint32 mipLevel) const
+rhi::TextureView* Texture::rtv(uint32 mipLevel) const
 {
     FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested RT texture view exceeds texture's amount of mip level.");
 
@@ -72,7 +72,7 @@ rhi::TextureViewHandle Texture::rtv(uint32 mipLevel) const
     return m_rtTextureViews[mipLevel];
 }
 
-rhi::TextureViewHandle Texture::uav(uint32 mipLevel) const
+rhi::TextureView* Texture::uav(uint32 mipLevel) const
 {
     FE_CHECK_MSG(mipLevel < m_handle->mipLevels, "Requested UA texture view exceeds texture's amount of mip level.");
 

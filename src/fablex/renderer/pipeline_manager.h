@@ -1,7 +1,8 @@
 #pragma once
 
 #include "common.h"
-#include "rhi/resources.h"
+#include "rhi/fwd.h"
+#include "rhi/resources/ray_tracing.h"
 #include "core/task_types.h"
 
 #include <unordered_map>

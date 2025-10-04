@@ -14,6 +14,7 @@
 #include "imgui_renderer.h"
 #include "render_context.h"
 #include "core/window.h"
+#include "rhi/resources/cmd.h"
 
 namespace fe::renderer
 {

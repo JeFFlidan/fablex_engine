@@ -3,6 +3,8 @@
 #include "renderer/globals.h"
 
 #include "rhi/rhi.h"
+#include "rhi/resources/sampler.h"
+
 #include "engine/entity/entity.h"
 #include "engine/components/events.h"
 #include "engine/components/model_component.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "enums.h"
+#include "resources/enums.h"
 #include "core/json_serialization.h"
 
 FE_SERIALIZE_ENUM(fe::rhi, fe::rhi::Format, 

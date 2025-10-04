@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gpu_resource.h"
-#include "rhi/resources.h"
 #include "asset_manager/texture/texture.h"
 
 namespace fe::renderer
@@ -15,7 +14,7 @@ public:
     GPUTexture(asset::Texture* textureAsset);
     virtual ~GPUTexture() override;
 
-    void reset();
+    virtual void reset() override;
     
     virtual void build(SceneManager* sceneManager) override;
     virtual bool upload_to_gpu(const SceneManager* sceneManager) override;

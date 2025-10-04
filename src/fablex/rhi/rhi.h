@@ -1,7 +1,7 @@
 #pragma once
 
-#include "resources.h"
-#include <array>
+#include "pfn.h"
+#include "resources/gpu_info.h"
 
 namespace fe::rhi
 {
@@ -12,107 +12,98 @@ struct RHIInitInfo
     ValidationMode validationMode{ValidationMode::ENABLED};
 };
 
-inline void (*init)(const RHIInitInfo* initInfo);
-inline void (*cleanup)();
+inline PFN_Init init = nullptr;
+inline PFN_Cleanup cleanup = nullptr;
 
-inline void (*create_swap_chain)(SwapChain** swapChain, const SwapChainInfo* info);
-inline void (*destroy_swap_chain)(SwapChain* swapChain);
+inline PFN_CreateSwapChain create_swap_chain = nullptr;
+inline PFN_DestroySwapChain destroy_swap_chain = nullptr;
 
-inline void (*create_buffer)(Buffer** buffer, const BufferInfo* info);
-inline void (*update_buffer)(Buffer*, uint64 size, const void* data);
-inline void (*destroy_buffer)(Buffer* buffer);
+inline PFN_CreateBuffer create_buffer = nullptr;
+inline PFN_UpdateBuffer update_buffer = nullptr;
+inline PFN_DestroyBuffer destroy_buffer = nullptr;
 
-inline void (*create_texture)(Texture** texture, const TextureInfo* info);
-inline void (*destroy_texture)(Texture* texture);
-inline void (*create_texture_view)(TextureView** textureView, const TextureViewInfo* info, const Texture* texture);
-inline void (*destroy_texture_view)(TextureView* textureView);
-inline void (*create_buffer_view)(BufferView** bufferView, const BufferViewInfo* info, const Buffer* buffer);
-inline void (*destroy_buffer_view)(BufferView* bufferView);
-inline void (*create_sampler)(Sampler** sampler, const SamplerInfo* info);
-inline void (*destroy_sampler)(Sampler* sampler);
-inline void (*create_shader)(Shader** shader, const ShaderInfo* info);
-inline void (*destroy_shader)(Shader* shader);
-inline void (*create_graphics_pipelines)(const std::vector<GraphicsPipelineInfo>& infos, std::vector<Pipeline*>& outPipelines);
-inline void (*create_graphics_pipeline)(Pipeline** pipeline, const GraphicsPipelineInfo* info);
-inline void (*create_compute_pipelines)(const std::vector<ComputePipelineInfo>& infos, std::vector<Pipeline*>& outPipelines);
-inline void (*create_compute_pipeline)(Pipeline** pipeline, const ComputePipelineInfo* info);
-inline void (*create_ray_tracing_pipeline)(Pipeline** pipeline, const RayTracingPipelineInfo* info);
-inline void (*destroy_pipeline)(Pipeline* pipeline);
+inline PFN_CreateTexture create_texture = nullptr;
+inline PFN_DestroyTexture destroy_texture = nullptr;
+inline PFN_CreateTextureView create_texture_view = nullptr;
+inline PFN_DestroyTextureView destroy_texture_view = nullptr;
 
-inline void (*create_acceleration_structure)(AccelerationStructure** accelerationStructure, AccelerationStructureInfo* info);
-inline void (*destroy_acceleration_structure)(AccelerationStructure* accelerationStructure);
-inline void (*write_top_level_acceleration_structure_instance)(TLAS::Instance* instance, void* dst);
-inline void (*write_shader_identifier)(Pipeline* pipeline, uint32 groupIndex, void* dst);
+inline PFN_CreateBufferView create_buffer_view = nullptr;
+inline PFN_DestroyBufferView destroy_buffer_view = nullptr;
 
-inline void (*bind_uniform_buffer)(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 size, uint32 offset);
+inline PFN_CreateSampler create_sampler = nullptr;
+inline PFN_DestroySampler destroy_sampler = nullptr;
 
-inline void (*create_command_pool)(CommandPool** cmdPool, const CommandPoolInfo* info);
-inline void (*destroy_command_pool)(CommandPool* cmdPool);
-inline void (*create_command_buffer)(CommandBuffer** cmd, const CommandBufferInfo* info);
-inline void (*destroy_command_buffer)(CommandBuffer* cmd);
-inline void (*begin_command_buffer)(CommandBuffer* cmd);
-inline void (*end_command_buffer)(CommandBuffer* cmd);
-inline void (*reset_command_pool)(CommandPool* cmdPool);
+inline PFN_CreateShader create_shader = nullptr;
+inline PFN_DestroyShader destroy_shader = nullptr;
 
-inline void (*create_semaphore)(Semaphore** semaphore);
-inline void (*destroy_semaphore)(Semaphore* semaphore);
-inline void (*create_fence)(Fence** fence);
-inline void (*destroy_fence)(Fence* fence);
+inline PFN_CreateGraphicsPipeline create_graphics_pipeline = nullptr;
+inline PFN_CreateComputePipeline create_compute_pipeline = nullptr;
+inline PFN_CreateRayTracingPipeline create_ray_tracing_pipeline = nullptr;
+inline PFN_DestroyPipeline destroy_pipeline = nullptr;
 
-inline void (*fill_buffer)(CommandBuffer* cmd, Buffer* dstBuffer, uint32 dstOffset, uint32 size, uint32 data);
-inline void (*copy_buffer)(CommandBuffer* cmd, Buffer* srcBuffer, Buffer* dstBuffer, uint32 size, uint32 srcOffset, uint32 dstOffset);
-inline void (*init_texture)(CommandBuffer* cmd, Texture* dstTexture, const TextureInitInfo* initInfo);
-inline void (*copy_texture)(CommandBuffer* cmd, Texture* srcTexture, Texture* dstTexture);
-inline void (*copy_buffer_to_texture)(CommandBuffer* cmd, Buffer* srcBuffer, Texture* dstTexture);
-inline void (*copy_texture_to_buffer)(CommandBuffer* cmd, Texture* srcTexture, Buffer* dstBuffer);
-inline void (*blit_texture)(
-    CommandBuffer* cmd, 
-    Texture* srcTexture, 
-    Texture* dstTexture, 
-    std::array<int32, 3> srcOffset, 
-    std::array<int32, 3> dstOffset, 
-    uint32 srcMipLevel, 
-    uint32 dstMipLevel, 
-    uint32 srcBaseLayer, 
-    uint32 dstBaseLayer
-);
+inline PFN_CreateAccelerationStructure create_acceleration_structure = nullptr;
+inline PFN_DestroyAccelerationStructure destroy_acceleration_structure = nullptr;
+inline PFN_WriteTopLevelAccelerationStructureInstance write_top_level_acceleration_structure_instance = nullptr;
+inline PFN_WriteShaderIdentifier write_shader_identifier = nullptr;
 
-inline void (*set_viewports)(CommandBuffer* cmd, const std::vector<Viewport>& viewports);
-inline void (*set_scissors)(CommandBuffer* cmd, const std::vector<Scissor>& scissors);
+inline PFN_BindUniformBuffer bind_uniform_buffer = nullptr;
 
-inline void (*push_constants)(CommandBuffer* cmd, Pipeline* pipeline, void* data);
-inline void (*bind_vertex_buffer)(CommandBuffer* cmd, Buffer* buffer);
-inline void (*bind_index_buffer)(CommandBuffer* cmd, Buffer* buffer, uint64 offset);
-inline void (*bind_pipeline)(CommandBuffer* cmd, Pipeline* pipeline);
+inline PFN_CreateCommandPool create_command_pool = nullptr;
+inline PFN_DestroyCommandPool destroy_command_pool = nullptr;
+inline PFN_CreateCommandBuffer create_command_buffer = nullptr;
+inline PFN_DestroyCommandBuffer destroy_command_buffer = nullptr;
+inline PFN_BeginCommandBuffer begin_command_buffer = nullptr;
+inline PFN_EndCommandBuffer end_command_buffer = nullptr;
+inline PFN_ResetCommandPool reset_command_pool = nullptr;
 
-inline void (*build_acceleration_structure)(CommandBuffer* cmd, const AccelerationStructure* dst, const AccelerationStructure* src);
+inline PFN_CreateSemaphore create_semaphore = nullptr;
+inline PFN_DestroySemaphore destroy_semaphore = nullptr;
+inline PFN_CreateFence create_fence = nullptr;
+inline PFN_DestroyFence destroy_fence = nullptr;
 
-inline void (*begin_rendering)(CommandBuffer* cmd, RenderingBeginInfo* beginInfo);
-inline void (*end_rendering)(CommandBuffer* cmd, SwapChain* swapChain);
+inline PFN_FillBuffer fill_buffer = nullptr;
+inline PFN_CopyBuffer copy_buffer = nullptr;
+inline PFN_InitTexture init_texture = nullptr;
+inline PFN_CopyTexture copy_texture = nullptr;
+inline PFN_CopyBufferToTexture copy_buffer_to_texture = nullptr;
+inline PFN_CopyTextureToBuffer copy_texture_to_buffer = nullptr;
+inline PFN_BlitTexture blit_texture = nullptr;
 
-inline void (*draw)(CommandBuffer* cmd, uint64 vertexCount);
-inline void (*draw_indexed)(CommandBuffer* cmd, uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 vertexOffset, uint32 firstInstance);
-inline void (*draw_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride);
-inline void (*draw_indexed_indirect)(CommandBuffer* cmd, Buffer* buffer, uint32 offset, uint32 drawCount, uint32 stride);
+inline PFN_SetViewports set_viewports = nullptr;
+inline PFN_SetScissors set_scissors = nullptr;
 
-inline void (*dispatch)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
-inline void (*dispatch_mesh)(CommandBuffer* cmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
-inline void (*dispatch_rays)(CommandBuffer* cmd, const DispatchRaysInfo* dispatchRaysInfo);
-inline void (*add_pipeline_barriers)(CommandBuffer* cmd, const std::vector<PipelineBarrier>& barriers);
+inline PFN_PushConstants push_constants = nullptr;
+inline PFN_BindVertexBuffer bind_vertex_buffer = nullptr;
+inline PFN_BindIndexBuffer bind_index_buffer = nullptr;
+inline PFN_BindPipeline bind_pipeline = nullptr;
 
-inline void (*acquire_next_image)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex);
-inline void (*submit)(SubmitInfo* submitInfo, rhi::Fence* signalFence);
-inline void (*present)(PresentInfo* presentInfo);
-inline void (*wait_queue_idle)(QueueType queueType);
-inline void (*wait_for_fences)(const std::vector<Fence*>& fences);
+inline PFN_BuildAccelerationStructure build_acceleration_structure = nullptr;
 
-inline API (*get_api)();
-inline void (*set_frame_index)(uint64 frameIndex);
-inline void (*set_name)(ResourceVariant resource, const std::string& name);
+inline PFN_BeginRendering begin_rendering = nullptr;
+inline PFN_EndRendering end_rendering = nullptr;
 
-inline uint64 (*get_min_offset_alignment)(const BufferInfo* bufferInfo);
+inline PFN_Draw draw = nullptr;
+inline PFN_DrawIndexed draw_indexed = nullptr;
+inline PFN_DrawIndirect draw_indirect = nullptr;
+inline PFN_DrawIndexedIndirect draw_indexed_indirect = nullptr;
 
-inline const GPUProperties& (*get_gpu_properties)();
+inline PFN_Dispatch dispatch = nullptr;
+inline PFN_DispatchMesh dispatch_mesh = nullptr;
+inline PFN_DispatchRays dispatch_rays = nullptr;
+inline PFN_AddPipelineBarriers add_pipeline_barriers = nullptr;
+
+inline PFN_AcquireNextImage acquire_next_image = nullptr;
+inline PFN_Submit submit = nullptr;
+inline PFN_Present present = nullptr;
+inline PFN_WaitQueueIdle wait_queue_idle = nullptr;
+inline PFN_WaitForFences wait_for_fences = nullptr;
+
+inline PFN_GetAPI get_api = nullptr;
+inline PFN_SetFrameIndex set_frame_index = nullptr;
+inline PFN_SetName set_name = nullptr;
+
+inline PFN_GetMinOffsetAlignment get_min_offset_alignment = nullptr;
+inline PFN_GetGPUProperties get_gpu_properties = nullptr;
 
 inline GPUCapability get_gpu_capabilities()
 {
@@ -168,5 +159,7 @@ inline bool is_validation_enabled()
 {
     return get_gpu_properties().validationMode != ValidationMode::DISABLED;
 }
+
+constexpr uint32 g_queueCount = std::underlying_type_t<rhi::QueueType>(rhi::QueueType::COUNT);
 
 }

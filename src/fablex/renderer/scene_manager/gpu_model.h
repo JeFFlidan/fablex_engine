@@ -1,7 +1,8 @@
 #pragma once
 
 #include "gpu_resource.h"
-#include "rhi/resources.h"
+#include "rhi/fwd.h"
+#include "rhi/resources/enums.h"
 #include "asset_manager/model/model.h"
 #include "engine/entity/fwd.h"
 #include "core/primitives/aabb.h"

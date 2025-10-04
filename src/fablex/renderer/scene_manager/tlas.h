@@ -2,6 +2,8 @@
 
 #include "gpu_data_buffers.h"
 #include "engine/entity/fwd.h"
+#include "rhi/resources/buffer.h"
+#include "rhi/resources/acceleration_structure.h"
 
 namespace fe::renderer
 {
@@ -35,8 +37,8 @@ struct TLASUploadBuffersAllocator
     };
 };
 
-// rhi::TLAS::Instance is used here as a placeholder, these buffers should not be indexed to get the typed structure, only raw bytes should be used.
-using TLASUploadBuffers = GPUDataBuffers<rhi::TLAS::Instance, TLASUploadBuffersAllocator>;
+// rhi::TLASInstance is used here as a placeholder, these buffers should not be indexed to get the typed structure, only raw bytes should be used.
+using TLASUploadBuffers = GPUDataBuffers<rhi::TLASInstance, TLASUploadBuffersAllocator>;
 
 class TLAS
 {

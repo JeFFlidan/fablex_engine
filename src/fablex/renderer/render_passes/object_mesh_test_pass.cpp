@@ -1,6 +1,7 @@
 #include "object_mesh_test_pass.h"
 #include "render_context.h"
 #include "rhi/rhi.h"
+#include "rhi/resources/graphics_pipeline_info.h"
 #include "scene_manager/scene_manager.h"
 
 namespace fe::renderer

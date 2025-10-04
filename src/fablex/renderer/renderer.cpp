@@ -449,7 +449,7 @@ void Renderer::record_worker_cmds()
                     FE_CHECK(renderPass);
 
                     const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->name()];
-                    rhi::add_pipeline_barriers(cmd, barriers);
+                    rhi::add_pipeline_barriers(cmd, barriers.data(), barriers.size());
                     rhi::SwapChain* usedSwapChain = nullptr;
                     bool requiresBeginRendering = queueType == rhi::QueueType::GRAPHICS && !node->useRayTracing;
 

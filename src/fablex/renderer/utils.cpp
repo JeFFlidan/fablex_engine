@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "rhi/resources/buffer.h"
 
 namespace fe::renderer
 {

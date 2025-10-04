@@ -1,4 +1,5 @@
 #include "command_recorder_manager.h"
+#include "rhi/resources/cmd.h"
 #include "rhi/utils.h"
 
 namespace fe::renderer

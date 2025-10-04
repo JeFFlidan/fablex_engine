@@ -1,6 +1,6 @@
 #pragma once
 
-#include "resources.h"
+#include "resources/enums.h"
 #include "core/logger.h"
 #include "core/utils.h"
 

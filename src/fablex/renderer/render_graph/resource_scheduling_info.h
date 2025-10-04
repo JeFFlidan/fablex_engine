@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include "rhi/resources.h"
+#include "rhi/resources/enums.h"
 
 #include <vector>
 #include <optional>

@@ -3,7 +3,9 @@
 #include "asset_manager/asset.h"
 #include "asset_manager/common.h"
 #include "core/json_serialization.h"
-#include "rhi/resources.h"
+#include "rhi/resources/texture.h"
+#include "rhi/resources/texture_view.h"
+#include "rhi/resources/buffer.h"
 #include "core/events/event.h"
 
 namespace fe::asset

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "fwd.h"
-#include "rhi/resources.h"
+#include "rhi/resources/shader.h"
 #include "core/task_types.h"
 
 #include <unordered_map>

@@ -65,13 +65,13 @@ void TLAS::allocate(uint32 inObjectCount)
 
 void TLAS::write(const GPUModel* model, const engine::Entity* entity, uint32 instanceIndex) const
 {
-    rhi::TLAS::Instance instance;
+    rhi::TLASInstance instance;
     instance.instanceID = instanceIndex;
 
     instance.blas = model->blases().at(0);  // zero lod for now
     instance.instanceMask = 1 << 0; // TEMP
     instance.instanceContributionToHitGroupIndex = 0;
-    instance.flags = rhi::TLAS::Instance::Flags::TRIANGLE_CULL_DISABLE;
+    instance.flags = rhi::TLASInstance::Flags::TRIANGLE_CULL_DISABLE;
 
     Matrix remapMat = model->aabb().get_unorm_remap_matrix();
     Float4x4 transformMat = remapMat * entity->get_world_transform();

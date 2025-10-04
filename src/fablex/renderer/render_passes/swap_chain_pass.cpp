@@ -2,6 +2,7 @@
 #include "render_context.h"
 #include "imgui_renderer.h"
 #include "rhi/rhi.h"
+#include "rhi/resources/graphics_pipeline_info.h"
 #include "shaders/shader_interop_renderer.h"
 
 namespace fe::renderer

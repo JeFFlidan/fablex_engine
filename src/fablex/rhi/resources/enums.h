@@ -6,7 +6,7 @@
 namespace fe::rhi
 {
 
-enum class API
+enum class API : uint32
 {
     VK,
     D3D12
@@ -408,7 +408,7 @@ enum class QueueType : uint32
     COUNT
 };
 
-enum class TopologyType
+enum class TopologyType : uint32
 {
     UNDEFINED,
     POINT,
@@ -420,7 +420,7 @@ enum class TopologyType
 /**
 * POLYGON_MODE_POINT available only if you use Vulkan
 */
-enum class PolygonMode
+enum class PolygonMode : uint32
 {
     UNDEFINED,
     FILL,
@@ -429,9 +429,9 @@ enum class PolygonMode
 };
 
 /**
-    * CULL_MODE_FRONT_AND_BACK available only if you use Vulkan
-    */
-enum class CullMode
+* CULL_MODE_FRONT_AND_BACK available only if you use Vulkan
+*/
+enum class CullMode : uint32
 {
     UNDEFINED,
     NONE,
@@ -440,14 +440,14 @@ enum class CullMode
     FRONT_AND_BACK
 };
 
-enum class FrontFace
+enum class FrontFace : uint32
 {
     UNDEFINED,
     CLOCKWISE,
     COUNTER_CLOCKWISE
 };
 
-enum class BlendFactor
+enum class BlendFactor : uint32
 {
     UNDEFINED,
     ZERO,
@@ -471,7 +471,7 @@ enum class BlendFactor
     ONE_MINUS_SRC1_ALPHA,
 };
 
-enum class BlendOp
+enum class BlendOp : uint32
 {
     UNDEFINED,
     ADD,
@@ -481,7 +481,7 @@ enum class BlendOp
     MAX,
 };
 
-enum class CompareOp
+enum class CompareOp : uint32
 {
     UNDEFINED,
     NEVER,
@@ -494,7 +494,7 @@ enum class CompareOp
     ALWAYS,
 };
 
-enum class StencilOp
+enum class StencilOp : uint32
 {
     UNDEFINED,
     KEEP,
@@ -515,14 +515,14 @@ enum class PipelineType : uint32
     RAY_TRACING
 };
 
-enum class LoadOp
+enum class LoadOp : uint32
 {
     LOAD,
     CLEAR,
     DONT_CARE,
 };
 
-enum class StoreOp
+enum class StoreOp : uint32
 {
     STORE,
     DONT_CARE,

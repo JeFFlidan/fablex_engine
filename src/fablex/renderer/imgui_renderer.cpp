@@ -9,6 +9,11 @@
 
 #include "rhi/rhi.h"
 #include "rhi/utils.h"
+#include "rhi/resources/buffer.h"
+#include "rhi/resources/texture.h"
+#include "rhi/resources/texture_view.h"
+#include "rhi/resources/viewport.h"
+#include "rhi/resources/graphics_pipeline_info.h"
 #include "shaders/shader_interop_renderer.h"
 
 #include "imgui.h"
@@ -166,7 +171,7 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
     viewport.minDepth = 0.0;
     viewport.maxDepth = 1.0;
 
-    rhi::set_viewports(cmd, {viewport});
+    rhi::set_viewports(cmd, &viewport, 1);
 
     uint32 globalVertexOffset = 0;
     uint32 globalIndexOffset = 0;
@@ -204,7 +209,7 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
                 pushConstants.texture = imCmd->GetTexID();
 
             rhi::push_constants(cmd, m_pipeline, &pushConstants);
-            rhi::set_scissors(cmd, {scissor});
+            rhi::set_scissors(cmd, &scissor, 1);
             rhi::draw_indexed(
                 cmd, 
                 imCmd->ElemCount, 
@@ -225,7 +230,7 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
     scissor.right = fbWidth;
     scissor.bottom = fbHeight;
 
-    rhi::set_scissors(cmd, {scissor});
+    rhi::set_scissors(cmd, &scissor, 1);
 }
 
 void ImGuiRenderer::create_font_texture(rhi::CommandBuffer* cmd)
