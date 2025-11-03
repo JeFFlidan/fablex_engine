@@ -14,7 +14,7 @@ void RNGSeedGenerationPass::create_pipeline()
     create_compute_pipeline();
 }
 
-void RNGSeedGenerationPass::execute(rhi::CommandBuffer* cmd)
+void RNGSeedGenerationPass::execute(CommandBufferRef cmd)
 {
     bind_pipeline(cmd);
 

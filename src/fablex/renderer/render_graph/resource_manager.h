@@ -10,7 +10,7 @@
 namespace fe::renderer::rg
 {
 
-using ResourceInfoVariant = std::variant<rhi::BufferInfo, rhi::TextureInfo>;
+using ResourceInfoVariant = std::variant<BufferCreateInfo, TextureCreateInfo>;
 
 // Must be used to create resources that are used as input and output by render passes in render graph. 
 // In most cases those resources are color/depth targets and storage textures.
@@ -87,8 +87,8 @@ private:
         RenderPassName renderPassName,
         ResourceName textureName,
         uint32 mipLevel,
-        rhi::ResourceUsage mustHaveUsage,
-        rhi::ResourceLayout mustHaveLayout
+        ResourceUsage mustHaveUsage,
+        ResourceLayout mustHaveLayout
     ) const;
 };
 

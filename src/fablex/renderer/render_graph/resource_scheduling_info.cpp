@@ -10,7 +10,7 @@ ResourceSchedulingInfo::ResourceSchedulingInfo(ResourceName resourceName, uint64
     
 }
 
-void ResourceSchedulingInfo::add_view_info(RenderPassName renderPassName, uint64 viewIndex, rhi::ResourceLayout layout)
+void ResourceSchedulingInfo::add_view_info(RenderPassName renderPassName, uint64 viewIndex, ResourceLayout layout)
 {
     FE_CHECK_MSG(viewIndex < m_viewCount, "View index is out of bounds.");
 

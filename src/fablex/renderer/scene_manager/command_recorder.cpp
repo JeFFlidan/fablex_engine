@@ -4,7 +4,7 @@
 namespace fe::renderer
 {
 
-void CommandRecorder::set_cmd(rhi::CommandBuffer* newCmdBuffer) const
+void CommandRecorder::set_cmd(CommandBufferRef newCmdBuffer) const
 {
     FE_CHECK(newCmdBuffer);
     m_cmd = newCmdBuffer;

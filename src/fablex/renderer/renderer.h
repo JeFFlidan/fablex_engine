@@ -13,6 +13,8 @@
 #include "deletion_queue.h"
 #include "imgui_renderer.h"
 #include "render_context.h"
+#include "device.h"
+#include "handles/swap_chain.h"
 #include "core/window.h"
 #include "rhi/resources/cmd.h"
 
@@ -42,22 +44,22 @@ private:
         DependencyLevelCommandContext(uint32 dependencyLevelIdx) 
             : dependencyLevelIndex(dependencyLevelIdx) { }
 
-        rhi::CommandBuffer* workerCmd = nullptr;
+        CommandBufferRef workerCmd = nullptr;
         uint32 dependencyLevelIndex = s_undefinedDependencyLevel;
         std::vector<const rg::RenderGraph::Node*> nodesToRecord;
     };
 
     struct SubmitContext
     {
-        rhi::Semaphore* signalSemaphore;
-        std::vector<rhi::Semaphore*> waitSemaphores; 
+        SemaphoreRef signalSemaphore;
+        std::vector<SemaphoreRef> waitSemaphores; 
         std::vector<DependencyLevelCommandContext> depencyLevelCommandContexts;
-        rhi::QueueType queueType = rhi::QueueType::GRAPHICS;
+        QueueType queueType = QueueType::GRAPHICS;
     };
 
     using SubmitContextArray = std::vector<SubmitContext>;
-    using SubmitInfoArray = std::vector<rhi::SubmitInfo>;
-    using PipelineBarrierArray = std::vector<rhi::PipelineBarrier>;
+    using SubmitInfoArray = std::vector<SubmitInfo>;
+    using PipelineBarrierArray = std::vector<PipelineBarrier>;
 
     std::unique_ptr<rg::RenderGraph> m_renderGraph = nullptr;
     std::unique_ptr<rg::RenderPassContainer> m_renderPassContainer = nullptr;
@@ -75,14 +77,14 @@ private:
     Window* m_window = nullptr;
     const RendererConfig* m_config = nullptr;
 
-    rhi::SwapChain* m_mainSwapChain = nullptr;
-    rhi::Semaphore* m_acquireSemaphore = nullptr;
-    rhi::Semaphore* m_uploadSemaphore = nullptr;
-    rhi::Semaphore* m_bvhBuildSemaphore = nullptr;
-    rhi::Semaphore* m_backBufferSemaphore = nullptr;
+    SwapChainHandle m_mainSwapChain;
+    SemaphoreRef m_acquireSemaphore;
+    SemaphoreRef m_uploadSemaphore;
+    SemaphoreRef m_bvhBuildSemaphore;
+    SemaphoreRef m_backBufferSemaphore;
     
-    rhi::SubmitInfo m_uploadSubmitInfo;
-    rhi::SubmitInfo m_bvhBuildSubmitInfo;
+    SubmitInfo m_uploadSubmitInfo;
+    SubmitInfo m_bvhBuildSubmitInfo;
 
     const rg::RenderGraph::Node* m_backBufferNode = nullptr;
 

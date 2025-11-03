@@ -2,6 +2,8 @@
 
 #include "common.h"
 #include "rhi/fwd.h"
+#include "handles/pipeline.h"
+#include "handles/command_buffer.h"
 #include "rhi/resources/ray_tracing.h"
 #include "core/task_types.h"
 
@@ -16,8 +18,8 @@ namespace fe::renderer
 class PipelineManager
 {
 public:
-    using GraphicsPipelineConfigurator = std::function<void(rhi::GraphicsPipelineInfo&)>;
-    using RayTracingPipelineConfigurator = std::function<void(rhi::RayTracingPipelineInfo&)>;
+    using GraphicsPipelineConfigurator = std::function<void(GraphicsPipelineCreateInfo&)>;
+    using RayTracingPipelineConfigurator = std::function<void(RayTracingPipelineCreateInfo&)>;
 
     PipelineManager(ShaderManager* shaderManager);
     ~PipelineManager();
@@ -32,23 +34,23 @@ public:
     void create_pipelines(rg::RenderPassContainer* renderPassContainer);
     void wait_pipelines_creation();
     
-    void bind_pipeline(rhi::CommandBuffer* cmd, PipelineName name) const;
-    void push_constants(rhi::CommandBuffer* cmd, PipelineName name, void* data) const;
-    void fill_dispatch_rays_info(PipelineName name, rhi::DispatchRaysInfo& outInfo) const;  // Only for simple RT pipelines
-    rhi::Pipeline* get_pipeline(PipelineName name) const;
+    void bind_pipeline(CommandBufferRef cmd, PipelineName name) const;
+    void push_constants(CommandBufferRef cmd, PipelineName name, void* data) const;
+    void fill_dispatch_rays_info(PipelineName name, DispatchRaysInfo& outInfo) const;  // Only for simple RT pipelines
+    PipelineRef get_pipeline(PipelineName name) const;
 
 private:
-    using PipelineInfoVariant = std::variant<rhi::GraphicsPipelineInfo*, rhi::ComputePipelineInfo*, rhi::RayTracingPipelineInfo*>;
+    using PipelineInfoVariant = std::variant<GraphicsPipelineCreateInfo*, ComputePipelineCreateInfo*, RayTracingPipelineCreateInfo*>;
 
-    std::unordered_map<PipelineName, rhi::Pipeline*> m_pipelineByName;
+    std::unordered_map<PipelineName, PipelineHandle> m_pipelineByName;
     std::unordered_map<PipelineName, rhi::ShaderIdentifierBuffer> m_shaderIdentifiersByName;  // Only for RT pipelines
     std::mutex m_pipelineMapMutex;
     std::mutex m_shaderIdentifiersMapMutex;
     ShaderManager* m_shaderManager = nullptr;
     TaskGroup* m_taskGroup = nullptr;
 
-    void configure_pipeline_info(rhi::GraphicsPipelineInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata);
-    void configure_pipeline_info(rhi::RayTracingPipelineInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata);
+    void configure_pipeline_info(GraphicsPipelineCreateInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata);
+    void configure_pipeline_info(RayTracingPipelineCreateInfo& outInfo, const rg::PipelineMetadata& pipelineMetadata);
     void create_pipeline(PipelineName pipelineName, PipelineInfoVariant infoVariant);
 };
 

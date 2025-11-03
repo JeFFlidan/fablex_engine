@@ -49,15 +49,15 @@ constexpr const char* TYPE_KEY = "Type";
 constexpr const char* PATH_KEY = "Path";
 constexpr const char* FLAGS_KEY = "Flags";
 
-const std::unordered_map<std::string, rhi::ShaderType> NOT_RT_SHADER_TYPE_BY_KEY_NAME = 
+const std::unordered_map<std::string, ShaderType> NOT_RT_SHADER_TYPE_BY_KEY_NAME = 
 {
-    {VERTEX_KEY, rhi::ShaderType::VERTEX},
-    {FRAGMENT_KEY, rhi::ShaderType::FRAGMENT},
-    {COMPUTE_KEY, rhi::ShaderType::COMPUTE},
-    {MESH_KEY, rhi::ShaderType::MESH},
-    {TASK_KEY, rhi::ShaderType::TASK},
-    {TESSELLATION_EVAL_KEY, rhi::ShaderType::TESSELLATION_EVALUATION},
-    {TESSELLATION_CONTROL_KEY, rhi::ShaderType::TESSELLATION_CONTROL}
+    {VERTEX_KEY, ShaderType::VERTEX},
+    {FRAGMENT_KEY, ShaderType::FRAGMENT},
+    {COMPUTE_KEY, ShaderType::COMPUTE},
+    {MESH_KEY, ShaderType::MESH},
+    {TASK_KEY, ShaderType::TASK},
+    {TESSELLATION_EVAL_KEY, ShaderType::TESSELLATION_EVALUATION},
+    {TESSELLATION_CONTROL_KEY, ShaderType::TESSELLATION_CONTROL}
 };
 
 RenderGraphMetadata::RenderGraphMetadata(const RenderContext* renderContext)
@@ -100,14 +100,14 @@ void RenderGraphMetadata::deserialize(const std::string& path)
                 uint32 sampleCount = textureMetadataJson[SAMPLE_COUNT_KEY];
                 switch (sampleCount)
                 {
-                case 1: textureMetadata.sampleCount = rhi::SampleCount::BIT_1; break;
-                case 2: textureMetadata.sampleCount = rhi::SampleCount::BIT_2; break;
-                case 4: textureMetadata.sampleCount = rhi::SampleCount::BIT_4; break;
-                case 8: textureMetadata.sampleCount = rhi::SampleCount::BIT_8; break;
-                case 16: textureMetadata.sampleCount = rhi::SampleCount::BIT_16; break;
-                case 32: textureMetadata.sampleCount = rhi::SampleCount::BIT_32; break;
-                case 64: textureMetadata.sampleCount = rhi::SampleCount::BIT_64; break;
-                default: textureMetadata.sampleCount = rhi::SampleCount::UNDEFINED; break;
+                case 1: textureMetadata.sampleCount = SampleCount::BIT_1; break;
+                case 2: textureMetadata.sampleCount = SampleCount::BIT_2; break;
+                case 4: textureMetadata.sampleCount = SampleCount::BIT_4; break;
+                case 8: textureMetadata.sampleCount = SampleCount::BIT_8; break;
+                case 16: textureMetadata.sampleCount = SampleCount::BIT_16; break;
+                case 32: textureMetadata.sampleCount = SampleCount::BIT_32; break;
+                case 64: textureMetadata.sampleCount = SampleCount::BIT_64; break;
+                default: textureMetadata.sampleCount = SampleCount::UNDEFINED; break;
                 }
             }
 
@@ -241,7 +241,7 @@ void RenderGraphMetadata::deserialize(const std::string& path)
 
                 bool isRayTracing = true;
 
-                auto addShaderMetadata = [&](const std::string& entryPoint, rhi::ShaderType shaderType)
+                auto addShaderMetadata = [&](const std::string& entryPoint, ShaderType shaderType)
                 {
                     ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.emplace_back();
                     shaderMetadata.type = shaderType;
@@ -290,30 +290,30 @@ void RenderGraphMetadata::deserialize(const std::string& path)
                     );
 
                     for (const std::string& entryPoint : raygenEntryPoints)
-                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_GENERATION);                    
+                        addShaderMetadata(entryPoint, ShaderType::RAY_GENERATION);                    
 
                     for (const std::string& entryPoint : missEntryPoints)
-                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_MISS);
+                        addShaderMetadata(entryPoint, ShaderType::RAY_MISS);
 
                     uint32 hitGroupIndex = 0;
                     for (const std::string& entryPoint : closestHitEntryPoints)
                     {
-                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_CLOSEST_HIT);
+                        addShaderMetadata(entryPoint, ShaderType::RAY_CLOSEST_HIT);
                         if (!anyHitEntryPoints.empty())
                         {
                             const std::string& anyHitEntryPoint = anyHitEntryPoints.at(hitGroupIndex);
                             if (!anyHitEntryPoint.empty())
-                                addShaderMetadata(anyHitEntryPoint, rhi::ShaderType::RAY_ANY_HIT);
+                                addShaderMetadata(anyHitEntryPoint, ShaderType::RAY_ANY_HIT);
                         }
 
                         ++hitGroupIndex;
                     }
 
                     for (const std::string& entryPoint : intersectionEntryPoints)
-                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_INTERSECTION);
+                        addShaderMetadata(entryPoint, ShaderType::RAY_INTERSECTION);
 
                     for (const std::string& entryPoint : callableEntryPoints)
-                        addShaderMetadata(entryPoint, rhi::ShaderType::RAY_CALLABLE);
+                        addShaderMetadata(entryPoint, ShaderType::RAY_CALLABLE);
                 }
             }
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common.h"
+#include "rhi_types.h"
 #include "core/window.h"
-#include "rhi/fwd.h"
 #include "rhi/resources/render_pass.h"
 #include "rhi/resources/ray_tracing_pipeline_info.h"
 #include "core/utils.h"
@@ -57,18 +57,18 @@ struct ResourceMetadataWithFlags : ResourceMetadata<NameType>
 struct TextureMetadata : ResourceMetadataWithFlags<ResourceName>
 {
     uint32 layerCount = 1;
-    rhi::SampleCount sampleCount = rhi::SampleCount::UNDEFINED;
-    rhi::Format format = rhi::Format::UNDEFINED;
+    SampleCount sampleCount = SampleCount::UNDEFINED;
+    Format format = Format::UNDEFINED;
 };
 
 // Does not inherit from ResourceMetadata because it's not independent metadata
 struct RenderTargetMetadata
 {
     ResourceName textureName;
-    rhi::Format format = rhi::Format::UNDEFINED;
-    rhi::StoreOp storeOp = rhi::StoreOp::STORE;
-    rhi::LoadOp loadOp = rhi::LoadOp::CLEAR;
-    rhi::ClearValues clearValues;
+    Format format = Format::UNDEFINED;
+    StoreOp storeOp = StoreOp::STORE;
+    LoadOp loadOp = LoadOp::CLEAR;
+    ClearValues clearValues;
 };
 
 struct RenderPassMetadata : ResourceMetadata<RenderPassName>
@@ -84,8 +84,8 @@ struct RenderPassMetadata : ResourceMetadata<RenderPassName>
 struct ShaderMetadata
 {
     std::string filePath;
-    rhi::ShaderType type;
-    rhi::ShaderHitGroup::Type hitGroupType = rhi::ShaderHitGroup::TRIANGLES;    // Only for hit shaders
+    ShaderType type;
+    ShaderHitGroup::Type hitGroupType = ShaderHitGroup::TRIANGLES;    // Only for hit shaders
     std::string entryPoint;
     std::vector<std::string> defines;
 
@@ -102,8 +102,8 @@ struct ShaderMetadata
 struct PipelineMetadata : ResourceMetadata<PipelineName>
 {
     std::vector<ShaderMetadata> shadersMetadata;
-    std::vector<rhi::Format> colorAttachmentFormats;
-    rhi::Format depthStencilFormat = rhi::Format::UNDEFINED;
+    std::vector<Format> colorAttachmentFormats;
+    Format depthStencilFormat = Format::UNDEFINED;
 };
 
 struct PushConstantsMetadata : ResourceMetadata<PushConstantsName>

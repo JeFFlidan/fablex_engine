@@ -5,8 +5,8 @@
 namespace fe::rhi
 {
 
-class Buffer;
-class Texture;
+struct Buffer;
+struct Texture;
 
 class PipelineBarrier
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include "rhi/resources/enums.h"
+#include "rhi_types.h"
 
 #include <vector>
 #include <optional>
@@ -15,7 +15,7 @@ class ResourceSchedulingInfo
 public:
     struct ViewInfo
     {
-        rhi::ResourceLayout requestedLayout = rhi::ResourceLayout::UNDEFINED;
+        ResourceLayout requestedLayout = ResourceLayout::UNDEFINED;
     };
 
     struct RenderPassInfo
@@ -25,7 +25,7 @@ public:
 
     ResourceSchedulingInfo(ResourceName resourceName, uint64 viewCount);
 
-    void add_view_info(RenderPassName renderPassName, uint64 viewIndex, rhi::ResourceLayout layout);
+    void add_view_info(RenderPassName renderPassName, uint64 viewIndex, ResourceLayout layout);
 
     ResourceName name() const { return m_name; }
     uint64 view_count() const { return m_viewCount; }

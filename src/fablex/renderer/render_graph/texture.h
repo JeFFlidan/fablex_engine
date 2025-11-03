@@ -2,26 +2,28 @@
 
 #include "core/types.h"
 #include "core/name.h"
+#include "handles/texture.h"
+#include "handles/texture_view.h"
+#include "handles/handle_vector.h"
 #include "rhi/resources/texture.h"
 #include "rhi/resources/texture_view.h"
-#include <vector>
 
-namespace fe::renderer
+namespace fe::renderer::rg
 {
 
 class Texture
 {
 public:
     Texture() = default;
-    Texture(rhi::Texture* handle, Name textureName);
+    Texture(const TextureCreateInfo& createInfo, Name textureName);
     ~Texture();
 
-    rhi::Texture* handle() const { return m_handle; }
+    TextureRef handle() const { return m_handle; }
 
-    rhi::TextureView* dsv() const;
-    rhi::TextureView* srv() const;
-    rhi::TextureView* rtv(uint32 mipLevel = 0) const;
-    rhi::TextureView* uav(uint32 mipLevel = 0) const;
+    TextureViewRef dsv() const;
+    TextureViewRef srv() const;
+    TextureViewRef rtv(uint32 mipLevel = 0) const;
+    TextureViewRef uav(uint32 mipLevel = 0) const;
 
     uint32 dsv_descriptor() const;
     uint32 srv_descriptor() const;
@@ -30,14 +32,14 @@ public:
 
 private:
     Name m_name;
-    rhi::Texture* m_handle = nullptr;
-    mutable rhi::TextureView* m_dsTextureView = nullptr;
-    mutable rhi::TextureView* m_srTextureView = nullptr;
-    mutable std::vector<rhi::TextureView*> m_rtTextureViews;
-    mutable std::vector<rhi::TextureView*> m_uaTextureViews;
+    TextureHandle m_handle;
+    mutable TextureViewHandle m_dsTextureView;
+    mutable TextureViewHandle m_srTextureView;
+    mutable HandleVector<TextureViewHandle> m_rtTextureViews;
+    mutable HandleVector<TextureViewHandle> m_uaTextureViews;
 
     void reserve_texture_view_arrays();
-    std::string get_view_name(uint32 mipLevel) const;
+    std::string get_view_name(const std::string& typeStr, uint32 mipLevel) const;
 };
 
 }

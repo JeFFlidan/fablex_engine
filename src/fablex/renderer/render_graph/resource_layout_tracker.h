@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "fwd.h"
+#include "rhi_types.h"
 #include "rhi/resources/pipeline_barrier.h"
 #include <optional>
 #include <unordered_map>
@@ -15,7 +16,7 @@ public:
     struct ViewLayout
     {
         uint32 viewIndex = 0;
-        rhi::ResourceLayout layout = rhi::ResourceLayout::UNDEFINED;
+        ResourceLayout layout = ResourceLayout::UNDEFINED;
     };
 
     using ViewLayoutArray = std::vector<ViewLayout>;
@@ -25,9 +26,9 @@ public:
 
     void begin_resource_tracking(const Resource* resource);
 
-    std::optional<rhi::PipelineBarrier> get_transition_to_layout(
+    std::optional<PipelineBarrier> get_transition_to_layout(
         const Resource* resource,
-        rhi::ResourceLayout newLayout,
+        ResourceLayout newLayout,
         uint32 viewIndex
     );
 
@@ -35,7 +36,7 @@ private:
     std::unordered_map<ResourceName, ViewLayoutArray> m_viewLayoutsByName;
 
     ViewLayoutArray& get_view_layouts(const Resource* resource);
-    bool is_new_layout_redundant(rhi::ResourceLayout currentLayout, rhi::ResourceLayout newLayout);
+    bool is_new_layout_redundant(ResourceLayout currentLayout, ResourceLayout newLayout);
 };
 
 }

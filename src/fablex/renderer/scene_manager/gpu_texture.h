@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gpu_resource.h"
+#include "handles/texture.h"
+#include "handles/texture_view.h"
 #include "asset_manager/texture/texture.h"
 
 namespace fe::renderer
@@ -19,15 +21,15 @@ public:
     virtual void build(SceneManager* sceneManager) override;
     virtual bool upload_to_gpu(const SceneManager* sceneManager) override;
 
-    rhi::Texture* texture() const { return m_texture; }
-    rhi::TextureView* texture_view() const { return m_textureView; }
+    TextureRef texture() const { return m_texture; }
+    TextureViewRef texture_view() const { return m_textureView; }
     uint32 descriptor() const { return m_textureView->descriptorIndex; }
 
 private:
-    rhi::Texture* m_texture = nullptr;
-    rhi::TextureView* m_textureView = nullptr;
+    TextureHandle m_texture;
+    TextureViewHandle m_textureView;
 
-    rhi::TextureDimension get_dimension() const;
+    TextureDimension get_dimension() const;
 };
 
 }

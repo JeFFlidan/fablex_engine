@@ -38,7 +38,7 @@ using PFN_CreateComputePipeline = void(*)(Pipeline** pipeline, const ComputePipe
 using PFN_CreateRayTracingPipeline = void(*)(Pipeline** pipeline, const RayTracingPipelineInfo* info);
 using PFN_DestroyPipeline = void(*)(Pipeline* pipeline);
 
-using PFN_CreateAccelerationStructure = void(*)(AccelerationStructure** accelerationStructure, AccelerationStructureInfo* info);
+using PFN_CreateAccelerationStructure = void(*)(AccelerationStructure** accelerationStructure, const AccelerationStructureInfo* info);
 using PFN_DestroyAccelerationStructure = void(*)(AccelerationStructure* accelerationStructure);
 using PFN_WriteTopLevelAccelerationStructureInstance = void(*)(TLASInstance* instance, void* dst);
 using PFN_WriteShaderIdentifier = void(*)(Pipeline* pipeline, uint32 groupIndex, void* dst);
@@ -91,8 +91,8 @@ using PFN_DispatchRays = void(*)(CommandBuffer* cmd, const DispatchRaysInfo* dis
 using PFN_AddPipelineBarriers = void(*)(CommandBuffer* cmd, const PipelineBarrier* barriers, uint32 barriersCount);
 
 using PFN_AcquireNextImage = void(*)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex);
-using PFN_Submit = void(*)(SubmitInfo* submitInfo, Fence* signalFence);
-using PFN_Present = void(*)(PresentInfo* presentInfo);
+using PFN_Submit = void(*)(const SubmitInfo* submitInfo);
+using PFN_Present = void(*)(const PresentInfo* presentInfo);
 using PFN_WaitQueueIdle = void(*)(QueueType queueType);
 using PFN_WaitForFences = void(*)(Fence* const* fences, uint32 fenceCount);
 

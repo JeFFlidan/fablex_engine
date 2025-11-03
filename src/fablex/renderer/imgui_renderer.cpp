@@ -38,15 +38,7 @@ ImGuiRenderer::ImGuiRenderer(DeletionQueue* deletionQueue, ShaderManager* shader
 
 ImGuiRenderer::~ImGuiRenderer()
 {
-    rhi::destroy_pipeline(m_pipeline);
-    
-    for (rhi::Buffer* buffer : m_vertexBuffers)
-        rhi::destroy_buffer(buffer);
-    for (rhi::Buffer* buffer : m_indexBuffers)
-        rhi ::destroy_buffer(buffer);
 
-    rhi::destroy_texture_view(m_fontTextureView);
-    rhi::destroy_texture(m_fontTexture);
 }
 
 void ImGuiRenderer::begin_frame()
@@ -58,53 +50,53 @@ void ImGuiRenderer::create_pipeline()
 {
     rg::ShaderMetadata vertShaderMetadata;
     vertShaderMetadata.filePath = VERT_SHADER_PATH;
-    vertShaderMetadata.type = rhi::ShaderType::VERTEX;
+    vertShaderMetadata.type = ShaderType::VERTEX;
     m_shaderManager->request_shader_loading(vertShaderMetadata);
 
     rg::ShaderMetadata fragShaderMetadata;
     fragShaderMetadata.filePath = FRAG_SHADER_PATH;
-    fragShaderMetadata.type = rhi::ShaderType::FRAGMENT;
+    fragShaderMetadata.type = ShaderType::FRAGMENT;
     m_shaderManager->request_shader_loading(fragShaderMetadata);
 
-    rhi::GraphicsPipelineInfo info;
+    GraphicsPipelineCreateInfo info;
     
-    rhi::VertexBindingDescription& binding = info.bindingDescriptions.emplace_back();
+    VertexBindingDescription& binding = info.bindingDescriptions.emplace_back();
     binding.binding = 0;
     binding.stride = sizeof(ImDrawVert);
 
     info.attributeDescriptions.resize(3);
     info.attributeDescriptions[0].location = 0;
     info.attributeDescriptions[0].binding = binding.binding;
-    info.attributeDescriptions[0].format = rhi::Format::R32G32_SFLOAT;
+    info.attributeDescriptions[0].format = Format::R32G32_SFLOAT;
     info.attributeDescriptions[0].offset = offsetof(ImDrawVert, pos);
     info.attributeDescriptions[1].location = 1;
     info.attributeDescriptions[1].binding = binding.binding;
-    info.attributeDescriptions[1].format = rhi::Format::R32G32_SFLOAT;
+    info.attributeDescriptions[1].format = Format::R32G32_SFLOAT;
     info.attributeDescriptions[1].offset = offsetof(ImDrawVert, uv);
     info.attributeDescriptions[2].location = 2;
     info.attributeDescriptions[2].binding = binding.binding;
-    info.attributeDescriptions[2].format = rhi::Format::R8G8B8A8_UNORM;
+    info.attributeDescriptions[2].format = Format::R8G8B8A8_UNORM;
     info.attributeDescriptions[2].offset = offsetof(ImDrawVert, col);
 
-    info.assemblyState.topologyType = rhi::TopologyType::TRIANGLE;
+    info.assemblyState.topologyType = TopologyType::TRIANGLE;
 
     info.rasterizationState.lineWidth = 1.0f;
-    info.rasterizationState.cullMode = rhi::CullMode::NONE;
-    info.rasterizationState.polygonMode = rhi::PolygonMode::FILL;
-    info.rasterizationState.frontFace = rhi::FrontFace::COUNTER_CLOCKWISE;
+    info.rasterizationState.cullMode = CullMode::NONE;
+    info.rasterizationState.polygonMode = PolygonMode::FILL;
+    info.rasterizationState.frontFace = FrontFace::COUNTER_CLOCKWISE;
     info.rasterizationState.isBiasEnabled = false;
 
     info.multisampleState.isEnabled = false;
-    info.multisampleState.sampleCount = rhi::SampleCount::BIT_1;
+    info.multisampleState.sampleCount = SampleCount::BIT_1;
 
-    rhi::ColorBlendAttachmentState& blendAttach = info.colorBlendState.colorBlendAttachments.emplace_back();
+    ColorBlendAttachmentState& blendAttach = info.colorBlendState.colorBlendAttachments.emplace_back();
     blendAttach.isBlendEnabled = true;
-    blendAttach.srcColorBlendFactor = rhi::BlendFactor::SRC_ALPHA;
-    blendAttach.dstColorBlendFactor = rhi::BlendFactor::ONE_MINUS_SRC_ALPHA;
-    blendAttach.colorBlendOp = rhi::BlendOp::ADD;
-    blendAttach.srcAlphaBlendFactor = rhi::BlendFactor::ONE;
-    blendAttach.dstAlphaBlendFactor = rhi::BlendFactor::ONE_MINUS_SRC_ALPHA;
-    blendAttach.alphaBlendOp = rhi::BlendOp::ADD;
+    blendAttach.srcColorBlendFactor = BlendFactor::SRC_ALPHA;
+    blendAttach.dstColorBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
+    blendAttach.colorBlendOp = BlendOp::ADD;
+    blendAttach.srcAlphaBlendFactor = BlendFactor::ONE;
+    blendAttach.dstAlphaBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
+    blendAttach.alphaBlendOp = BlendOp::ADD;
     blendAttach.colorWriteMask = 0x00000001 | 0x00000002 | 0x00000004 | 0x00000008;
 
     m_shaderManager->wait_shaders_loading();
@@ -113,12 +105,11 @@ void ImGuiRenderer::create_pipeline()
 
     info.colorAttachmentFormats.push_back(m_renderTargetFormat);
 
-    rhi::create_graphics_pipeline(&m_pipeline, &info);
-
-    rhi::set_name(m_pipeline, PIPELINE_NAME);
+    m_pipeline.init(info);
+    m_pipeline.set_name(PIPELINE_NAME);
 }
 
-void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
+void ImGuiRenderer::draw(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 
@@ -132,8 +123,8 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
     uint32 vertexSize = rhi::align_to(uint32(drawData->TotalVtxCount * sizeof(ImDrawVert)), BUFFER_ALIGNMENT);
     uint32 indexSize = rhi::align_to(uint32(drawData->TotalIdxCount * sizeof(ImDrawIdx)), BUFFER_ALIGNMENT);
 
-    rhi::Buffer* vertexBuffer = get_vertex_buffer(vertexSize);
-    rhi::Buffer* indexBuffer = get_index_buffer(indexSize);
+    BufferRef vertexBuffer = get_vertex_buffer(vertexSize);
+    BufferRef indexBuffer = get_index_buffer(indexSize);
 
     FE_CHECK(vertexBuffer);
     FE_CHECK(indexBuffer);
@@ -163,7 +154,7 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
     Float2 clipOff = Float2(drawData->DisplayPos.x, drawData->DisplayPos.y);
     Float2 clipScale = Float2(drawData->FramebufferScale.x, drawData->FramebufferScale.y);
 
-    rhi::Viewport viewport;
+    Viewport viewport;
     viewport.x = 0;
     viewport.y = 0;
     viewport.width = fbWidth;
@@ -171,14 +162,14 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
     viewport.minDepth = 0.0;
     viewport.maxDepth = 1.0;
 
-    rhi::set_viewports(cmd, &viewport, 1);
+    cmd.set_viewports({ viewport });
 
     uint32 globalVertexOffset = 0;
     uint32 globalIndexOffset = 0;
 
-    rhi::bind_pipeline(cmd, m_pipeline);
-    rhi::bind_vertex_buffer(cmd, vertexBuffer);
-    rhi::bind_index_buffer(cmd, indexBuffer, 0);
+    cmd.bind_pipeline(m_pipeline);
+    cmd.bind_vertex_buffer(vertexBuffer);
+    cmd.bind_index_buffer(indexBuffer, 0);
 
     for (uint32 i = 0; i != drawData->CmdListsCount; ++i)
     {
@@ -197,7 +188,7 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
             if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
                 continue;
 
-            rhi::Scissor scissor;
+            Scissor scissor;
             scissor.left = (int32)clipMin.x;
             scissor.top = (int32)clipMin.y;
             scissor.right = (int32)clipMax.x;
@@ -208,10 +199,9 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
             else
                 pushConstants.texture = imCmd->GetTexID();
 
-            rhi::push_constants(cmd, m_pipeline, &pushConstants);
-            rhi::set_scissors(cmd, &scissor, 1);
-            rhi::draw_indexed(
-                cmd, 
+            cmd.push_constants(m_pipeline, &pushConstants);
+            cmd.set_scissors({ scissor });
+            cmd.draw_indexed(                
                 imCmd->ElemCount, 
                 1, 
                 imCmd->IdxOffset + globalIndexOffset, 
@@ -224,16 +214,16 @@ void ImGuiRenderer::draw(rhi::CommandBuffer* cmd)
         globalIndexOffset += drawList->IdxBuffer.Size;
     }
 
-    rhi::Scissor scissor;
+    Scissor scissor;
     scissor.left = 0;
     scissor.top = 0;
     scissor.right = fbWidth;
     scissor.bottom = fbHeight;
 
-    rhi::set_scissors(cmd, &scissor, 1);
+    cmd.set_scissors({ scissor });
 }
 
-void ImGuiRenderer::create_font_texture(rhi::CommandBuffer* cmd)
+void ImGuiRenderer::create_font_texture(CommandBufferRef cmd)
 {
     if (m_fontTextureView && m_fontTexture)
         return;
@@ -245,91 +235,108 @@ void ImGuiRenderer::create_font_texture(rhi::CommandBuffer* cmd)
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     const uint32 pixelsByteSize = width * height * 4;
 
-    rhi::TextureInfo textureInfo;
-    textureInfo.width = width;
-    textureInfo.height = height;
-    textureInfo.format = rhi::Format::R8G8B8A8_UNORM;
-    textureInfo.memoryUsage = rhi::MemoryUsage::GPU;
-    textureInfo.textureUsage = rhi::ResourceUsage::TRANSFER_DST | rhi::ResourceUsage::SAMPLED_TEXTURE;
-    textureInfo.samplesCount = rhi::SampleCount::BIT_1;
-    textureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
-    rhi::create_texture(&m_fontTexture, &textureInfo);
+    m_fontTexture.init(
+        TextureCreateInfo
+        {            
+            .width = (uint32)width,
+            .height = (uint32)height,
+            .format = Format::R8G8B8A8_UNORM,
+            .textureUsage = ResourceUsage::TRANSFER_DST | ResourceUsage::SAMPLED_TEXTURE,
+            .memoryUsage = MemoryUsage::GPU,
+            .samplesCount = SampleCount::BIT_1,
+            .dimension = TextureDimension::TEXTURE2D,
+        }
+    );
 
-    rhi::BufferInfo uploadBufferInfo;
-    uploadBufferInfo.size = pixelsByteSize; // because 4 channels
-    uploadBufferInfo.bufferUsage = rhi::ResourceUsage::TRANSFER_SRC;
-    uploadBufferInfo.memoryUsage = rhi::MemoryUsage::CPU;
-    uploadBufferInfo.initData = pixels;
-    uploadBufferInfo.initDataSize = pixelsByteSize;
+    m_fontTexture.set_name(FONT_TEXTURE_NAME);
 
-    rhi::TextureInitInfo textureInitInfo;
-    rhi::create_buffer(&textureInitInfo.buffer, &uploadBufferInfo);
-    textureInitInfo.mipMaps.push_back(rhi::MipMap{0, 0});
-    rhi::init_texture(cmd, m_fontTexture, &textureInitInfo);
+    BufferHandle uploadBuffer(
+        BufferCreateInfo
+        {            
+            .size = pixelsByteSize, // because 4 channels
+            .bufferUsage = ResourceUsage::TRANSFER_SRC,
+            .memoryUsage = MemoryUsage::CPU,
+            .initData = pixels,
+            .initDataSize = pixelsByteSize,
+        }
+    );
 
-    rhi::TextureViewInfo textureViewInfo;
-    textureViewInfo.type = rhi::ViewType::SRV;
-    textureViewInfo.texture = m_fontTexture;
-    rhi::create_texture_view(&m_fontTextureView, &textureViewInfo);
+    TextureInitInfo textureInitInfo;
+    textureInitInfo.buffer = uploadBuffer;
+    textureInitInfo.mipMaps.push_back(MipMap{0, 0});
+    cmd.init_texture(m_fontTexture, textureInitInfo);    
+    
+    m_fontTextureView.init(
+        TextureViewCreateInfo
+        {            
+            .texture = m_fontTexture,
+            .type = ViewType::SRV,
+        }
+    );
+
+    m_fontTextureView.set_name(FONT_TEXTURE_VIEW_NAME);
 
     io.Fonts->SetTexID(m_fontTextureView->descriptorIndex);
 
-    rhi::set_name(m_fontTexture, FONT_TEXTURE_NAME);
-    rhi::set_name(m_fontTextureView, FONT_TEXTURE_VIEW_NAME);
-
-    rhi::Buffer* uploadBuffer = textureInitInfo.buffer;
-    m_deletionQueue->add([uploadBuffer]()
-    {
-        rhi::destroy_buffer(uploadBuffer);
-    });
+    m_deletionQueue->add(uploadBuffer);
 }
 
-rhi::Buffer* ImGuiRenderer::get_vertex_buffer(uint32 desiredSize)
+BufferRef ImGuiRenderer::get_vertex_buffer(uint32 desiredSize)
 {
     if (m_vertexBuffers.size() < g_frameIndex + 1)
-        m_vertexBuffers.push_back(create_uma_buffer(desiredSize, rhi::ResourceUsage::VERTEX_BUFFER));
+        m_vertexBuffers.push_back(create_vertex_buffer(desiredSize));
 
     if (m_vertexBuffers.at(g_frameIndex)->size < desiredSize)
     {
-        rhi::Buffer* oldBuffer = m_vertexBuffers[g_frameIndex];
-        m_deletionQueue->add([oldBuffer]()
-        {
-            rhi::destroy_buffer(oldBuffer);
-        });
-
-        m_vertexBuffers[g_frameIndex] = create_uma_buffer(desiredSize, rhi::ResourceUsage::VERTEX_BUFFER);
+        m_deletionQueue->add(m_vertexBuffers[g_frameIndex]);
+        m_vertexBuffers[g_frameIndex] = create_vertex_buffer(desiredSize);
     }
 
     return m_vertexBuffers[g_frameIndex];
 }
 
-rhi::Buffer* ImGuiRenderer::get_index_buffer(uint32 desiredSize)
+BufferRef ImGuiRenderer::get_index_buffer(uint32 desiredSize)
 {
     if (m_indexBuffers.size() < g_frameIndex + 1)
-        m_indexBuffers.push_back(create_uma_buffer(desiredSize, rhi::ResourceUsage::INDEX_BUFFER));
+        m_indexBuffers.push_back(create_index_buffer(desiredSize));
 
     if (m_indexBuffers.at(g_frameIndex)->size < desiredSize)
     {
-        rhi::Buffer* oldBuffer = m_indexBuffers[g_frameIndex];
-        m_deletionQueue->add([oldBuffer]()
-        {
-            rhi::destroy_buffer(oldBuffer);
-        });
-
-        m_indexBuffers[g_frameIndex] = create_uma_buffer(desiredSize, rhi::ResourceUsage::INDEX_BUFFER);
+        m_deletionQueue->add(m_indexBuffers[g_frameIndex]);
+        m_indexBuffers[g_frameIndex] = create_index_buffer(desiredSize);
     }
 
     return m_indexBuffers[g_frameIndex];
 }
 
-rhi::Buffer* ImGuiRenderer::create_uma_buffer(uint32 desiredSize, rhi::ResourceUsage usage)
-{    
-    rhi::Buffer* buffer = Utils::create_uma_buffer(desiredSize ? desiredSize : BUFFER_ALIGNMENT, usage);
+BufferHandle ImGuiRenderer::create_vertex_buffer(uint32 desiredSize)
+{
+    BufferHandle buffer(
+        BufferCreateInfo
+        {            
+            .size = desiredSize ? desiredSize : BUFFER_ALIGNMENT,
+            .bufferUsage = ResourceUsage::VERTEX_BUFFER,
+            .memoryUsage = MemoryUsage::CPU_TO_GPU,
+        }
+    );
 
-    if (has_flag(buffer->bufferUsage, rhi::ResourceUsage::VERTEX_BUFFER))
-        Utils::set_debug_name(buffer, VERTEX_BUFFER_NAME);
-    else if (has_flag(buffer->bufferUsage, rhi::ResourceUsage::INDEX_BUFFER))
-        Utils::set_debug_name(buffer, INDEX_BUFFER_NAME);
+    Utils::set_debug_name(buffer, VERTEX_BUFFER_NAME);
+
+    return buffer;
+}
+
+BufferHandle ImGuiRenderer::create_index_buffer(uint32 desiredSize)
+{
+    BufferHandle buffer(
+        BufferCreateInfo
+        {            
+            .size = desiredSize ? desiredSize : BUFFER_ALIGNMENT,
+            .bufferUsage = ResourceUsage::INDEX_BUFFER,
+            .memoryUsage = MemoryUsage::CPU_TO_GPU,
+        }
+    );
+
+    Utils::set_debug_name(buffer, INDEX_BUFFER_NAME);
 
     return buffer;
 }

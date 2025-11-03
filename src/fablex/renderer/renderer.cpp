@@ -3,6 +3,7 @@
 #include "accessor.h"
 #include "utils.h"
 #include "render_graph/resource_scheduler.h"
+#include "render_graph/rendering_infos.h"
 #include "rhi/utils.h"
 #include "core/task_composer.h"
 
@@ -28,10 +29,10 @@ Renderer::Renderer(const RendererInfo& rendererInfo)
 
 Renderer::~Renderer()
 {
-    for (uint32 queueIdx = 0; queueIdx != rhi::g_queueCount; ++queueIdx)
-        rhi::wait_queue_idle((rhi::QueueType)queueIdx);
+    for (uint32 queueIdx = 0; queueIdx != g_queueCount; ++queueIdx)
+        Device::wait_queue_idle((QueueType)queueIdx);
 
-    rhi::destroy_swap_chain(m_mainSwapChain);
+    m_mainSwapChain.reset();
     m_pipelineManager.reset();
     m_shaderManager.reset();
     m_resourceManager.reset();
@@ -40,14 +41,14 @@ Renderer::~Renderer()
     m_sceneManager.reset();
     m_imGuiRenderer.reset();
     m_deletionQueue.reset();
-    rhi::cleanup();
+    Device::cleanup();
 }
 
 void Renderer::predraw()
 {
     bool beginFrameCalled = false;
 
-    rhi::CommandBuffer* cmd = nullptr;
+    CommandBufferRef cmd = nullptr;
 
     if (!m_imGuiRenderer->is_font_texture_created())
     {
@@ -60,8 +61,8 @@ void Renderer::predraw()
 
         if (!cmd)
         {
-            cmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
-            rhi::begin_command_buffer(cmd);
+            cmd = m_commandManager->get_cmd(QueueType::GRAPHICS);
+            cmd.begin_recording();
         }
 
         m_imGuiRenderer->create_font_texture(cmd);
@@ -75,11 +76,13 @@ void Renderer::predraw()
 
     if (cmd)
     {
-        rhi::end_command_buffer(cmd);
+        cmd.end_recording();
 
-        rhi::SubmitInfo submitInfo;
-        submitInfo.cmdBuffers.push_back(cmd);
-        rhi::submit(&submitInfo, m_syncManager->get_fence());
+        SubmitInfo submitInfo;
+        submitInfo.add_cmd(cmd);
+        submitInfo.set_signal_fence(m_syncManager->get_fence());
+
+        Device::submit(submitInfo);
 
         m_syncManager->wait_fences();
     }
@@ -105,12 +108,7 @@ void Renderer::init_rhi()
 {
     FE_LOG(LogRenderer, INFO, "Starting RHI initialization.");
 
-    rhi::RHIInitInfo initInfo;
-    initInfo.gpuPreference = rhi::GPUPreference::DISCRETE;
-    initInfo.validationMode = m_config->get_validation_mode();
-
-    rhi::fill_function_table(m_config->get_graphics_api());
-    rhi::init(&initInfo);
+    Device::init(m_config);
 
     FE_LOG(LogRenderer, INFO, "RHI initialization completed.");
 }
@@ -126,8 +124,8 @@ void Renderer::init_managers()
     m_syncManager = std::make_unique<SynchronizationManager>();
     m_shaderManager = std::make_unique<ShaderManager>();
     m_pipelineManager = std::make_unique<PipelineManager>(m_shaderManager.get());
-    m_sceneManager = std::make_unique<SceneManager>();
     m_deletionQueue = std::make_unique<DeletionQueue>();
+    m_sceneManager = std::make_unique<SceneManager>(m_deletionQueue.get());
     m_imGuiRenderer = std::make_unique<ImGuiRenderer>(m_deletionQueue.get(), m_shaderManager.get());
 
     FE_LOG(LogRenderer, INFO, "Renderer systems initialization completed.");
@@ -149,8 +147,8 @@ void Renderer::init_render_context()
     
     info.renderSurface.width = 1920;
     info.renderSurface.height = 1080;
-    info.renderSurface.renderTargetFormat = rhi::Format::R8G8B8A8_UNORM;
-    info.renderSurface.depthStencilFormat = rhi::Format::D32_SFLOAT;
+    info.renderSurface.renderTargetFormat = Format::R8G8B8A8_UNORM;
+    info.renderSurface.depthStencilFormat = Format::D32_SFLOAT;
 
     m_renderContext = std::make_unique<RenderContext>(info);
     m_renderPassContainer = std::make_unique<rg::RenderPassContainer>(m_renderContext.get());
@@ -164,7 +162,7 @@ void Renderer::init_render_context()
 void Renderer::create_pipelines()
 {
     m_pipelineManager->create_pipelines(m_renderPassContainer.get());
-    m_imGuiRenderer->set_render_target_format(rhi::Format::B8G8R8A8_UNORM);
+    m_imGuiRenderer->set_render_target_format(Format::B8G8R8A8_UNORM);
     m_imGuiRenderer->create_pipeline();
 }
 
@@ -172,14 +170,18 @@ void Renderer::create_main_swap_chain()
 {
     FE_LOG(LogRenderer, INFO, "Starting main swap chain initialization.");
 
-    rhi::SwapChainInfo info;
-    info.vSync = true;
-    info.useHDR = false;
-    info.colorSpace = rhi::ColorSpace::SRGB;
-    info.format = rhi::Format::B8G8R8A8_UNORM;
-    info.bufferCount = 3;
-    info.window = m_window;
-    rhi::create_swap_chain(&m_mainSwapChain, &info);
+    m_mainSwapChain.init(
+        {
+            .vSync = true,
+            .bufferCount = 3,
+            .window = m_window,
+            .format = Format::B8G8R8A8_UNORM,
+            .colorSpace = ColorSpace::SRGB,
+            .useHDR = false
+
+        }
+    );
+
     m_renderContext->set_main_swap_chain(m_mainSwapChain);
 
     FE_LOG(LogRenderer, INFO, "Main swap chain initialization completed.");
@@ -188,10 +190,11 @@ void Renderer::create_main_swap_chain()
 void Renderer::acquire_next_image()
 {
     m_syncManager->wait_fences();
+
+    FenceRef fence = m_syncManager->get_fence();
     m_acquireSemaphore = m_syncManager->get_acquire_semaphore();
-    rhi::Fence* fence = m_syncManager->get_fence();
-    uint32 frameIndex = 0;
-    rhi::acquire_next_image(m_mainSwapChain, m_acquireSemaphore, fence, &frameIndex);
+    m_mainSwapChain.acquire_next_image(m_acquireSemaphore, fence);
+
     m_syncManager->wait_fences();
 }
 
@@ -207,7 +210,7 @@ void Renderer::begin_frame()
     m_submitContexts.clear();
     m_pipelineBarriersByPassName.clear();
 
-    if (g_frameNumber > 3)
+    if (g_frameNumber > 2)
         m_deletionQueue->destroy_objects();
 
     record_predraw_cmds();    
@@ -220,12 +223,7 @@ void Renderer::end_frame()
     m_syncManager->end_frame();
     m_resourceManager->end_frame();
 
-    if (g_frameIndex + 1 > m_mainSwapChain->bufferCount - 1) 
-        g_frameIndex = 0;
-    else
-        ++g_frameIndex;
-
-    rhi::set_frame_index(g_frameIndex);
+    Device::update_frame_index(m_mainSwapChain);
 }
 
 void Renderer::schedule_frame()
@@ -255,17 +253,17 @@ void Renderer::execute_render_graph()
 
 void Renderer::present()
 {
-    rhi::PresentInfo presentInfo;
-    presentInfo.swapChains.push_back(m_mainSwapChain);
-    presentInfo.waitSemaphores.push_back(m_backBufferSemaphore);
+    PresentInfo presentInfo;
+    presentInfo.add_swap_chain(m_mainSwapChain);
+    presentInfo.add_wait_semaphore(m_backBufferSemaphore);
 
-    rhi::present(&presentInfo);
+    Device::present(presentInfo);
 }
 
 void Renderer::configure_submit_contexts()
 {
     std::vector<SubmitContext*> lastSubmitContextPerQueue(m_renderGraph->detected_queue_count(), nullptr);
-    std::unordered_map<const rg::RenderGraph::Node*, rhi::Semaphore*> signalSemaphoreByNode;
+    std::unordered_map<const rg::RenderGraph::Node*, SemaphoreRef> signalSemaphoreByNode;
     bool requiresWaitingBVH = true;
 
     for (const rg::RenderGraph::Node* node : m_renderGraph->nodes_in_global_exec_order())
@@ -283,13 +281,13 @@ void Renderer::configure_submit_contexts()
             // Invalidate the last submit context if a signal or wait semaphore needed to force the allocation of a new submit context
             lastSubmitContext = &m_submitContexts.emplace_back();
             lastSubmitContextPerQueue[nodeQueueIdx] = lastSubmitContext;
-            lastSubmitContext->queueType = (rhi::QueueType)nodeQueueIdx;
+            lastSubmitContext->queueType = (QueueType)nodeQueueIdx;
         }
 
         if (node->is_sync_signal_required() && !lastSubmitContext->signalSemaphore)
         {            
             lastSubmitContext->signalSemaphore = m_syncManager->get_semaphore();
-            rhi::set_name(lastSubmitContext->signalSemaphore, node->name().to_string());
+            lastSubmitContext->signalSemaphore.set_name(node->name().to_string());
             signalSemaphoreByNode[node] = lastSubmitContext->signalSemaphore;
         }
 
@@ -329,7 +327,7 @@ void Renderer::configure_pipeline_barriers()
         {
             auto [resourceName, viewIndex] = rg::RenderGraph::decode_view_name(viewName);
 
-            rhi::ResourceLayout result = rhi::ResourceLayout::UNDEFINED;
+            ResourceLayout result = ResourceLayout::UNDEFINED;
 
             for (const rg::RenderGraph::Node* node : dependencyLevel.get_nodes())
                 if (node->get_read_views().contains(viewName))
@@ -359,11 +357,11 @@ void Renderer::configure_pipeline_barriers()
                 bool isResourceReadByMultipleQueue = 
                     isReadDependency && dependencyLevel.get_views_read_by_multiple_queues().contains(viewName);
                 
-                rhi::ResourceLayout newLayout = isResourceReadByMultipleQueue ?
+                ResourceLayout newLayout = isResourceReadByMultipleQueue ?
                     getViewReadLayotsInDependencyLevel(viewName, *passInfo) :
                     passInfo->viewInfos.at(viewIndex)->requestedLayout;
 
-                std::optional<rhi::PipelineBarrier> barrier = m_resourceLayoutTracker->get_transition_to_layout(resource, newLayout, viewIndex);
+                std::optional<PipelineBarrier> barrier = m_resourceLayoutTracker->get_transition_to_layout(resource, newLayout, viewIndex);
                 if (barrier != std::nullopt)
                 {
                     PipelineBarrierArray& passBarriers = m_pipelineBarriersByPassName[passName];
@@ -384,27 +382,28 @@ void Renderer::configure_pipeline_barriers()
 
 void Renderer::record_upload_and_bvh_cmds()
 {
-    rhi::CommandBuffer* graphicsCmd = m_commandManager->get_cmd(rhi::QueueType::GRAPHICS);
-    rhi::CommandBuffer* computeCmd = m_commandManager->get_cmd(rhi::QueueType::COMPUTE);
-    
-    rhi::begin_command_buffer(graphicsCmd);
-    rhi::begin_command_buffer(computeCmd);
+    CommandBufferRef graphicsCmd = m_commandManager->get_cmd(QueueType::GRAPHICS);
+    CommandBufferRef computeCmd = m_commandManager->get_cmd(QueueType::COMPUTE);
+
+    graphicsCmd.begin_recording();
+    computeCmd.begin_recording();
 
     m_sceneManager->upload({graphicsCmd, computeCmd});
 
-    rhi::end_command_buffer(graphicsCmd);
-    rhi::end_command_buffer(computeCmd);
+    graphicsCmd.end_recording();
+    computeCmd.end_recording();
+    
+    m_uploadSubmitInfo.reset();
+    m_uploadSubmitInfo.add_cmd(graphicsCmd);
+    m_uploadSubmitInfo.add_signal_semaphore(m_uploadSemaphore);
+    m_uploadSubmitInfo.add_wait_semaphore(m_acquireSemaphore);
+    m_uploadSubmitInfo.set_signal_fence(m_syncManager->get_fence());
 
-    m_uploadSubmitInfo.clear();
-    m_uploadSubmitInfo.cmdBuffers.push_back(graphicsCmd);
-    m_uploadSubmitInfo.signalSemaphores.push_back(m_uploadSemaphore);
-    m_uploadSubmitInfo.waitSemaphores.push_back(m_acquireSemaphore);
-
-    m_bvhBuildSubmitInfo.clear();
-    m_bvhBuildSubmitInfo.cmdBuffers.push_back(computeCmd);
-    m_bvhBuildSubmitInfo.signalSemaphores.push_back(m_bvhBuildSemaphore);
-    m_bvhBuildSubmitInfo.waitSemaphores.push_back(m_uploadSemaphore);
-    m_bvhBuildSubmitInfo.queueType = rhi::QueueType::COMPUTE;
+    m_bvhBuildSubmitInfo.reset();
+    m_bvhBuildSubmitInfo.add_cmd(computeCmd);
+    m_bvhBuildSubmitInfo.add_signal_semaphore(m_bvhBuildSemaphore);
+    m_bvhBuildSubmitInfo.add_wait_semaphore(m_uploadSemaphore);
+    m_bvhBuildSubmitInfo.set_signal_fence(m_syncManager->get_fence());
 }
 
 void Renderer::record_predraw_cmds()
@@ -437,11 +436,11 @@ void Renderer::record_worker_cmds()
                 ]
                 (TaskExecutionInfo execInfo)
             {
-                rhi::QueueType queueType = submitContext.queueType;
+                QueueType queueType = submitContext.queueType;
 
                 dependencyLevelContext.workerCmd = m_commandManager->get_cmd(queueType);
-                rhi::CommandBuffer* cmd = dependencyLevelContext.workerCmd;
-                rhi::begin_command_buffer(cmd);
+                CommandBufferRef cmd = dependencyLevelContext.workerCmd;
+                cmd.begin_recording();
 
                 for (const rg::RenderGraph::Node* node : dependencyLevelContext.nodesToRecord)
                 {
@@ -449,41 +448,43 @@ void Renderer::record_worker_cmds()
                     FE_CHECK(renderPass);
 
                     const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->name()];
-                    rhi::add_pipeline_barriers(cmd, barriers.data(), barriers.size());
-                    rhi::SwapChain* usedSwapChain = nullptr;
-                    bool requiresBeginRendering = queueType == rhi::QueueType::GRAPHICS && !node->useRayTracing;
+                    cmd.add_pipeline_barriers(barriers);
+
+                    SwapChainRef usedSwapChain = nullptr;
+                    bool requiresBeginRendering = queueType == QueueType::GRAPHICS && !node->useRayTracing;
 
                     if (requiresBeginRendering)
                     {
-                        rhi::RenderingBeginInfo::Type type = m_backBufferNode == node 
-                            ? rhi::RenderingBeginInfo::SWAP_CHAIN_PASS : rhi::RenderingBeginInfo::OFFSCREEN_PASS;
-                        rhi::RenderingBeginInfo renderingBeginInfo(type);
-
-                        renderPass->fill_rendering_begin_info(renderingBeginInfo);
-
-                        if (type == rhi::RenderingBeginInfo::SWAP_CHAIN_PASS)
-                        {
-                            renderingBeginInfo.swapChainPass.swapChain = m_mainSwapChain;
-                            usedSwapChain = m_mainSwapChain;
-                        }
-
-                        rhi::begin_rendering(cmd, &renderingBeginInfo);
-
                         if (m_backBufferNode == node)
                         {
+                            renderPass->begin_rendering(cmd, m_mainSwapChain);
+                            usedSwapChain = m_mainSwapChain;
+
                             submitContext.signalSemaphore = m_syncManager->get_semaphore();
                             m_backBufferSemaphore = submitContext.signalSemaphore;
+                        }
+                        else
+                        {
+                            renderPass->begin_rendering(cmd);
                         }
                     }
 
                     renderPass->execute(cmd);
 
                     if (requiresBeginRendering)
-                        rhi::end_rendering(cmd, usedSwapChain);
-
+                    {
+                        if (usedSwapChain)
+                        {
+                            renderPass->end_rendering(cmd, usedSwapChain);
+                        }
+                        else
+                        {
+                            renderPass->end_rendering(cmd);
+                        }
+                    }
                 }
 
-                rhi::end_command_buffer(cmd);
+                cmd.end_recording();
             });
         }
     }
@@ -494,25 +495,25 @@ void Renderer::submit()
     TaskComposer::wait(m_commandRecordingTaskGroup);
 
     if (is_upload_cmd_submit_required())
-        rhi::submit(&m_uploadSubmitInfo, m_syncManager->get_fence());
+        Device::submit(m_uploadSubmitInfo);
 
     if (is_bvh_build_cmd_submit_required())
-        rhi::submit(&m_bvhBuildSubmitInfo, m_syncManager->get_fence());
+        Device::submit(m_bvhBuildSubmitInfo);
 
     for (const SubmitContext& submitContext : m_submitContexts)
     {
-        rhi::SubmitInfo submitInfo;
-        submitInfo.queueType = submitContext.queueType;
+        SubmitInfo submitInfo;
 
         for (const DependencyLevelCommandContext& dependencyLevelContext : submitContext.depencyLevelCommandContexts)
-            submitInfo.cmdBuffers.push_back(dependencyLevelContext.workerCmd);
+            submitInfo.add_cmd(dependencyLevelContext.workerCmd);
 
         if (submitContext.signalSemaphore)
-            submitInfo.signalSemaphores.push_back(submitContext.signalSemaphore);
-        
-        submitInfo.waitSemaphores = submitContext.waitSemaphores;
+            submitInfo.add_signal_semaphore(submitContext.signalSemaphore);
 
-        rhi::submit(&submitInfo, m_syncManager->get_fence());
+        submitInfo.set_wait_semaphores(submitContext.waitSemaphores);
+        submitInfo.set_signal_fence(m_syncManager->get_fence());
+
+        Device::submit(submitInfo);
     }
 }
 

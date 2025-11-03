@@ -11,14 +11,14 @@ FE_DEFINE_OBJECT(ObjectPass, rg::RenderPass);
 
 void ObjectPass::create_pipeline()
 {
-    create_graphics_pipeline([&](rhi::GraphicsPipelineInfo& info)
+    create_graphics_pipeline([&](GraphicsPipelineCreateInfo& info)
     {
         info.depthStencilState.isDepthTestEnabled = true;
         info.depthStencilState.isDepthWriteEnabled = true;
     });
 }
 
-void ObjectPass::execute(rhi::CommandBuffer* cmd)
+void ObjectPass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 
@@ -40,8 +40,8 @@ void ObjectPass::execute(rhi::CommandBuffer* cmd)
         uint32 instanceCount = gpuModel.instance_count();
         instanceOffset += instanceCount;
     
-        rhi::bind_index_buffer(cmd, gpuModel.general_buffer(), gpuModel.index_offset());
-        rhi::draw_indexed(cmd, gpuModel.index_count(), instanceCount, 0, 0, 0);
+        cmd.bind_index_buffer(gpuModel.general_buffer(), gpuModel.index_offset());
+        cmd.draw_indexed(gpuModel.index_count(), instanceCount, 0, 0, 0);
     });
 }
 

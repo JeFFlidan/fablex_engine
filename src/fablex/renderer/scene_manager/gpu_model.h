@@ -1,8 +1,11 @@
 #pragma once
 
 #include "gpu_resource.h"
-#include "rhi/fwd.h"
-#include "rhi/resources/enums.h"
+#include "handles/buffer.h"
+#include "handles/buffer_view.h"
+#include "handles/acceleration_structure.h"
+#include "handles/handle_vector.h"
+
 #include "asset_manager/model/model.h"
 #include "engine/entity/fwd.h"
 #include "core/primitives/aabb.h"
@@ -46,14 +49,14 @@ public:
 
     const AABB& aabb() const;
     uint32 mesh_count() const;
-    rhi::Format position_format() const { return m_positionFormat; }
-    rhi::Format uv_format() const { return m_uvFormat; }
+    Format position_format() const { return m_positionFormat; }
+    Format uv_format() const { return m_uvFormat; }
     uint64 meshlet_count() const { return m_meshletCount; }
     uint32 thread_group_count_x() const;
-    rhi::Buffer* general_buffer() const { return m_generalBuffer; }
+    BufferRef general_buffer() const { return m_generalBuffer; }
     uint64 index_offset() const { return m_indices.offset; }
     uint64 index_count() const; 
-    const std::vector<rhi::AccelerationStructure*>& blases() const { return m_BLASes; }
+    const HandleVector<BLASHandle>& blases() const { return m_BLASes; }
     uint32 instance_count() const { return m_refCount; }
 
     int32 srv_indices() const;
@@ -73,17 +76,21 @@ private:
 
         uint64 offset = INVALID;
         uint64 size = INVALID;
-        rhi::BufferView* uav = nullptr;
-        rhi::BufferView* srv = nullptr;
+        BufferViewHandle uav;
+        BufferViewHandle srv;
 
-        bool is_valid() const { return offset != INVALID && size != INVALID; }
         void cleanup();
+        bool is_valid() const { return offset != INVALID && size != INVALID; }
+
+    private:
+        std::string get_uav_name(const std::string& debugBaseName) const;
+        std::string get_srv_name(const std::string& debugBaseName) const;
     };
 
     static constexpr uint32 INVALID_INSTANCE_INDEX = ~0u;
 
-    rhi::Format m_positionFormat = rhi::Format::UNDEFINED;
-    rhi::Format m_uvFormat = rhi::Format::UNDEFINED;
+    Format m_positionFormat = Format::UNDEFINED;
+    Format m_uvFormat = Format::UNDEFINED;
     Float2 m_uvRangeMin = Float2(0.0f, 0.0f);
     Float2 m_uvRangeMax = Float2(1.0f, 1.0f);
     uint64 m_meshletCount = 0;
@@ -91,7 +98,7 @@ private:
     uint32 m_nextModelInstanceIndex = INVALID_INSTANCE_INDEX;
     uint32 m_nextMeshInstanceIndex = INVALID_INSTANCE_INDEX;
 
-    rhi::Buffer* m_generalBuffer = nullptr;
+    BufferHandle m_generalBuffer;
     BufferView m_indices;
     BufferView m_vertexPositionsWinds;
     BufferView m_meshlets;
@@ -103,9 +110,11 @@ private:
     BufferView m_vertexColors;
 
     BLASState m_BLASState = BLASState::REQUIRES_REBUILD;
-    std::vector<rhi::AccelerationStructure*> m_BLASes;
+    HandleVector<BLASHandle> m_BLASes;
 
-    void configure_buffer_view(BufferView& bufferView, rhi::Format format, std::string debugName, bool requireUAV = false);
+    void configure_buffer_view(BufferView& bufferView, Format format, std::string debugName, bool requireUAV = false);
+    Format get_blas_vertex_format() const;
+    uint32 get_blas_index_offset(const asset::Mesh& mesh) const;
 };
 
 }

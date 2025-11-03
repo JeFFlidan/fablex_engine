@@ -35,7 +35,7 @@ void PathTracingPass::schedule_resources()
     rg::ResourceScheduler::use_ray_tracing(name());
 }
 
-void PathTracingPass::execute(rhi::CommandBuffer* cmd)
+void PathTracingPass::execute(CommandBufferRef cmd)
 {
     rg::ResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
     rg::Resource* finalIllumination = resourceManager->get_resource("FilteredIllumination0");
@@ -61,13 +61,13 @@ void PathTracingPass::execute(rhi::CommandBuffer* cmd)
 
     push_constants(cmd, &pushConstants);
     
-    rhi::DispatchRaysInfo info;
+    DispatchRaysInfo info;
     info.width = m_renderContext->render_surface().width;
     info.height = m_renderContext->render_surface().height;
     info.depth = 1;
 
     fill_dispatch_rays_info(info);
-    rhi::dispatch_rays(cmd, &info);
+    cmd.dispatch_rays(&info);
 }
 
 }

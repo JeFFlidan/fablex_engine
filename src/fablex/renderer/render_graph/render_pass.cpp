@@ -1,5 +1,6 @@
 #include "render_pass.h"
 #include "render_context.h"
+#include "rendering_infos.h"
 #include "render_graph_metadata.h"
 #include "render_graph.h"
 #include "resource_manager.h"
@@ -39,7 +40,7 @@ void RenderPass::create_pipelines()
         const PipelineMetadata& pipelineMetadata = get_pipeline_metadata(pipelineNameStr);
         const ShaderMetadata& shaderMetadata = pipelineMetadata.shadersMetadata.at(0);
 
-        if (shaderMetadata.type == rhi::ShaderType::COMPUTE)
+        if (shaderMetadata.type == ShaderType::COMPUTE)
             pipelineManager->create_compute_pipeline(pipelineMetadata);
         else if (rhi::is_rt_shader(shaderMetadata.type))
             pipelineManager->create_ray_tracing_pipeline(pipelineMetadata);
@@ -64,9 +65,7 @@ void RenderPass::schedule_resources()
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ_NO_HISTORY))
         {
-            rhi::TextureInfo info;
-            fill_texture_info(textureMetadata, info);
-            ResourceScheduler::read_previous_texture(name(), textureName, &info);
+            ResourceScheduler::read_previous_texture(name(), &textureMetadata);
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::PING_PONG))
         {
@@ -84,32 +83,30 @@ void RenderPass::schedule_resources()
         if (renderTargetMetadata.textureName.is_valid())
         {     
             const TextureMetadata& textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
-            rhi::TextureInfo info;
-            fill_texture_info(textureMetadata, info);
             
             if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
             {
                 auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureMetadata.name);
                 if (rhi::is_depth_stencil_format(textureMetadata.format))
                 {
-                    ResourceScheduler::create_depth_stencil(name(), prevFrameName, &info);
-                    ResourceScheduler::create_depth_stencil(name(), curFrameName, &info);
+                    ResourceScheduler::create_depth_stencil(name(), &textureMetadata, prevFrameName);
+                    ResourceScheduler::create_depth_stencil(name(), &textureMetadata, curFrameName);
                 }
                 else
                 {
-                    ResourceScheduler::create_render_target(name(), prevFrameName, &info);
-                    ResourceScheduler::create_render_target(name(), curFrameName, &info);
+                    ResourceScheduler::create_render_target(name(), &textureMetadata, prevFrameName);
+                    ResourceScheduler::create_render_target(name(), &textureMetadata, curFrameName);
                 }
             }
             else
             {
                 if (rhi::is_depth_stencil_format(textureMetadata.format))
                 {
-                    ResourceScheduler::create_depth_stencil(name(), textureMetadata.name, &info);
+                    ResourceScheduler::create_depth_stencil(name(), &textureMetadata);
                 }
                 else
                 {
-                    ResourceScheduler::create_render_target(name(), textureMetadata.name, &info);
+                    ResourceScheduler::create_render_target(name(), &textureMetadata);
                 }
             }
         }
@@ -122,31 +119,29 @@ void RenderPass::schedule_resources()
     for (ResourceName textureName : m_metadata->outputStorageTextureNames)
     {
         const TextureMetadata& textureMetadata = get_texture_metadata(textureName);
-        rhi::TextureInfo info;
-        fill_texture_info(textureMetadata, info);
 
         if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ))
         {
             auto [prevFrameName, curFrameName] = get_resource_names_xfr(textureName);
-            ResourceScheduler::read_previous_texture(name(), prevFrameName, &info);
-            ResourceScheduler::create_storage_texture(name(), curFrameName, &info);
+            ResourceScheduler::read_previous_texture(name(), &textureMetadata, prevFrameName);
+            ResourceScheduler::create_storage_texture(name(), &textureMetadata, curFrameName);
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::CROSS_FRAME_READ_NO_HISTORY))
         {
-            ResourceScheduler::create_storage_texture(name(), textureName, &info);
+            ResourceScheduler::create_storage_texture(name(), &textureMetadata);
         }
         else if (textureMetadata.has_flag(ResourceMetadataFlag::PING_PONG))
         {
             ResourceName pingPong0 = textureName.to_string() + "0";
             ResourceName pingPong1 = textureName.to_string() + "1";
-            ResourceScheduler::create_storage_texture(name(), pingPong0, &info);
-            ResourceScheduler::create_storage_texture(name(), pingPong1, &info);
+            ResourceScheduler::create_storage_texture(name(), &textureMetadata, pingPong0);
+            ResourceScheduler::create_storage_texture(name(), &textureMetadata, pingPong1);
 
             s_pingPongResourceRegistry[textureName] = {pingPong0, pingPong1};
         }
         else
         {
-            ResourceScheduler::create_storage_texture(name(), textureName, &info);
+            ResourceScheduler::create_storage_texture(name(), &textureMetadata);
         }
     }
 }
@@ -160,43 +155,41 @@ RenderPassInfo RenderPass::info() const
     );
 }
 
-void RenderPass::fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo) const
+void RenderPass::begin_rendering(CommandBufferRef cmd)
 {
-    ResourceManager* resourceManager = m_renderContext->render_graph_resource_manager();
+    OffscreenPassRenderingInfo renderingInfo; 
 
-    switch (outBeginInfo.type)
+    for (const RenderTargetMetadata& renderTargetMetadata : m_metadata->renderTargetsMetadata)
     {
-    case rhi::RenderingBeginInfo::OFFSCREEN_PASS:
+        const Texture& texture = get_texture(renderTargetMetadata.textureName);
+        const TextureMetadata& textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
+        renderingInfo.add_render_target(texture, textureMetadata, renderTargetMetadata);
+    }
+    
+    cmd.begin_rendering(renderingInfo);
+}
+
+void RenderPass::begin_rendering(CommandBufferRef cmd, SwapChainRef swapChain)
+{
+    SwapChainPassRenderingInfo renderingInfo(swapChain);
+
+    for (const RenderTargetMetadata& renderTargetMetadata : m_metadata->renderTargetsMetadata)
     {
-        for (const RenderTargetMetadata& renderTargetMetadata : m_metadata->renderTargetsMetadata)
-        {
-            Texture& texture = resourceManager->get_resource(renderTargetMetadata.textureName)->texture();
-            FE_CHECK(texture.handle());
-            
-            const TextureMetadata& textureMetadata = get_texture_metadata(renderTargetMetadata.textureName);
-
-            rhi::RenderTarget& renderTarget = outBeginInfo.offscreenPass.renderTargets.emplace_back();
-            
-            if (rhi::is_depth_stencil_format(textureMetadata.format))
-                renderTarget.target = texture.dsv();
-            else
-                renderTarget.target = texture.rtv();
-
-            FE_CHECK(renderTarget.target);
-
-            renderTarget.clearValue = renderTargetMetadata.clearValues;
-            renderTarget.loadOp = renderTargetMetadata.loadOp;
-            renderTarget.storeOp = renderTargetMetadata.storeOp;
-        }
-
+        renderingInfo.set_render_target(renderTargetMetadata);
         break;
     }
-    case rhi::RenderingBeginInfo::SWAP_CHAIN_PASS:
-    {
-        outBeginInfo.swapChainPass.clearValues = m_metadata->renderTargetsMetadata.at(0).clearValues;
-        break;
-    }
-    }
+
+    cmd.begin_rendering(renderingInfo);
+}
+
+void RenderPass::end_rendering(CommandBufferRef cmd)
+{
+    cmd.end_rendering(nullptr);
+}
+
+void RenderPass::end_rendering(CommandBufferRef cmd, SwapChainRef swapChain)
+{
+    cmd.end_rendering(swapChain);
 }
 
 RenderPassName RenderPass::name() const
@@ -234,56 +227,56 @@ SceneManager* RenderPass::scene_manager() const
     return m_renderContext->scene_manager();
 }
 
-void RenderPass::bind_pipeline(rhi::CommandBuffer* cmd)
+void RenderPass::bind_pipeline(CommandBufferRef cmd)
 {
     m_renderContext->pipeline_manager()->bind_pipeline(cmd, m_metadata->pipelineName);
 }
 
-void RenderPass::bind_pipeline(rhi::CommandBuffer* cmd, uint32 pipelineIndex)
+void RenderPass::bind_pipeline(CommandBufferRef cmd, uint32 pipelineIndex)
 {
     m_renderContext->pipeline_manager()->bind_pipeline(cmd, get_name_at_index(m_metadata->pipelineName, pipelineIndex));
 }
 
-void RenderPass::push_constants(rhi::CommandBuffer* cmd, void* data)
+void RenderPass::push_constants(CommandBufferRef cmd, void* data)
 {
     m_renderContext->pipeline_manager()->push_constants(cmd, m_metadata->pipelineName, data);
 }
 
-void RenderPass::push_constants(rhi::CommandBuffer* cmd, void* data, uint32 pipelineIndex)
+void RenderPass::push_constants(CommandBufferRef cmd, void* data, uint32 pipelineIndex)
 {
     m_renderContext->pipeline_manager()->push_constants(cmd, get_name_at_index(m_metadata->pipelineName, pipelineIndex), data);
 }
 
-void RenderPass::set_default_viewport_and_scissor(rhi::CommandBuffer* cmd) const
+void RenderPass::set_default_viewport_and_scissor(CommandBufferRef cmd) const
 {
     m_renderContext->render_surface().set_default_viewport(cmd);
     m_renderContext->render_surface().set_default_scissor(cmd);
 }
 
-void RenderPass::set_viewport_and_scissor_by_window(rhi::CommandBuffer* cmd) const
+void RenderPass::set_viewport_and_scissor_by_window(CommandBufferRef cmd) const
 {
     m_renderContext->render_surface().set_viewport_by_window(cmd);
     m_renderContext->render_surface().set_scissor_by_window(cmd);
 }
 
-void RenderPass::fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const
+void RenderPass::fill_dispatch_rays_info(DispatchRaysInfo& outInfo) const
 {
     m_renderContext->pipeline_manager()->fill_dispatch_rays_info(m_metadata->pipelineName, outInfo);
 }
 
 DispatchSizes dispatch_group_count(const DispatchSizes& threadCounts, const DispatchSizes& groupSizes)
 {
-    uint32 x = std::max(ceilf((float)threadCounts[0] / groupSizes[0]), 1.0f);
-    uint32 y = std::max(ceilf((float)threadCounts[1] / groupSizes[1]), 1.0f);
-    uint32 z = std::max(ceilf((float)threadCounts[2] / groupSizes[2]), 1.0f);
+    uint32 x = std::max(ceilf((float)threadCounts.x / groupSizes.x), 1.0f);
+    uint32 y = std::max(ceilf((float)threadCounts.y / groupSizes.y), 1.0f);
+    uint32 z = std::max(ceilf((float)threadCounts.z / groupSizes.z), 1.0f);
 
     return {x, y, z};
 }
 
-void RenderPass::dispatch(rhi::CommandBuffer* cmd, const RenderSurface& surface, const DispatchSizes& groupSizes)
+void RenderPass::dispatch(CommandBufferRef cmd, const RenderSurface& surface, const DispatchSizes& groupSizes)
 {
     DispatchSizes groupCount = dispatch_group_count({surface.width, surface.height, 1}, groupSizes);
-    rhi::dispatch(cmd, groupCount[0], groupCount[1], groupCount[2]);
+    cmd.dispatch(groupCount);
 }
 
 const RenderGraphMetadata& RenderPass::get_render_graph_metadata() const
@@ -321,19 +314,13 @@ const TextureMetadata& RenderPass::get_texture_metadata(ResourceName textureName
     return *textureMetadata;
 }
 
-void RenderPass::fill_texture_info(const TextureMetadata& inMetadata, rhi::TextureInfo& outInfo) const
+const Texture& RenderPass::get_texture(ResourceName textureName) const
 {
-    outInfo.layersCount = inMetadata.layerCount;
-    outInfo.samplesCount = inMetadata.sampleCount;
-    outInfo.format = inMetadata.format;
-    
-    if (inMetadata.has_flag(ResourceMetadataFlag::USE_MIPS))
-    {
-        // TODO: How to request mips creation?
-    }
+    FE_CHECK(textureName.is_valid());
+    const Texture& texture = m_renderContext->render_graph_resource_manager()->get_resource(textureName)->texture();
+    FE_CHECK(texture.handle());
 
-    if (inMetadata.has_flag(ResourceMetadataFlag::TRANSFER_DST))
-        outInfo.textureUsage |= rhi::ResourceUsage::TRANSFER_DST;
+    return texture;
 }
 
 RenderPass::ResourceNamesXFR RenderPass::get_resource_names_xfr(ResourceName baseName) const

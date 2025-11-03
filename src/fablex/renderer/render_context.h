@@ -44,7 +44,7 @@ public:
     rg::RenderGraph* render_graph() const { return m_info.renderGraph; }
     ImGuiRenderer* imgui_renderer() const { return m_info.imGuiRenderer; }
 
-    void set_main_swap_chain(rhi::SwapChain* mainSwapChain) { m_info.renderSurface.mainSwapChain = mainSwapChain; }
+    void set_main_swap_chain(SwapChainRef mainSwapChain) { m_info.renderSurface.mainSwapChain = mainSwapChain; }
 
 private:
     RenderContextInfo m_info;

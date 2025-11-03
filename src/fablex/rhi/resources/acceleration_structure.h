@@ -5,7 +5,7 @@
 namespace fe::rhi
 {
 
-class Buffer;
+struct Buffer;
 
 struct BLAS
 {
@@ -70,17 +70,16 @@ struct TLASInstance
         FORCE_NON_OPAQUE = 1 << 3
     };
 
-    Flags flags = Flags::UNDEFINED;
     float transform[3][4];
     uint32 instanceID = 0;
     uint32 instanceMask = 0;
     uint32 instanceContributionToHitGroupIndex = 0;
     AccelerationStructure* blas = nullptr;
+    Flags flags = Flags::UNDEFINED;
 };
 
 struct TLAS
 {
-
     Buffer* instanceBuffer = nullptr;
     uint32 offset = 0;
     uint32 count = 0;

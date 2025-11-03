@@ -12,7 +12,7 @@ void SVGFFilterMomentsPass::create_pipeline()
     create_compute_pipeline();
 }
 
-void SVGFFilterMomentsPass::execute(rhi::CommandBuffer* cmd)
+void SVGFFilterMomentsPass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 

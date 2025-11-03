@@ -143,7 +143,7 @@ public:
             outputInfo.internalBlob = internalBlob;
         }
 
-        if (inputInfo.format == rhi::ShaderFormat::HLSL6)
+        if (inputInfo.format == ShaderFormat::HLSL6)
         {
             // TODO some features like saving debug and reflection data
         }
@@ -156,12 +156,12 @@ private:
     {
         switch (inputInfo.format)
         {
-        case rhi::ShaderFormat::UNDEFINED:
+        case ShaderFormat::UNDEFINED:
             FE_LOG(LogShaderCompiler, FATAL, "DXCompiler::compile(): Can't compile shader with undefined format.");
-        case rhi::ShaderFormat::HLSL6:
+        case ShaderFormat::HLSL6:
             // TODO FOR D3D12
             break;
-        case rhi::ShaderFormat::HLSL_TO_SPIRV:
+        case ShaderFormat::HLSL_TO_SPIRV:
             compileArgs.push_back(L"-spirv");
             compileArgs.push_back(L"-fspv-target-env=vulkan1.3");
             compileArgs.push_back(L"-fvk-use-dx-layout");
@@ -191,34 +191,34 @@ private:
         std::wstring& targetProfile = compileArgs.emplace_back();
         switch (inputInfo.type)
         {
-        case rhi::ShaderType::VERTEX:
+        case ShaderType::VERTEX:
             targetProfile = L"vs";
             break;
-        case rhi::ShaderType::FRAGMENT:
+        case ShaderType::FRAGMENT:
             targetProfile = L"ps";
             break;
-        case rhi::ShaderType::COMPUTE:
+        case ShaderType::COMPUTE:
             targetProfile = L"cs";
             break;
-        case rhi::ShaderType::TESSELLATION_CONTROL:
+        case ShaderType::TESSELLATION_CONTROL:
             targetProfile = L"hs";
             break;
-        case rhi::ShaderType::TESSELLATION_EVALUATION:
+        case ShaderType::TESSELLATION_EVALUATION:
             targetProfile = L"ds";
             break;
-        case rhi::ShaderType::MESH:
+        case ShaderType::MESH:
             targetProfile = L"ms";
             break;
-        case rhi::ShaderType::TASK:
+        case ShaderType::TASK:
             targetProfile = L"as";
             break;
-        case rhi::ShaderType::LIB:
-        case rhi::ShaderType::RAY_GENERATION:
-        case rhi::ShaderType::RAY_MISS:
-        case rhi::ShaderType::RAY_CLOSEST_HIT:
-        case rhi::ShaderType::RAY_ANY_HIT:
-        case rhi::ShaderType::RAY_CALLABLE:
-        case rhi::ShaderType::RAY_INTERSECTION:
+        case ShaderType::LIB:
+        case ShaderType::RAY_GENERATION:
+        case ShaderType::RAY_MISS:
+        case ShaderType::RAY_CLOSEST_HIT:
+        case ShaderType::RAY_ANY_HIT:
+        case ShaderType::RAY_CALLABLE:
+        case ShaderType::RAY_INTERSECTION:
             targetProfile = L"lib";
             break;
         default:
@@ -227,33 +227,33 @@ private:
 
         switch (inputInfo.minHlslShaderModel)
         {
-        case rhi::HLSLShaderModel::SM_6_0:
+        case HLSLShaderModel::SM_6_0:
             if (m_targetProfilesForShaderModel6_5.find(targetProfile) == m_targetProfilesForShaderModel6_5.end())
                 targetProfile += L"_6_0";
             break;
-        case rhi::HLSLShaderModel::SM_6_1:
+        case HLSLShaderModel::SM_6_1:
             if (m_targetProfilesForShaderModel6_5.find(targetProfile) == m_targetProfilesForShaderModel6_5.end())
                 targetProfile += L"_6_1";
             break;
-        case rhi::HLSLShaderModel::SM_6_2:
+        case HLSLShaderModel::SM_6_2:
             if (m_targetProfilesForShaderModel6_5.find(targetProfile) == m_targetProfilesForShaderModel6_5.end())
                 targetProfile += L"_6_2";
             break;
-        case rhi::HLSLShaderModel::SM_6_3:
+        case HLSLShaderModel::SM_6_3:
             if (m_targetProfilesForShaderModel6_5.find(targetProfile) == m_targetProfilesForShaderModel6_5.end())
                 targetProfile += L"_6_3";
             break;
-        case rhi::HLSLShaderModel::SM_6_4:
+        case HLSLShaderModel::SM_6_4:
             if (m_targetProfilesForShaderModel6_5.find(targetProfile) == m_targetProfilesForShaderModel6_5.end())
                 targetProfile += L"_6_4";
             break;
-        case rhi::HLSLShaderModel::SM_6_5:
+        case HLSLShaderModel::SM_6_5:
             targetProfile += L"_6_5";
             break;
-        case rhi::HLSLShaderModel::SM_6_6:
+        case HLSLShaderModel::SM_6_6:
             targetProfile += L"_6_6";
             break;
-        case rhi::HLSLShaderModel::SM_6_7:
+        case HLSLShaderModel::SM_6_7:
             targetProfile += L"_6_7";
             break;
         }
@@ -300,10 +300,10 @@ public:
     {
         switch (rhi::get_api())
         {
-        case rhi::API::VK:
+        case API::VK:
             s_cacheType = ShaderCacheType::SPIRV;
             break;
-        case rhi::API::D3D12:
+        case API::D3D12:
             s_cacheType = ShaderCacheType::DXIL;
             break;
         }
@@ -440,31 +440,17 @@ ShaderManager::ShaderManager()
 
 ShaderManager::~ShaderManager()
 {
-    for (auto& [hash, shader] : m_shaderByMetadataHash)
-        rhi::destroy_shader(shader);
+    
 }
 
-rhi::Shader* ShaderManager::get_shader(const rg::ShaderMetadata& shaderMetadata)
+ShaderRef ShaderManager::get_shader(const rg::ShaderMetadata& shaderMetadata)
 {
     auto it = m_shaderByMetadataHash.find(get_hash(shaderMetadata));
 
     if (it != m_shaderByMetadataHash.end())
         return it->second;
 
-    rhi::Shader* shader = load_shader(
-        shaderMetadata.filePath,
-        shaderMetadata.type,
-        shaderMetadata.entryPoint,
-        rhi::HLSLShaderModel::SM_6_7,
-        shaderMetadata.defines
-    );
-
-    {
-        std::scoped_lock<std::mutex> locker(m_mutex);
-        m_shaderByMetadataHash[get_hash(shaderMetadata)] = shader;
-    }
-
-    return shader;
+    return load_shader(shaderMetadata);
 }
 
 void ShaderManager::request_shader_loading(const rg::ShaderMetadata& shaderMetadata)
@@ -480,67 +466,70 @@ void ShaderManager::wait_shaders_loading()
     TaskComposer::wait(*m_taskGroup);
 }
 
-rhi::Shader* ShaderManager::load_shader(
-    const std::string& relativePath, 
-    rhi::ShaderType shaderType,
-    const std::string& entryPoint,
-    rhi::HLSLShaderModel shaderModel,
-    const std::vector<std::string>& defines
+ShaderRef ShaderManager::load_shader(
+    const rg::ShaderMetadata& metadata,
+    HLSLShaderModel shaderModel
 )
 {
-    rhi::Shader* shader = nullptr;
+    uint64 metadataHash = get_hash(metadata);
 
-    if (ShaderCache::is_shader_outdated(relativePath))
+    if (ShaderCache::is_shader_outdated(metadata.filePath))
     {
-        std::string shaderExtension = FileSystem::get_file_extension(relativePath);
+        std::string shaderExtension = FileSystem::get_file_extension(metadata.filePath);
         if (shaderExtension != "hlsl")
             FE_LOG(LogShaderCompiler, FATAL, "Can't load shader with extension {}", shaderExtension);
 
-        rhi::ShaderFormat shaderFormat{ rhi::ShaderFormat::UNDEFINED };
+        ShaderFormat shaderFormat{ ShaderFormat::UNDEFINED };
         switch (ShaderCache::get_cache_type())
         {
             case ShaderCacheType::SPIRV:
-                shaderFormat = rhi::ShaderFormat::HLSL_TO_SPIRV;
+                shaderFormat = ShaderFormat::HLSL_TO_SPIRV;
                 break;
             case ShaderCacheType::DXIL:
-                shaderFormat = rhi::ShaderFormat::HLSL6;
+                shaderFormat = ShaderFormat::HLSL6;
                 break;
         }
         
         ShaderInputInfo inputInfo;
-        inputInfo.path = FileSystem::get_root_path() + "/" + "/src/fablex/shaders/" + relativePath;
+        inputInfo.path = FileSystem::get_root_path() + "/" + "/src/fablex/shaders/" + metadata.filePath;
         inputInfo.format = shaderFormat;
-        inputInfo.type = shaderType;
+        inputInfo.type = metadata.type;
         inputInfo.minHlslShaderModel = shaderModel;
-        inputInfo.defines = defines;
-        inputInfo.entryPoint = entryPoint;
+        inputInfo.defines = metadata.defines;
+        inputInfo.entryPoint = metadata.entryPoint;
         inputInfo.includePaths.push_back(FileSystem::get_root_path() + "/src/fablex/shaders");
 
         ShaderOutputInfo outputInfo;
         m_shaderCompiler->compile(inputInfo, outputInfo);
         ShaderCache::update_shader_cache(inputInfo, outputInfo);
 
-        rhi::ShaderInfo shaderInfo;
-        shaderInfo.shaderType = shaderType;
+        ShaderCreateInfo shaderInfo;
+        shaderInfo.shaderType = metadata.type;
         shaderInfo.data = const_cast<uint8_t*>(outputInfo.data);
         shaderInfo.size = outputInfo.dataSize;
 
-        rhi::create_shader(&shader, &shaderInfo);
+        {
+            std::scoped_lock<std::mutex> locker(m_mutex);
+            m_shaderByMetadataHash.emplace(metadataHash, ShaderHandle(shaderInfo));
+        }
     }
     else
     {
         std::vector<uint8_t> shaderData;
-        ShaderCache::load_shader_bin(FileSystem::get_file_name(relativePath), shaderData);
+        ShaderCache::load_shader_bin(FileSystem::get_file_name(metadata.filePath), shaderData);
 
-        rhi::ShaderInfo shaderInfo;
+        ShaderCreateInfo shaderInfo;
         shaderInfo.data = shaderData.data();
         shaderInfo.size = shaderData.size();
-        shaderInfo.shaderType = shaderType;
+        shaderInfo.shaderType = metadata.type;
 
-        rhi::create_shader(&shader, &shaderInfo);
+        {
+            std::scoped_lock<std::mutex> locker(m_mutex);
+            m_shaderByMetadataHash.emplace(metadataHash, ShaderHandle(shaderInfo));
+        }
     }
 
-    return shader;
+    return m_shaderByMetadataHash[metadataHash];
 }
 
 uint64 ShaderManager::get_hash(const rg::ShaderMetadata& metadata) const

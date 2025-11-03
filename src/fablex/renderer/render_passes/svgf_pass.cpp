@@ -12,7 +12,7 @@ void SVGFPass::create_pipeline()
     create_pipelines();
 }
 
-void SVGFPass::execute(rhi::CommandBuffer* cmd)
+void SVGFPass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 

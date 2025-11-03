@@ -12,6 +12,7 @@
 #include "vulkan_rhi.h"
 
 #include "rhi/rhi.h"
+#include "rhi/init_info.h"
 #include "rhi/utils.h"
 #include "rhi/resources.h"
 
@@ -4165,7 +4166,7 @@ void destroy_pipeline(Pipeline* pipeline)
     g_allocator.pipelineAllocator.free(pipeline);
 }
 
-void create_acceleration_structure(AccelerationStructure** accelerationStructure, AccelerationStructureInfo* info)
+void create_acceleration_structure(AccelerationStructure** accelerationStructure, const AccelerationStructureInfo* info)
 {
     FE_CHECK(accelerationStructure);
     FE_CHECK(info);
@@ -4308,7 +4309,7 @@ void write_shader_identifier(Pipeline* pipeline, uint32 groupIndex, void* dst)
         pipeline->vk().pipeline, 
         groupIndex, 
         1,
-        get_shader_identifier_size(),
+        get_gpu_properties().shaderIdentifierSize,
         dst 
     );
 }
@@ -5232,7 +5233,7 @@ void acquire_next_image(SwapChain* swapChain, Semaphore* signalSemaphore, Fence*
     swapChain->vk().imageIndex = *frameIndex;
 }
 
-void submit(SubmitInfo* submitInfo, rhi::Fence* signalFence)
+void submit(const SubmitInfo* submitInfo)
 {
     FE_CHECK(submitInfo);
 
@@ -5301,7 +5302,7 @@ void submit(SubmitInfo* submitInfo, rhi::Fence* signalFence)
     vkSubmitInfo.signalSemaphoreInfoCount = signalSemaphoreSubmitInfos.size();
     vkSubmitInfo.pSignalSemaphoreInfos = signalSemaphoreSubmitInfos.data();
 
-    VkFence fence = signalFence ? signalFence->vk().fence : VK_NULL_HANDLE;
+    VkFence fence = submitInfo->signalFence ? submitInfo->signalFence->vk().fence : VK_NULL_HANDLE;
 
     VK_CHECK(vkQueueSubmit2(
         g_device.get_queue(submitInfo->queueType).handle, 
@@ -5311,11 +5312,11 @@ void submit(SubmitInfo* submitInfo, rhi::Fence* signalFence)
     ));
 }
 
-void present(PresentInfo* presentInfo)
+void present(const PresentInfo* presentInfo)
 {
     FE_CHECK(presentInfo);
 
-    const std::vector<SwapChain*> swapChains = presentInfo->swapChains;
+    const std::vector<SwapChain*>& swapChains = presentInfo->swapChains;
 
     std::vector<VkSwapchainKHR> swapChainHandles(swapChains.size());
     std::vector<uint32_t> imageIndices(swapChains.size());

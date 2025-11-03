@@ -22,7 +22,7 @@ void RTTestPass::schedule_resources()
     rg::ResourceScheduler::use_ray_tracing(name());
 }
 
-void RTTestPass::execute(rhi::CommandBuffer* cmd)
+void RTTestPass::execute(CommandBufferRef cmd)
 {
     set_default_viewport_and_scissor(cmd);
     bind_pipeline(cmd);
@@ -33,13 +33,13 @@ void RTTestPass::execute(rhi::CommandBuffer* cmd)
 
     push_constants(cmd, &pushConstants);
 
-    rhi::DispatchRaysInfo info;
+    DispatchRaysInfo info;
     info.width = m_renderContext->render_surface().width;
     info.height = m_renderContext->render_surface().height;
     info.depth = 1;
 
     fill_dispatch_rays_info(info);
-    rhi::dispatch_rays(cmd, &info);
+    cmd.dispatch_rays(&info);
 }
 
 }

@@ -27,9 +27,9 @@ void ResourceLayoutTracker::begin_resource_tracking(const Resource* resource)
         viewLayouts[i].viewIndex = i;
 }
 
-std::optional<rhi::PipelineBarrier> ResourceLayoutTracker::get_transition_to_layout(
+std::optional<PipelineBarrier> ResourceLayoutTracker::get_transition_to_layout(
     const Resource* resource,
-    rhi::ResourceLayout newLayout,
+    ResourceLayout newLayout,
     uint32 viewIndex
 )
 {
@@ -40,7 +40,7 @@ std::optional<rhi::PipelineBarrier> ResourceLayoutTracker::get_transition_to_lay
     if (viewIndex >= viewStates.size())
         FE_LOG(LogRenderer, FATAL, "Resource {} does not have view with index {}", resource->name(), viewIndex);
     
-    rhi::ResourceLayout currentLayout = viewStates[viewIndex].layout;
+    ResourceLayout currentLayout = viewStates[viewIndex].layout;
 
     if (is_new_layout_redundant(currentLayout, newLayout))
         return std::nullopt;
@@ -48,9 +48,9 @@ std::optional<rhi::PipelineBarrier> ResourceLayoutTracker::get_transition_to_lay
     viewStates[viewIndex].layout = newLayout;
 
     if (resource->is_buffer())
-        return rhi::PipelineBarrier(resource->buffer().handle(), currentLayout, newLayout);
+        return PipelineBarrier(resource->buffer().handle(), currentLayout, newLayout);
 
-    return rhi::PipelineBarrier(
+    return PipelineBarrier(
         resource->texture().handle(),
         currentLayout,
         newLayout,
@@ -66,7 +66,7 @@ ResourceLayoutTracker::ViewLayoutArray& ResourceLayoutTracker::get_view_layouts(
     return it->second;
 }
 
-bool ResourceLayoutTracker::is_new_layout_redundant(rhi::ResourceLayout currentLayout, rhi::ResourceLayout newLayout)
+bool ResourceLayoutTracker::is_new_layout_redundant(ResourceLayout currentLayout, ResourceLayout newLayout)
 {
     return currentLayout == newLayout;
 }

@@ -34,8 +34,8 @@ public:
     const ResourceSchedulingInfo& scheduling_info() const { return m_schedulingInfo; }
     uint64 view_count() const { return m_viewCount; }
 
-    void set_texture(rhi::Texture* textureHandle);
-    void set_buffer(rhi::Buffer* bufferHanlde);
+    void set_texture(const TextureCreateInfo& createInfo);
+    void set_buffer(const BufferCreateInfo& createInfo);
     void set_from_resource(Resource& other);
 
 private:

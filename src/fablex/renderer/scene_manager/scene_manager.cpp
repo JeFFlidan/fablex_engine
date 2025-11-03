@@ -1,6 +1,7 @@
 #include "scene_manager.h"
 #include "gpu_resource_counters.h"
 #include "renderer/globals.h"
+#include "renderer/device.h"
 
 #include "rhi/rhi.h"
 #include "rhi/resources/sampler.h"
@@ -27,11 +28,12 @@ constexpr const char* MATERIAL_BUFFER_NAME = "MaterialBuffer";
 constexpr const char* FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
 constexpr const char* CAMERA_BUFFER_NAME = "CameraBuffer";
 
-SceneManager::SceneManager() : m_gpuResources(this), m_tlas(this)
+SceneManager::SceneManager(DeletionQueue* deletionQueue) 
+    : m_gpuResources(this), m_tlas(this), m_deletionQueue(deletionQueue)
 {
     // For now some buffers support only CPU_TO_GPU memory usage
-    FE_CHECK(rhi::has_capability(rhi::GPUCapability::CACHE_COHERENT_UMA));
-    FE_CHECK(rhi::has_capability(rhi::GPUCapability::RAY_TRACING));
+    FE_CHECK(Device::has_capability(GPUCapability::CACHE_COHERENT_UMA));
+    FE_CHECK(Device::has_capability(GPUCapability::RAY_TRACING));
 
     subscribe_to_events();
     // load_resources();
@@ -48,16 +50,13 @@ SceneManager::SceneManager() : m_gpuResources(this), m_tlas(this)
 
 SceneManager::~SceneManager()
 {
-    for (auto [name, sampler] : m_samplerByName)
-        rhi::destroy_sampler(sampler);
+
 }
 
 void SceneManager::upload(const SceneManagerCmds& cmds)
 {
     m_commandRecorderManager.set_cmd(cmds.graphicsCmd);
     m_commandRecorderManager.set_cmd(cmds.computeCmd);
-
-    m_resourceDestroyer.process_current_frame();
 
     TaskGroup taskGroup;
     
@@ -187,15 +186,15 @@ void SceneManager::add_staging_buffer(rhi::Buffer* buffer)
 {
     FE_CHECK(buffer);
     
-    m_resourceDestroyer.enqueue_destruction([buffer]()
+    m_deletionQueue->add([buffer]()
     {
         rhi::destroy_buffer(buffer);
     });
 }
 
-void SceneManager::enqueue_destruction(const DestroyHandler& handler)
+void SceneManager::enqueue_destruction(DeletionHandler&& handler)
 {
-    m_resourceDestroyer.enqueue_destruction(handler);
+    m_deletionQueue->add(std::move(handler));
 }
 
 void SceneManager::subscribe_to_events()
@@ -229,47 +228,34 @@ void SceneManager::load_resources()
 
 void SceneManager::create_samplers()
 {
-    auto createSampler = [&](Name name, const rhi::SamplerInfo& info)
-    {
-        if (m_samplerByName.contains(name))
-        {
-            FE_LOG(LogRenderer, ERROR, "Sampler {} already exists.", name.to_string());
-            return;
-        }
-    
-        rhi::Sampler* sampler = nullptr;
-        rhi::create_sampler(&sampler, &info);
-        m_samplerByName[name] = sampler;
-    };
-
-    rhi::SamplerInfo samplerInfo;
+    SamplerCreateInfo samplerInfo;
     samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_LINEAR;
     samplerInfo.addressMode = rhi::AddressMode::REPEAT;
     samplerInfo.borderColor = rhi::BorderColor::FLOAT_TRANSPARENT_BLACK;
     samplerInfo.maxAnisotropy = 0.0f;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = std::numeric_limits<float>::max();
-    createSampler(SAMPLER_LINEAR_REPEAT, samplerInfo);
+    m_samplerByName[SAMPLER_LINEAR_REPEAT] = SamplerHandle(samplerInfo);
 
     samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-    createSampler(SAMPLER_LINEAR_CLAMP, samplerInfo);
+    m_samplerByName[SAMPLER_LINEAR_CLAMP] = SamplerHandle(samplerInfo);
 
     samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
-    createSampler(SAMPLER_LINEAR_MIRROR, samplerInfo);
+    m_samplerByName[SAMPLER_LINEAR_MIRROR] = SamplerHandle(samplerInfo);
 
     samplerInfo.filter = rhi::Filter::MIN_MAG_MIP_NEAREST;
     samplerInfo.addressMode = rhi::AddressMode::REPEAT;
-    createSampler(SAMPLER_NEAREST_REPEAT, samplerInfo);
+    m_samplerByName[SAMPLER_NEAREST_REPEAT] = SamplerHandle(samplerInfo);
 
     samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
-    createSampler(SAMPLER_NEAREST_CLAMP, samplerInfo);
+    m_samplerByName[SAMPLER_NEAREST_CLAMP] = SamplerHandle(samplerInfo);
 
     samplerInfo.addressMode = rhi::AddressMode::MIRRORED_REPEAT;
-    createSampler(SAMPLER_NEAREST_MIRROR, samplerInfo);
+    m_samplerByName[SAMPLER_NEAREST_MIRROR] = SamplerHandle(samplerInfo);
 
     samplerInfo.addressMode = rhi::AddressMode::CLAMP_TO_EDGE;
     samplerInfo.filter = rhi::Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST;
-    createSampler(SAMPLER_MINIMUM_NEAREST_CLAMP, samplerInfo);
+    m_samplerByName[SAMPLER_MINIMUM_NEAREST_CLAMP] = SamplerHandle(samplerInfo);
 }
 
 GPUModel* SceneManager::gpu_model(UUID modelUUID) const

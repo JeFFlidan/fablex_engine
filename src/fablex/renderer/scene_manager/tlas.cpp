@@ -1,12 +1,12 @@
 #include "tlas.h"
+#include "device.h"
+#include "debugger_config.h"
 #include "scene_manager.h"
 #include "gpu_model.h"
 #include "engine/entity/entity.h"
 
 namespace fe::renderer
 {
-
-constexpr const char* TLAS_UPLOAD_BUFFER_NAME = "TLASUploadBuffer";
 
 TLAS::TLAS(SceneManager* sceneManager) : m_sceneManager(sceneManager)
 {
@@ -15,63 +15,59 @@ TLAS::TLAS(SceneManager* sceneManager) : m_sceneManager(sceneManager)
 
 TLAS::~TLAS()
 {
-    if (m_tlas)
-    {
-        rhi::destroy_buffer(instance_buffer());
-        rhi::destroy_acceleration_structure(m_tlas);
-    }
+
 }
 
 void TLAS::allocate(uint32 inObjectCount)
 {
-    if (!m_tlas || m_tlas->info.tlas.count <= inObjectCount)
+    if (!m_tlas || m_tlas->count <= inObjectCount)
     {
-        if (m_tlas)
-        {
-            rhi::AccelerationStructure* oldTLAS = m_tlas;
+        uint32 newObjectCount = (inObjectCount + 1) * 2;
 
-            m_sceneManager->enqueue_destruction([oldTLAS]()
+        m_sceneManager->enqueue_destruction(m_instanceBuffer);
+        m_sceneManager->enqueue_destruction(m_tlas);
+
+        m_instanceBuffer = BufferHandle(
+            BufferCreateInfo
             {
-                rhi::destroy_buffer(oldTLAS->info.tlas.instanceBuffer);
-                rhi::destroy_acceleration_structure(oldTLAS);
-            });
-        }
+                .size = newObjectCount * instance_size(),
+                .bufferUsage = ResourceUsage::STORAGE_BUFFER | ResourceUsage::TRANSFER_DST,
+                .memoryUsage = MemoryUsage::GPU,
+                .flags = ResourceFlags::RAY_TRACING
+            }
+        );
 
-        uint64 newObjectCount = (inObjectCount + 1) * 2;
-    
-        rhi::AccelerationStructureInfo info;
-        info.flags = rhi::AccelerationStructureInfo::Flags::PREFER_FAST_BUILD;
-        info.type = rhi::AccelerationStructureInfo::TOP_LEVEL;
-        info.tlas.count = newObjectCount;
+        m_tlas = TLASHandle(
+            AccelerationStructureCreateInfo
+            {
+                .flags = AccelerationStructureCreateInfo::Flags::PREFER_FAST_BUILD,
+                .type = AccelerationStructureCreateInfo::TOP_LEVEL,
+                .tlas = 
+                {
+                    .instanceBuffer = m_instanceBuffer,
+                    .count = newObjectCount
+                }
+            }
+        );
 
-        rhi::BufferInfo bufferInfo;
-        bufferInfo.bufferUsage = 
-            rhi::ResourceUsage::STORAGE_BUFFER |
-            rhi::ResourceUsage::TRANSFER_DST;
-        bufferInfo.memoryUsage = rhi::MemoryUsage::GPU;
-        bufferInfo.size = info.tlas.count * instance_size();
-        bufferInfo.flags = rhi::ResourceFlags::RAY_TRACING;
-    
-        rhi::create_buffer(&info.tlas.instanceBuffer, &bufferInfo);
-        rhi::create_acceleration_structure(&m_tlas, &info);
-
-        rhi::set_name(m_tlas->info.tlas.instanceBuffer, "TLASInstanceBuffer");
-        rhi::set_name(m_tlas, "MainTLAS");
+        m_tlas.set_name(MAIN_TLAS_NAME);
+        m_tlas.set_instance_buffer_name(TLAS_INSTANCE_BUFFER_NAME);
     }
 
-    m_uploadBuffers.allocate(m_tlas->info.tlas.count);
+    m_uploadBuffers.allocate(m_tlas->count);
     m_uploadBuffers.memset(0);
 }
 
 void TLAS::write(const GPUModel* model, const engine::Entity* entity, uint32 instanceIndex) const
 {
-    rhi::TLASInstance instance;
-    instance.instanceID = instanceIndex;
-
-    instance.blas = model->blases().at(0);  // zero lod for now
-    instance.instanceMask = 1 << 0; // TEMP
-    instance.instanceContributionToHitGroupIndex = 0;
-    instance.flags = rhi::TLASInstance::Flags::TRIANGLE_CULL_DISABLE;
+    TLASInstance instance
+    {
+        .instanceID = instanceIndex,
+        .instanceMask = 1 << 0,
+        .instanceContributionToHitGroupIndex = 0,
+        .blas = model->blases().at(0),
+        .flags = TLASInstance::Flags::TRIANGLE_CULL_DISABLE
+    };
 
     Matrix remapMat = model->aabb().get_unorm_remap_matrix();
     Float4x4 transformMat = remapMat * entity->get_world_transform();
@@ -82,28 +78,45 @@ void TLAS::write(const GPUModel* model, const engine::Entity* entity, uint32 ins
 
     void* dst = m_uploadBuffers.data() + instanceIndex * instance_size();
 
-    rhi::write_top_level_acceleration_structure_instance(&instance, dst);
+    m_tlas.write_instance(instance, dst);
 }
 
 void TLAS::build()
 {
-    m_sceneManager->record_compute_cmd([this](rhi::CommandBuffer* cmd)
+    m_sceneManager->record_compute_cmd([this](CommandBufferRef cmd)
     {
-        rhi::Buffer* uploadBuffer = m_uploadBuffers.active_buffer();
-
-        rhi::copy_buffer(cmd, uploadBuffer, instance_buffer(), uploadBuffer->size, 0, 0);
-        rhi::build_acceleration_structure(cmd, m_tlas, nullptr);
+        cmd.copy_buffer(m_uploadBuffers.active_buffer(), m_tlas->instanceBuffer);
+        cmd.build_tlas(m_tlas, nullptr);
     });
 }
 
 uint64 TLAS::instance_size() const
 {
-    return rhi::get_acceleration_structure_instance_size();
+    return Device::acceleration_structure_instance_size();
 }
 
-rhi::Buffer* TLAS::instance_buffer() const
+void TLASUploadBuffersAllocator::allocate(BufferVector& inOutBuffers, uint32 entryCount, const char* debugName)
 {
-    return m_tlas->info.tlas.instanceBuffer;
-}
+    uint64 instanceSize = Device::acceleration_structure_instance_size();
+
+    if (inOutBuffers.size() < g_frameIndex + 1
+        || inOutBuffers.at(g_frameIndex)->size / instanceSize < entryCount
+    )
+    {
+        if (inOutBuffers.size() < g_frameIndex + 1)
+            inOutBuffers.emplace();
+
+        inOutBuffers[g_frameIndex].init(
+            BufferCreateInfo
+            {
+                .size = entryCount * instanceSize,
+                .bufferUsage = ResourceUsage::TRANSFER_SRC,
+                .memoryUsage = MemoryUsage::CPU
+            }
+        );
+
+        Utils::set_debug_name(inOutBuffers.at(g_frameIndex), debugName);
+    }
+};
 
 }

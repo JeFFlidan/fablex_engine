@@ -12,14 +12,14 @@ FE_DEFINE_OBJECT(SwapChainPass, RenderPass);
 
 void SwapChainPass::create_pipeline()
 {
-    create_graphics_pipeline([&](rhi::GraphicsPipelineInfo& info)
+    create_graphics_pipeline([&](GraphicsPipelineCreateInfo& info)
     {
         info.colorAttachmentFormats.clear();
-        info.colorAttachmentFormats.push_back(rhi::Format::B8G8R8A8_UNORM);
+        info.colorAttachmentFormats.push_back(Format::B8G8R8A8_UNORM);
     });
 }
 
-void SwapChainPass::execute(rhi::CommandBuffer* cmd)
+void SwapChainPass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
     

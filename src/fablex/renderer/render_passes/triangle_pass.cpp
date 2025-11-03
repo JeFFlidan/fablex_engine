@@ -12,7 +12,7 @@ void TrianglePass::create_pipeline()
     create_graphics_pipeline();
 }
 
-void TrianglePass::execute(rhi::CommandBuffer* cmd)
+void TrianglePass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 
@@ -20,7 +20,7 @@ void TrianglePass::execute(rhi::CommandBuffer* cmd)
 
     bind_pipeline(cmd);
 
-    rhi::draw(cmd, 3);
+    cmd.draw(3);
 }
 
 }

@@ -10,7 +10,7 @@ class TestPass : public rg::RenderPass
     FE_DECLARE_OBJECT(TestPass)
 
 public:
-    virtual void execute(rhi::CommandBuffer* cmd) override;
+    virtual void execute(CommandBufferRef cmd) override;
 };
 
 }

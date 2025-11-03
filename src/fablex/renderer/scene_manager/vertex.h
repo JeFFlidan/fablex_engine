@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rhi/resources/enums.h"
+#include "rhi_types.h"
 #include "core/math.h"
 #include "core/primitives/aabb.h"
 
@@ -13,7 +13,7 @@ constexpr float MAX_16_BIT = 65535.0f;
 
 struct VertexPositionWind16Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R16G16B16A16_UNORM;
+    static constexpr Format FORMAT = Format::R16G16B16A16_UNORM;
 
     uint16 x = 0;
     uint16 y = 0;
@@ -47,7 +47,7 @@ struct VertexPositionWind16Bit
 
 struct VertexPositionWind32Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R32G32B32A32_SFLOAT;
+    static constexpr Format FORMAT = Format::R32G32B32A32_SFLOAT;
 
     float x = 0.0f;
     float y = 0.0f;
@@ -75,7 +75,7 @@ struct VertexPositionWind32Bit
 
 struct VertexUV16Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R16G16_UNORM;
+    static constexpr Format FORMAT = Format::R16G16_UNORM;
 
     uint16 x = 0;
     uint16 y = 0;
@@ -89,7 +89,7 @@ struct VertexUV16Bit
 
 struct VertexUV32Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R32G32_SFLOAT;
+    static constexpr Format FORMAT = Format::R32G32_SFLOAT;
 
     float x = 0;
     float y = 0;
@@ -103,7 +103,7 @@ struct VertexUV32Bit
 
 struct VertexUVs16Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R16G16B16A16_UNORM;
+    static constexpr Format FORMAT = Format::R16G16B16A16_UNORM;
 
     VertexUV16Bit uv0;
     VertexUV16Bit uv1;
@@ -111,7 +111,7 @@ struct VertexUVs16Bit
 
 struct VertexUVs32Bit
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R32G32B32A32_SFLOAT;
+    static constexpr Format FORMAT = Format::R32G32B32A32_SFLOAT;
 
     VertexUV32Bit uv0;
     VertexUV32Bit uv1;
@@ -119,14 +119,14 @@ struct VertexUVs32Bit
 
 struct VertexColor
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R8G8B8A8_UNORM;
+    static constexpr Format FORMAT = Format::R8G8B8A8_UNORM;
 
     uint32 color = 0;
 };
 
 struct VertexNormal
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R8G8B8A8_SNORM;
+    static constexpr Format FORMAT = Format::R8G8B8A8_SNORM;
 
     int8 x = 0;
     int8 y = 0;
@@ -155,7 +155,7 @@ struct VertexNormal
 
 struct VertexTangent
 {
-    static constexpr rhi::Format FORMAT = rhi::Format::R8G8B8A8_SNORM;
+    static constexpr Format FORMAT = Format::R8G8B8A8_SNORM;
 
     int8 x = 0;
     int8 y = 0;

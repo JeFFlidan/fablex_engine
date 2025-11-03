@@ -14,95 +14,50 @@ void ResourceScheduler::init(const RenderContext* renderContext)
 }
 
 void ResourceScheduler::create_render_target(
-    RenderPassName renderPassName, 
-    ResourceName resourceName,
-    const rhi::TextureInfo* textureInfo
+    RenderPassName renderPassName,
+    const TextureMetadata* textureMetadata,
+    std::optional<ResourceName> customResourceName
 )
 {
-    rhi::TextureInfo newTextureInfo;
-    newTextureInfo.format = s_renderContext->render_surface().renderTargetFormat;
-    newTextureInfo.textureUsage = rhi::ResourceUsage::COLOR_ATTACHMENT | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
-    newTextureInfo.width = s_renderContext->render_surface().width;
-    newTextureInfo.height = s_renderContext->render_surface().height;
-    newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
-    newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
-
-    fill_info_from_base(newTextureInfo, textureInfo);
-
-    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
-        renderPassName,
-        resourceName, 
-        newTextureInfo, 
-        [
-            renderPassName,
-            resourceName
-        ](ResourceSchedulingInfo& schedulingInfo)
-        {
-            add_render_graph_write_dependency(renderPassName, resourceName, 1);
-            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::COLOR_ATTACHMENT, 1);
-        }
+    queue_resource_allocation(
+        renderPassName, 
+        textureMetadata, 
+        customResourceName, 
+        s_renderContext->render_surface().renderTargetFormat, 
+        ResourceUsage::COLOR_ATTACHMENT,
+        ResourceLayout::COLOR_ATTACHMENT
     );
 }
 
 void ResourceScheduler::create_depth_stencil(
-    RenderPassName renderPassName, 
-    ResourceName resourceName, 
-    const rhi::TextureInfo* textureInfo
+    RenderPassName renderPassName,
+    const TextureMetadata* textureMetadata,
+    std::optional<ResourceName> customResourceName
 )
 {
-    rhi::TextureInfo newTextureInfo;
-    newTextureInfo.format = s_renderContext->render_surface().depthStencilFormat;
-    newTextureInfo.textureUsage = rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
-    newTextureInfo.width = s_renderContext->render_surface().width;
-    newTextureInfo.height = s_renderContext->render_surface().height;
-    newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
-    newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
-
-    fill_info_from_base(newTextureInfo, textureInfo);
-
-    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
+    queue_resource_allocation(
         renderPassName, 
-        resourceName, 
-        newTextureInfo,
-        [
-            renderPassName,
-            resourceName
-        ](ResourceSchedulingInfo& schedulingInfo)
-        {
-            add_render_graph_write_dependency(renderPassName, resourceName, 1);
-            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::DEPTH_STENCIL, 1);
-        }
+        textureMetadata, 
+        customResourceName, 
+        s_renderContext->render_surface().renderTargetFormat, 
+        ResourceUsage::DEPTH_STENCIL_ATTACHMENT,
+        ResourceLayout::DEPTH_STENCIL
     );
 }
 
 void ResourceScheduler::create_storage_texture(
-    RenderPassName renderPassName, 
-    ResourceName resourceName,
-    const rhi::TextureInfo* textureInfo
+    RenderPassName renderPassName,
+    const TextureMetadata* textureMetadata,
+    std::optional<ResourceName> customResourceName
 )
 {
-    rhi::TextureInfo newTextureInfo;
-    newTextureInfo.format = rhi::Format::R32_SFLOAT;
-    newTextureInfo.textureUsage = rhi::ResourceUsage::STORAGE_TEXTURE | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
-    newTextureInfo.width = s_renderContext->render_surface().width;
-    newTextureInfo.height = s_renderContext->render_surface().height;
-    newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
-    newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
-
-    fill_info_from_base(newTextureInfo, textureInfo);
-
-    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
+    queue_resource_allocation(
         renderPassName, 
-        resourceName, 
-        newTextureInfo,
-        [
-            renderPassName,
-            resourceName
-        ](ResourceSchedulingInfo& schedulingInfo)
-        {
-            add_render_graph_write_dependency(renderPassName, resourceName, 1);
-            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::GENERAL | rhi::ResourceLayout::SHADER_WRITE, 1);
-        }
+        textureMetadata, 
+        customResourceName, 
+        s_renderContext->render_surface().renderTargetFormat, 
+        ResourceUsage::STORAGE_TEXTURE,
+        ResourceLayout::GENERAL | ResourceLayout::SHADER_WRITE
     );
 }
 
@@ -117,38 +72,24 @@ void ResourceScheduler::read_texture(RenderPassName renderPassName, ResourceName
         ](ResourceSchedulingInfo& schedulingInfo)
         {
             add_render_graph_read_dependency(renderPassName, resourceName, 1);
-            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::SHADER_READ, 1);
+            update_view_infos(renderPassName, schedulingInfo, ResourceLayout::SHADER_READ, 1);
         } 
     );
 }
 
 void ResourceScheduler::read_previous_texture(
-    RenderPassName renderPassName, 
-    ResourceName resourceName,
-    const rhi::TextureInfo* textureInfo
+    RenderPassName renderPassName,
+    const TextureMetadata* textureMetadata,
+    std::optional<ResourceName> customResourceName
 )
 {
-    rhi::TextureInfo newTextureInfo;
-    newTextureInfo.format = rhi::Format::R32_SFLOAT;
-    newTextureInfo.textureUsage = rhi::ResourceUsage::STORAGE_TEXTURE | rhi::ResourceUsage::SAMPLED_TEXTURE | rhi::ResourceUsage::TRANSFER_SRC;
-    newTextureInfo.width = s_renderContext->render_surface().width;
-    newTextureInfo.height = s_renderContext->render_surface().height;
-    newTextureInfo.dimension = rhi::TextureDimension::TEXTURE2D;
-    newTextureInfo.samplesCount = rhi::SampleCount::BIT_1;
-
-    fill_info_from_base(newTextureInfo, textureInfo);
-
-    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
+    queue_resource_allocation(
         renderPassName, 
-        resourceName, 
-        newTextureInfo,
-        [
-            renderPassName,
-            resourceName
-        ](ResourceSchedulingInfo& schedulingInfo)
-        {
-            update_view_infos(renderPassName, schedulingInfo, rhi::ResourceLayout::SHADER_READ, 1);
-        }
+        textureMetadata, 
+        customResourceName, 
+        s_renderContext->render_surface().renderTargetFormat, 
+        ResourceUsage::STORAGE_TEXTURE,
+        ResourceLayout::SHADER_READ
     );
 }
 
@@ -195,7 +136,7 @@ void ResourceScheduler::add_render_graph_write_dependency(
 void ResourceScheduler::update_view_infos(
     RenderPassName renderPassName,
     ResourceSchedulingInfo& schedulingInfo,
-    rhi::ResourceLayout layout,
+    ResourceLayout layout,
     uint32 mipCount
 )
 {
@@ -208,27 +149,70 @@ void ResourceScheduler::update_view_infos(
     }
 }
 
-void ResourceScheduler::fill_info_from_base(rhi::TextureInfo& outInfo, const rhi::TextureInfo* baseInfo)
+void ResourceScheduler::queue_resource_allocation(
+    RenderPassName renderPassName,
+    const TextureMetadata* textureMetadata,
+    std::optional<ResourceName> customResourceName,
+    Format format,
+    ResourceUsage mainUsage,
+    ResourceLayout initialLayout
+)
 {
-    if (!baseInfo)
-        return;
+    if (!textureMetadata && !customResourceName)
+        FE_LOG(LogRenderer, FATAL, "No render target name!");
 
-    if (baseInfo->width != 0)
-        outInfo.width = baseInfo->width;
+    TextureCreateInfo newTextureInfo;
+    newTextureInfo.format = format;
 
-    if (baseInfo->height != 0)
-        outInfo.height = baseInfo->height;
+    fill_info_from_metadata(mainUsage, textureMetadata, newTextureInfo);
 
-    outInfo.depth = baseInfo->depth;
+    ResourceName resourceName = customResourceName ? *customResourceName : textureMetadata->name;
 
-    if (baseInfo->format != rhi::Format::UNDEFINED)
-        outInfo.format = baseInfo->format;
+    s_renderContext->render_graph_resource_manager()->queue_resource_allocation(
+        renderPassName,
+        resourceName, 
+        newTextureInfo, 
+        [
+            renderPassName,
+            resourceName,
+            initialLayout
+        ](ResourceSchedulingInfo& schedulingInfo)
+        {
+            add_render_graph_write_dependency(renderPassName, resourceName, 1);
+            update_view_infos(renderPassName, schedulingInfo, initialLayout, 1);
+        }
+    );
+}
 
-    if (baseInfo->samplesCount != rhi::SampleCount::UNDEFINED)
-        outInfo.samplesCount = baseInfo->samplesCount;
+void ResourceScheduler::fill_info_from_metadata(
+    ResourceUsage mainTextureUsage,
+    const TextureMetadata* inMetadata,
+    TextureCreateInfo& outInfo
+)
+{
+    outInfo.textureUsage = 
+        mainTextureUsage 
+        | ResourceUsage::SAMPLED_TEXTURE 
+        | ResourceUsage::TRANSFER_SRC;
 
-    outInfo.flags |= baseInfo->flags;
-    outInfo.textureUsage |= baseInfo->textureUsage;
+    if (inMetadata)
+    {
+        outInfo.textureUsage |= inMetadata->has_flag(ResourceMetadataFlag::TRANSFER_DST) ? ResourceUsage::TRANSFER_DST : ResourceUsage::UNDEFINED;
+    }
+
+    outInfo.width = s_renderContext->render_surface().width;
+    outInfo.height = s_renderContext->render_surface().height;
+    outInfo.layersCount = inMetadata ? inMetadata->layerCount : 1;
+    
+    if (inMetadata && inMetadata->sampleCount != SampleCount::UNDEFINED)
+        outInfo.samplesCount = inMetadata->sampleCount;
+    else
+        outInfo.samplesCount = SampleCount::BIT_1;
+
+    if (inMetadata && inMetadata->format != Format::UNDEFINED)
+        outInfo.format = inMetadata->format;
+
+    outInfo.dimension = TextureDimension::TEXTURE2D;
 }
 
 }

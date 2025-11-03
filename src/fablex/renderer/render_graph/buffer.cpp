@@ -1,18 +1,20 @@
 #include "buffer.h"
 #include "rhi/rhi.h"
+#include "rhi/resources/buffer.h"
 
 namespace fe::renderer::rg
 {
 
-Buffer::Buffer(rhi::Buffer* handle, Name bufferName) 
-    : m_name(bufferName), m_handle(handle)
+Buffer::Buffer(const BufferCreateInfo& createInfo, Name bufferName) 
+    : m_name(bufferName)
 {
-    rhi::set_name(m_handle, m_name.to_string());
+    m_handle.init(createInfo);
+    m_handle.set_name(m_name.to_string());
 }
 
 Buffer::~Buffer()
 {
-    if (m_handle) rhi::destroy_buffer(m_handle);
+    
 }
 
 }

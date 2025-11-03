@@ -12,7 +12,7 @@ void SVGFFinalModulatePass::create_pipeline()
     create_compute_pipeline();
 }
 
-void SVGFFinalModulatePass::execute(rhi::CommandBuffer* cmd)
+void SVGFFinalModulatePass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 

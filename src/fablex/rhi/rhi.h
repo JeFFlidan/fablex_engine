@@ -1,16 +1,9 @@
 #pragma once
 
 #include "pfn.h"
-#include "resources/gpu_info.h"
 
 namespace fe::rhi
 {
-
-struct RHIInitInfo
-{
-    GPUPreference gpuPreference{GPUPreference::DISCRETE};
-    ValidationMode validationMode{ValidationMode::ENABLED};
-};
 
 inline PFN_Init init = nullptr;
 inline PFN_Cleanup cleanup = nullptr;
@@ -104,62 +97,5 @@ inline PFN_SetName set_name = nullptr;
 
 inline PFN_GetMinOffsetAlignment get_min_offset_alignment = nullptr;
 inline PFN_GetGPUProperties get_gpu_properties = nullptr;
-
-inline GPUCapability get_gpu_capabilities()
-{
-    return get_gpu_properties().capabilities;
-}
-
-inline uint64 get_shader_identifier_size()
-{
-    return get_gpu_properties().shaderIdentifierSize;
-}
-
-inline uint64 get_shader_identifier_alignment()
-{
-    return get_gpu_properties().shaderIdentifierAlignment;
-}
-
-inline uint64 get_acceleration_structure_instance_size()
-{
-    return get_gpu_properties().accelerationStructureInstanceSize;
-}
-
-inline uint64 get_timestamp_frequency()
-{
-    return get_gpu_properties().timestampFrequency;
-}
-
-inline uint64 get_vendor_id()
-{
-    return get_gpu_properties().vendorID;
-}
-
-inline uint64 get_device_id()
-{
-    return get_gpu_properties().deviceID;
-}
-
-inline const std::string& get_gpu_name()
-{
-    return get_gpu_properties().gpuName;
-}
-
-inline const std::string& get_driver_description()
-{
-    return get_gpu_properties().driverDescription;
-}
-
-inline bool has_capability(GPUCapability capability)
-{
-    return has_flag(get_gpu_capabilities(), capability);
-}
-
-inline bool is_validation_enabled()
-{
-    return get_gpu_properties().validationMode != ValidationMode::DISABLED;
-}
-
-constexpr uint32 g_queueCount = std::underlying_type_t<rhi::QueueType>(rhi::QueueType::COUNT);
 
 }

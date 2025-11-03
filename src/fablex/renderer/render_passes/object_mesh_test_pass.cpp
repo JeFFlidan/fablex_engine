@@ -11,14 +11,14 @@ FE_DEFINE_OBJECT(ObjectMeshTestPass, rg::RenderPass);
 
 void ObjectMeshTestPass::create_pipeline()
 {
-    create_graphics_pipeline([&](rhi::GraphicsPipelineInfo& info)
+    create_graphics_pipeline([&](GraphicsPipelineCreateInfo& info)
     {
         info.depthStencilState.isDepthTestEnabled = true;
         info.depthStencilState.isDepthWriteEnabled = true;
     });
 }
 
-void ObjectMeshTestPass::execute(rhi::CommandBuffer* cmd)
+void ObjectMeshTestPass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 
@@ -40,12 +40,11 @@ void ObjectMeshTestPass::execute(rhi::CommandBuffer* cmd)
         uint32 instanceCount = gpuModel.instance_count();
         instanceOffset += instanceCount;
     
-        rhi::dispatch_mesh(
-            cmd, 
+        cmd.dispatch_mesh({
             gpuModel.thread_group_count_x(), 
             instanceCount, 
             1
-        );
+        });
     });
 }
 

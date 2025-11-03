@@ -55,8 +55,8 @@ uint32 ResourceManager::rtv_descriptor(
         renderPassName, 
         textureName, 
         mipLevel, 
-        rhi::ResourceUsage::COLOR_ATTACHMENT, 
-        rhi::ResourceLayout::COLOR_ATTACHMENT
+        ResourceUsage::COLOR_ATTACHMENT, 
+        ResourceLayout::COLOR_ATTACHMENT
     ).rtv_descriptor();
 }
 
@@ -66,8 +66,8 @@ uint32 ResourceManager::dsv_desciptor(RenderPassName renderPassName, ResourceNam
         renderPassName, 
         textureName, 
         0, 
-        rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT, 
-        rhi::ResourceLayout::DEPTH_STENCIL
+        ResourceUsage::DEPTH_STENCIL_ATTACHMENT, 
+        ResourceLayout::DEPTH_STENCIL
     ).dsv_descriptor();
 }
 
@@ -81,8 +81,8 @@ uint32 ResourceManager::texture_uav_descriptor(
         renderPassName, 
         textureName, 
         mipLevel, 
-        rhi::ResourceUsage::STORAGE_TEXTURE, 
-        rhi::ResourceLayout::GENERAL
+        ResourceUsage::STORAGE_TEXTURE, 
+        ResourceLayout::GENERAL
     ).uav_descriptor();
 }
 
@@ -96,8 +96,8 @@ uint32 ResourceManager::texture_srv_descriptor(
         renderPassName, 
         textureName, 
         mipLevel, 
-        rhi::ResourceUsage::SAMPLED_TEXTURE, 
-        rhi::ResourceLayout::SHADER_READ
+        ResourceUsage::SAMPLED_TEXTURE, 
+        ResourceLayout::SHADER_READ
     ).srv_descriptor();
 }
 
@@ -175,18 +175,14 @@ void ResourceManager::allocate_scheduled_resources()
         creationRequest = &m_primaryResourceCreationRequests.at(resIdxIt->second);
 
         std::visit(Utils::make_visitor(
-            [this, &resource](const rhi::TextureInfo& textureInfo)
+            [this, &resource](const TextureCreateInfo& textureInfo)
             {
-                rhi::TextureHandle textureHandle;
-                rhi::create_texture(&textureHandle, &textureInfo);
-                resource.set_texture(textureHandle);
+                resource.set_texture(textureInfo);
                 m_resourceLayoutTracker->begin_resource_tracking(&resource);
             },
-            [this, &resource](const rhi::BufferInfo& bufferInfo)
+            [this, &resource](const BufferCreateInfo& bufferInfo)
             {
-                rhi::BufferHandle bufferHandle;
-                rhi::create_buffer(&bufferHandle, &bufferInfo);
-                resource.set_buffer(bufferHandle);
+                resource.set_buffer(bufferInfo);
                 m_resourceLayoutTracker->begin_resource_tracking(&resource);
             }
         ), creationRequest->info);
@@ -212,12 +208,12 @@ void ResourceManager::queue_resource_usage(RenderPassName renderPassName, Resour
 void ResourceManager::create_resource(const ResourceCreationRequest& request)
 {
     std::visit(Utils::make_visitor(
-        [&request, this](const rhi::TextureInfo& textureInfo)
+        [&request, this](const TextureCreateInfo& textureInfo)
         {
             m_currentFrameResourceList.emplace_back(request.resourceName, textureInfo.mipLevels);
             m_currentFrameResourceMap[request.resourceName] = m_currentFrameResourceList.size() - 1;
         },
-        [&request, this](const rhi::BufferInfo& bufferInfo)
+        [&request, this](const BufferCreateInfo& bufferInfo)
         {
             m_currentFrameResourceList.emplace_back(request.resourceName, 1);
             m_currentFrameResourceMap[request.resourceName] = m_currentFrameResourceList.size() - 1;
@@ -270,8 +266,8 @@ const Texture& ResourceManager::get_texture_internal(
     RenderPassName renderPassName,
     ResourceName textureName,
     uint32 mipLevel,
-    rhi::ResourceUsage mustHaveUsage,
-    rhi::ResourceLayout mustHaveLayout
+    ResourceUsage mustHaveUsage,
+    ResourceLayout mustHaveLayout
 ) const
 {
     const Resource* resource = get_resource(textureName);

@@ -5,8 +5,9 @@
 namespace fe::rhi
 {
 
-class Semaphore;
-class SwapChain;
+struct Semaphore;
+struct Fence;
+struct SwapChain;
 
 struct CommandPoolInfo
 {
@@ -52,12 +53,14 @@ struct SubmitInfo
     std::vector<CommandBuffer*> cmdBuffers;
     std::vector<Semaphore*> waitSemaphores;
     std::vector<Semaphore*> signalSemaphores;
+    Fence* signalFence = nullptr;
 
     void clear()
     {
         cmdBuffers.clear();
         waitSemaphores.clear();
         signalSemaphores.clear();
+        signalFence = nullptr;
     }
 };
 

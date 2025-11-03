@@ -1,5 +1,7 @@
 #pragma once
 
+#include "handles/command_buffer.h"
+#include "handles/texture_view.h"
 #include "rhi/fwd.h"
 #include "rhi/resources/enums.h"
 #include "core/types.h"
@@ -20,10 +22,10 @@ public:
 
     void begin_frame();
     void create_pipeline();
-    void draw(rhi::CommandBuffer* cmd);
-    void create_font_texture(rhi::CommandBuffer* cmd);
+    void draw(CommandBufferRef cmd);
+    void create_font_texture(CommandBufferRef cmd);
 
-    void set_render_target_format(rhi::Format format)
+    void set_render_target_format(Format format)
     {
         m_renderTargetFormat = format;
     }
@@ -42,18 +44,19 @@ private:
     DeletionQueue* m_deletionQueue = nullptr;
     ShaderManager* m_shaderManager = nullptr;
 
-    rhi::Pipeline* m_pipeline = nullptr;
-    rhi::Format m_renderTargetFormat = rhi::Format::UNDEFINED;
+    PipelineHandle m_pipeline;
+    Format m_renderTargetFormat = Format::UNDEFINED;
     uint32 m_viewportTextureDescriptor = ~0u;
 
-    std::vector<rhi::Buffer*> m_vertexBuffers;
-    std::vector<rhi::Buffer*> m_indexBuffers;
-    rhi::Texture* m_fontTexture = nullptr;
-    rhi::TextureView* m_fontTextureView = nullptr;
+    std::vector<BufferHandle> m_vertexBuffers;
+    std::vector<BufferHandle> m_indexBuffers;
+    TextureHandle m_fontTexture;
+    TextureViewHandle m_fontTextureView;
 
-    rhi::Buffer* get_vertex_buffer(uint32 desiredSize);
-    rhi::Buffer* get_index_buffer(uint32 desiredSize);
-    rhi::Buffer* create_uma_buffer(uint32 desiredSize, rhi::ResourceUsage usage);
+    BufferRef get_vertex_buffer(uint32 desiredSize);
+    BufferRef get_index_buffer(uint32 desiredSize);
+    BufferHandle create_vertex_buffer(uint32 desiredSize);
+    BufferHandle create_index_buffer(uint32 desiredSize);
 };
 
 }

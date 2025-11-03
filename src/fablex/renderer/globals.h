@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rhi_types.h"
 #include "core/types.h"
 
 namespace fe::renderer
@@ -31,5 +32,7 @@ inline uint64 get_prev_frame_index()
 {
     return (g_frameNumber - 1) % 2;
 }
+
+inline constexpr uint32 g_queueCount = std::underlying_type_t<QueueType>(QueueType::COUNT);
 
 }

@@ -12,7 +12,7 @@ void SVGFAtrousPass::create_pipeline()
     create_compute_pipeline();
 }
 
-void SVGFAtrousPass::execute(rhi::CommandBuffer* cmd)
+void SVGFAtrousPass::execute(CommandBufferRef cmd)
 {
     FE_CHECK(cmd);
 

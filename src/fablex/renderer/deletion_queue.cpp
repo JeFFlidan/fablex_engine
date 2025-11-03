@@ -6,15 +6,17 @@ namespace fe::renderer
 
 DeletionQueue::~DeletionQueue()
 {
-    for (const DeletionHandlers& handlers : m_deletionHandlersPerFrame)
+    for (DeletionHandlers& handlers : m_deletionHandlersPerFrame)
         for (auto it = handlers.rbegin(); it != handlers.rend(); ++it)
             (*it)();
 
     m_deletionHandlersPerFrame.clear();
 }
 
-void DeletionQueue::add(const DeletionHandler& deletionHandler)
+void DeletionQueue::add(DeletionHandler&& deletionHandler)
 {
+    std::scoped_lock<std::mutex> locker(m_mutex);
+
     if (m_deletionHandlersPerFrame.size() < g_frameIndex + 1)
     {
         uint32 arrayToCreateCount = g_frameIndex + 1 - m_deletionHandlersPerFrame.size();
@@ -22,7 +24,7 @@ void DeletionQueue::add(const DeletionHandler& deletionHandler)
             m_deletionHandlersPerFrame.emplace_back();
     }
 
-    m_deletionHandlersPerFrame.at(g_frameIndex).push_back(deletionHandler);
+    m_deletionHandlersPerFrame.at(g_frameIndex).emplace_back(std::move(deletionHandler));
 }
 
 void DeletionQueue::destroy_objects()

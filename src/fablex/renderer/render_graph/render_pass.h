@@ -4,9 +4,14 @@
 #include "fwd.h"
 #include "core/object/object.h"
 #include "pipeline_manager.h"
+#include "handles/swap_chain.h"
+#include "handles/command_buffer.h"
 
 namespace fe::renderer::rg
 {
+
+class Texture;
+class RenderingInfoBase;
 
 struct RenderPassInfo
 {
@@ -14,8 +19,6 @@ struct RenderPassInfo
     PipelineName pipelineName;
     RenderPassType type;
 };
-
-using DispatchSizes = std::array<uint32, 3>;
 
 class RenderPass : public Object
 {
@@ -29,10 +32,14 @@ public:
 
     virtual void create_pipeline() { }
     void create_pipelines();
-    virtual void execute(rhi::CommandBuffer* cmd) { }
+    virtual void execute(CommandBufferRef cmd) { }
 
     RenderPassInfo info() const;
-    void fill_rendering_begin_info(rhi::RenderingBeginInfo& outBeginInfo) const;
+
+    void begin_rendering(CommandBufferRef cmd);
+    void begin_rendering(CommandBufferRef cmd, SwapChainRef swapChain);
+    void end_rendering(CommandBufferRef cmd);
+    void end_rendering(CommandBufferRef cmd, SwapChainRef swapChain);
 
     RenderPassName name() const;
     const RenderPassMetadata& metadata() const { return *m_metadata; }
@@ -57,14 +64,14 @@ protected:
 
     SceneManager* scene_manager() const;
 
-    void bind_pipeline(rhi::CommandBuffer* cmd);
-    void bind_pipeline(rhi::CommandBuffer* cmd, uint32 pipelineIndex);
-    void push_constants(rhi::CommandBuffer* cmd, void* data);
-    void push_constants(rhi::CommandBuffer* cmd, void* data, uint32 pipelineIndex);
-    void set_default_viewport_and_scissor(rhi::CommandBuffer* cmd) const;
-    void set_viewport_and_scissor_by_window(rhi::CommandBuffer* cmd) const;
-    void fill_dispatch_rays_info(rhi::DispatchRaysInfo& outInfo) const;
-    void dispatch(rhi::CommandBuffer* cmd, const RenderSurface& surface, const DispatchSizes& groupSizes);
+    void bind_pipeline(CommandBufferRef cmd);
+    void bind_pipeline(CommandBufferRef cmd, uint32 pipelineIndex);
+    void push_constants(CommandBufferRef cmd, void* data);
+    void push_constants(CommandBufferRef cmd, void* data, uint32 pipelineIndex);
+    void set_default_viewport_and_scissor(CommandBufferRef cmd) const;
+    void set_viewport_and_scissor_by_window(CommandBufferRef cmd) const;
+    void fill_dispatch_rays_info(DispatchRaysInfo& outInfo) const;
+    void dispatch(CommandBufferRef cmd, const RenderSurface& surface, const DispatchSizes& groupSizes);
 
     template<typename T>
     void fill_push_constants(T& pushConstants)
@@ -83,7 +90,7 @@ private:
     const PipelineMetadata& get_pipeline_metadata() const;
     const PipelineMetadata& get_pipeline_metadata(Name pipelineName) const;
     const TextureMetadata& get_texture_metadata(ResourceName textureName) const;
-    void fill_texture_info(const TextureMetadata& inMetadata, rhi::TextureInfo& outInfo) const;
+    const Texture& get_texture(ResourceName textureName) const;
     ResourceNamesXFR get_resource_names_xfr(ResourceName baseName) const;
     ResourceName get_prev_frame_resource_name(ResourceName baseName) const;
     ResourceName get_curr_frame_resource_name(ResourceName baseName) const;

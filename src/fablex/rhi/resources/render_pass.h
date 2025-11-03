@@ -31,7 +31,7 @@ struct RenderTarget
 struct MultiviewInfo
 {
     bool isEnabled = false; // false is default
-    uint32_t viewCount = 0;
+    uint32 viewCount = 0;
 };
 
 struct RenderingBeginInfo
@@ -51,9 +51,6 @@ struct RenderingBeginInfo
     struct OffscreenPass
     {
         std::vector<RenderTarget> renderTargets;
-        RenderingBeginInfoFlags flags;
-        MultiviewInfo multiviewInfo;		// Not necessary
-
         ~OffscreenPass() = default;
     };
 

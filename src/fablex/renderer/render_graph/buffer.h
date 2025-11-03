@@ -2,6 +2,7 @@
 
 #include "core/types.h"
 #include "core/name.h"
+#include "handles/buffer.h"
 #include "rhi/resources/buffer.h"
 
 namespace fe::renderer::rg
@@ -11,15 +12,15 @@ class Buffer
 {
 public:
     Buffer() = default;
-    Buffer(rhi::Buffer* handle, Name bufferName);
+    Buffer(const BufferCreateInfo& createInfo, Name bufferName);
     ~Buffer();
 
-    rhi::Buffer* handle() const { return m_handle; }
+    BufferRef handle() const { return m_handle; }
     uint32 descriptor() const { return m_handle->descriptorIndex; }
 
 private:
     Name m_name;
-    rhi::Buffer* m_handle = nullptr;
+    BufferHandle m_handle;
 };
 
 }

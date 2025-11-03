@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/types.h"
-#include "rhi/fwd.h"
+#include "handles/synchronization.h"
 #include <vector>
 
 namespace fe::renderer
@@ -17,13 +17,13 @@ public:
     void end_frame();
     void wait_fences();
 
-    rhi::Semaphore* get_semaphore();
-    rhi::Semaphore* get_acquire_semaphore();
-    rhi::Fence* get_fence();
+    SemaphoreRef get_semaphore();
+    SemaphoreRef get_acquire_semaphore();
+    FenceRef get_fence();
 
 private:
-    using SemaphoreArray = std::vector<rhi::Semaphore*>;
-    using FenceArray = std::vector<rhi::Fence*>;
+    using SemaphoreArray = std::vector<SemaphoreHandle>;
+    using FenceArray = std::vector<FenceHandle>;
 
     struct CurrentFrameFenceArrays
     {

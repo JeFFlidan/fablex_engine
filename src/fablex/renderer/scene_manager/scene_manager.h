@@ -6,8 +6,9 @@
 #include "camera_data.h"
 #include "gpu_data_buffers.h"
 #include "gpu_resource_container.h"
-#include "resource_destroyer.h"
 #include "command_recorder_manager.h"
+#include "deletion_queue.h"
+#include "handles/sampler.h"
 
 #include "shaders/shader_interop_renderer.h"
 
@@ -27,10 +28,10 @@ using CameraBuffers = GPUDataUniformBuffers<CameraData>;
 struct SceneManagerCmds
 {
     // Graphics cmd is main.
-    rhi::CommandBuffer* graphicsCmd = nullptr;
+    CommandBufferRef graphicsCmd = nullptr;
 
     // Compute cmd is use to build tlases and blases
-    rhi::CommandBuffer* computeCmd = nullptr;
+    CommandBufferRef computeCmd = nullptr;
 };
 
 class SceneManager
@@ -38,7 +39,7 @@ class SceneManager
 public:
     using ForEachModelHandler = std::function<void(const GPUModel& gpuModel, uint32 modelIndex)>;
 
-    SceneManager();
+    SceneManager(DeletionQueue* deletionQueue);
     ~SceneManager();
 
     void upload(const SceneManagerCmds& cmds);
@@ -46,7 +47,14 @@ public:
     void for_each_model(const ForEachModelHandler& handler);
 
     void add_staging_buffer(rhi::Buffer* buffer);
-    void enqueue_destruction(const DestroyHandler& handler);
+    void enqueue_destruction(DeletionHandler&& handler);
+
+    template<typename HandleType>
+    void enqueue_destruction(HandleType& handle)
+    {
+        m_deletionQueue->add(handle);
+    }
+
     int32 descriptor(asset::Texture* texture) const;
     int32 sampler_descriptor(ResourceName samplerName) const;
     const GPUTexture& blue_noise_texture() const;
@@ -80,10 +88,10 @@ private:
 
     TLAS m_tlas;
 
-    std::unordered_map<ResourceName, rhi::Sampler*> m_samplerByName; 
+    std::unordered_map<ResourceName, SamplerHandle> m_samplerByName; 
     UUID m_blueNoiseTextureUUID = UUID::INVALID;
 
-    ResourceDestroyer m_resourceDestroyer;
+    DeletionQueue* m_deletionQueue = nullptr;
     CommandRecorderManager m_commandRecorderManager;
 
     void subscribe_to_events();
