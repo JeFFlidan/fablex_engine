@@ -29,7 +29,7 @@ void SynchronizationManager::begin_frame()
     CurrentFrameFenceArrays fenceArrays = get_current_frame_fences();
 
     for (FenceHandle& usedFence : fenceArrays.usedFences)
-        fenceArrays.freeFences.push_back(std::move(usedFence));
+        fenceArrays.freeFences.add(usedFence);
 
     fenceArrays.usedFences.clear();
 }
@@ -45,7 +45,7 @@ void SynchronizationManager::wait_fences()
     Device::wait_for_fences(fenceArrays.usedFences);
 
     for (FenceHandle& fence : fenceArrays.usedFences)
-        fenceArrays.freeFences.push_back(std::move(fence));
+        fenceArrays.freeFences.add(fence);
 
     fenceArrays.usedFences.clear();
 }
@@ -55,7 +55,7 @@ SemaphoreRef SynchronizationManager::get_semaphore()
     SemaphoreArray& curFrameSemaphores = m_semaphoresPerFrame.at(g_frameIndex);
 
     if (m_freeSemaphoreIndex + 1 > curFrameSemaphores.size())
-        curFrameSemaphores.emplace_back();
+        curFrameSemaphores.emplace();
 
     return curFrameSemaphores.at(m_freeSemaphoreIndex++);
 }
@@ -63,7 +63,7 @@ SemaphoreRef SynchronizationManager::get_semaphore()
 SemaphoreRef SynchronizationManager::get_acquire_semaphore()
 {
     if (m_acquireSemaphores.size() < g_frameIndex + 1)
-        m_acquireSemaphores.emplace_back();
+        m_acquireSemaphores.emplace();
 
     return m_acquireSemaphores.at(g_frameIndex);
 }
@@ -74,12 +74,12 @@ FenceRef SynchronizationManager::get_fence()
 
     if (fenceArrays.freeFences.empty())
     {
-        fenceArrays.usedFences.emplace_back();
+        fenceArrays.usedFences.emplace();
     }
     else
     {
         FenceHandle& freeFence = fenceArrays.freeFences.back();
-        fenceArrays.usedFences.push_back(std::move(freeFence));
+        fenceArrays.usedFences.add(freeFence);
         fenceArrays.freeFences.pop_back();
     }
 

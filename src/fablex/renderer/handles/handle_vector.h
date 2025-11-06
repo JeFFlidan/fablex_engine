@@ -102,6 +102,9 @@ public:
     HandleType& at(size_t index) noexcept { return m_handles.at(index); }
     const HandleType& at(size_t index) const noexcept { return m_handles.at(index); }
 
+    HandleType* data() { return m_handles.data(); }
+    const HandleType* data() const { return m_handles.data(); } 
+
 private:
     std::vector<HandleType> m_handles;
 };

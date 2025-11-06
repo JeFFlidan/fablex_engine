@@ -2,6 +2,7 @@
 
 #include "handles/command_pool.h"
 #include "handles/command_buffer.h"
+#include "handles/handle_vector.h"
 
 #include <thread>
 #include <unordered_map>
@@ -21,34 +22,26 @@ public:
     CommandBufferRef get_cmd(QueueType queueType);
 
 private:
-    using CommandBufferArray = std::vector<CommandBufferHandle>;
+    using CommandBufferArray = std::vector<CommandBufferRef>;
+
+    class HandleStorage
+    {
+    public:
+        CommandPoolRef create_cmd_pool(const CommandPoolCreateInfo& info);
+        CommandBufferRef create_cmd_buffer(const CommandBufferCreateInfo& info);
+
+    private:
+        HandleVector<CommandPoolHandle> m_cmdPools;
+        HandleVector<CommandBufferHandle> m_cmdBuffers;
+    };
 
     struct CommandPoolContext
     {
-        CommandPoolHandle cmdPool;
+        CommandPoolRef cmdPool;
         CommandBufferArray freeCmdBuffers;
         CommandBufferArray usedCmdBuffers;
 
         CommandPoolContext() = default;
-
-        CommandPoolContext(CommandPoolContext&& other) noexcept
-            : cmdPool(std::move(other.cmdPool)),
-            freeCmdBuffers(std::move(other.freeCmdBuffers)),
-            usedCmdBuffers(std::move(other.usedCmdBuffers)) { }
-
-        CommandPoolContext& operator=(CommandPoolContext&& other) noexcept
-        {
-            if (this != &other)
-            {
-                cmdPool = std::move(other.cmdPool);
-                freeCmdBuffers = std::move(other.freeCmdBuffers);
-                usedCmdBuffers = std::move(other.usedCmdBuffers);
-            }
-            return *this;
-        }
-
-        CommandPoolContext(const CommandPoolContext&) = delete;
-        CommandPoolContext& operator=(const CommandPoolContext&) = delete;
     };
 
     using CommandPoolContextArray = std::vector<CommandPoolContext>;
@@ -56,25 +49,13 @@ private:
     class CommandAllocator
     {
     public:
-        CommandAllocator();
+        CommandAllocator(HandleStorage& storage);
         ~CommandAllocator();
-
-        CommandAllocator(CommandAllocator&& other) noexcept
-            : m_cmdPoolContextPerQueue(std::move(other.m_cmdPoolContextPerQueue)) { }
-
-        CommandAllocator& operator=(CommandAllocator&& other) noexcept
-        {
-            if (this != &other)
-            {
-                m_cmdPoolContextPerQueue = std::move(other.m_cmdPoolContextPerQueue);
-            }
-            return *this;
-        }
 
         void reset();
         void cleanup();
 
-        CommandBufferRef get_cmd(QueueType queueType);
+        CommandBufferRef get_cmd(QueueType queueType, HandleStorage& storage);
 
     private:
         CommandPoolContextArray m_cmdPoolContextPerQueue;
@@ -82,6 +63,8 @@ private:
 
     using CommandAllocatorArray = std::vector<CommandAllocator>;
     using ThreadID = std::thread::id;
+
+    HandleStorage m_handleStorage;
 
     uint32 m_freeAllocatorIndex = 0;
     std::mutex m_mutex;

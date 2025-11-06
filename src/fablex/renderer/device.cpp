@@ -53,7 +53,7 @@ void Device::wait_queue_idle(QueueType queueType)
     rhi::wait_queue_idle(queueType);
 }
 
-void Device::wait_for_fences(const std::vector<FenceHandle>& fences)
+void Device::wait_for_fences(const HandleVector<FenceHandle>& fences)
 {
     rhi::wait_for_fences(
         to_raw<rhi::Fence* const*>(fences.data()),

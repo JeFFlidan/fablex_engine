@@ -65,7 +65,7 @@ CommandBufferRef CommandManager::get_cmd(QueueType queueType)
     if (allocIdxIt == m_allocatorIndexPerThread.end())
     {
         if (m_freeAllocatorIndex + 1 > cmdAllocators.size())
-            cmdAllocators.emplace_back();
+            cmdAllocators.emplace_back(m_handleStorage);
 
         m_allocatorIndexPerThread[curThreadID] = m_freeAllocatorIndex;
         allocIdx = m_freeAllocatorIndex++;
@@ -77,18 +77,29 @@ CommandBufferRef CommandManager::get_cmd(QueueType queueType)
 
     FE_CHECK(cmdAllocators.size() <= std::thread::hardware_concurrency());
     
-    return cmdAllocators.at(allocIdx).get_cmd(queueType);
+    return cmdAllocators.at(allocIdx).get_cmd(queueType, m_handleStorage);
 }
 
-CommandManager::CommandAllocator::CommandAllocator()
+CommandPoolRef CommandManager::HandleStorage::create_cmd_pool(const CommandPoolCreateInfo& info)
+{
+    return m_cmdPools.emplace(info);
+}
+
+CommandBufferRef CommandManager::HandleStorage::create_cmd_buffer(const CommandBufferCreateInfo& info)
+{
+    return m_cmdBuffers.emplace(info);
+}
+
+CommandManager::CommandAllocator::CommandAllocator(HandleStorage& storage)
 {
     m_cmdPoolContextPerQueue.reserve(g_queueCount);
     for (uint32 i = 0; i != g_queueCount; ++i)
     {
         CommandPoolContext& cmdPoolContext = m_cmdPoolContextPerQueue.emplace_back();
+
         CommandPoolCreateInfo info;
         info.queueType = (QueueType)i;
-        cmdPoolContext.cmdPool.init(info);
+        cmdPoolContext.cmdPool = storage.create_cmd_pool(info);
 
         set_cmd_pool_name(cmdPoolContext.cmdPool, i);
     }
@@ -105,14 +116,14 @@ void CommandManager::CommandAllocator::reset()
     {
         cmdPoolContext.cmdPool.reset_pool();
 
-        for (CommandBufferHandle& handle : cmdPoolContext.usedCmdBuffers)
-            cmdPoolContext.freeCmdBuffers.push_back(std::move(handle));
+        for (CommandBufferRef cmd : cmdPoolContext.usedCmdBuffers)
+            cmdPoolContext.freeCmdBuffers.push_back(cmd);
 
         cmdPoolContext.usedCmdBuffers.clear();
     }
 }
 
-CommandBufferRef CommandManager::CommandAllocator::get_cmd(QueueType queueType)
+CommandBufferRef CommandManager::CommandAllocator::get_cmd(QueueType queueType, HandleStorage& storage)
 {
     CommandPoolContext& cmdPoolContext = m_cmdPoolContextPerQueue.at(rhi::get_queue_index(queueType));
 
@@ -120,7 +131,7 @@ CommandBufferRef CommandManager::CommandAllocator::get_cmd(QueueType queueType)
     {
         CommandBufferCreateInfo info;
         info.cmdPool = cmdPoolContext.cmdPool;
-        cmdPoolContext.usedCmdBuffers.emplace_back(info);
+        cmdPoolContext.usedCmdBuffers.push_back(storage.create_cmd_buffer(info));
 
         CommandBufferRef cmd = cmdPoolContext.usedCmdBuffers.back();
         uint32 cmdIdx = cmdPoolContext.usedCmdBuffers.size() - 1;
@@ -130,8 +141,8 @@ CommandBufferRef CommandManager::CommandAllocator::get_cmd(QueueType queueType)
     }
     else
     {
-        CommandBufferHandle& cmdBuffer = cmdPoolContext.freeCmdBuffers.back();
-        cmdPoolContext.usedCmdBuffers.push_back(std::move(cmdBuffer));
+        CommandBufferRef cmdBuffer = cmdPoolContext.freeCmdBuffers.back();
+        cmdPoolContext.usedCmdBuffers.push_back(cmdBuffer);
         cmdPoolContext.freeCmdBuffers.pop_back();
     }
 

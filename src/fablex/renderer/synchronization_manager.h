@@ -2,6 +2,7 @@
 
 #include "core/types.h"
 #include "handles/synchronization.h"
+#include "handles/handle_vector.h"
 #include <vector>
 
 namespace fe::renderer
@@ -22,8 +23,8 @@ public:
     FenceRef get_fence();
 
 private:
-    using SemaphoreArray = std::vector<SemaphoreHandle>;
-    using FenceArray = std::vector<FenceHandle>;
+    using SemaphoreArray = HandleVector<SemaphoreHandle>;
+    using FenceArray = HandleVector<FenceHandle>;
 
     struct CurrentFrameFenceArrays
     {

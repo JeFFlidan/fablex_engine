@@ -2,7 +2,7 @@
 
 #include "handles/command_buffer.h"
 #include "handles/synchronization.h"
-#include "rhi/rhi.h"
+#include "handles/handle_vector.h"
 #include "rhi/resources/cmd.h"
 
 namespace fe::renderer
@@ -94,7 +94,7 @@ public:
     static void submit(const SubmitInfo& submitInfo);
     static void present(const PresentInfo& presentInfo);
     static void wait_queue_idle(QueueType queueType);
-    static void wait_for_fences(const std::vector<FenceHandle>& fences);
+    static void wait_for_fences(const HandleVector<FenceHandle>& fences);
 
     static API api();
     static const GPUProperties& gpu_properties();
