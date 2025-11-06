@@ -10,12 +10,6 @@ namespace fe::renderer
 namespace detail
 {
 
-FE_DEFINE_RHI_RESOURCE_TRAITS(
-    rhi::SwapChain, 
-    rhi::create_swap_chain, 
-    rhi::destroy_swap_chain
-);
-
 template<typename Base>
 class SwapChainInterface : public Base
 {
@@ -30,14 +24,12 @@ public:
     }
 };
 
-using SwapChainHandleBase = HandleBase<rhi::SwapChain, SwapChainCreateInfo>;
-using SwapChainRefBase = RefBase<rhi::SwapChain>;
-using SwapChainHandleInterface = SwapChainInterface<SwapChainHandleBase>;
-using SwapChainRefInterface = SwapChainInterface<SwapChainRefBase>;
-
 }
 
-using SwapChainHandle = detail::SwapChainHandleInterface;
-using SwapChainRef = detail::SwapChainRefInterface;
+FE_DEFINE_RHI_RESOURCE_RAII_EXTENDED(
+    SwapChain, 
+    rhi::create_swap_chain, 
+    rhi::destroy_swap_chain
+);
 
 }

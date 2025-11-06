@@ -6,18 +6,10 @@
 namespace fe::renderer
 {
 
-namespace detail
-{
-
-FE_DEFINE_RHI_RESOURCE_TRAITS(
-    rhi::Sampler, 
+FE_DEFINE_RHI_RESOURCE_RAII(
+    Sampler, 
     rhi::create_sampler, 
     rhi::destroy_sampler
 );
-
-}
-
-using SamplerHandle = detail::HandleBase<rhi::Sampler, SamplerCreateInfo>;
-using SamplerRef = detail::RefBase<rhi::Sampler>;
 
 }

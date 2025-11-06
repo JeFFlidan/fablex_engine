@@ -6,18 +6,10 @@
 namespace fe::renderer
 {
 
-namespace detail
-{
-
-FE_DEFINE_RHI_RESOURCE_TRAITS(
-    rhi::Texture, 
+FE_DEFINE_RHI_RESOURCE_RAII(
+    Texture, 
     rhi::create_texture, 
     rhi::destroy_texture
 );
-
-}
-
-using TextureHandle = detail::HandleBase<rhi::Texture, TextureViewCreateInfo>;
-using TextureRef = detail::RefBase<rhi::Texture>;
 
 }

@@ -6,18 +6,10 @@
 namespace fe::renderer
 {
 
-namespace detail
-{
-
-FE_DEFINE_RHI_RESOURCE_TRAITS(
-    rhi::BufferView, 
+FE_DEFINE_RHI_RESOURCE_RAII(
+    BufferView, 
     rhi::create_buffer_view, 
     rhi::destroy_buffer_view
 );
-
-}
-
-using BufferViewHandle = detail::HandleBase<rhi::BufferView, BufferViewCreateInfo>;
-using BufferViewRef = detail::RefBase<rhi::BufferView>;
 
 }

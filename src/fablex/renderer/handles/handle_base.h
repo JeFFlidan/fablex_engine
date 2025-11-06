@@ -120,4 +120,32 @@ public:
     }
 };
 
+#define FE_DEFINE_RHI_RESOURCE_RAII(HandleName, CreateFunc, DestroyFunc)                    \
+    namespace detail                                                                        \
+    {                                                                                       \
+        FE_DEFINE_RHI_RESOURCE_TRAITS(rhi::HandleName, CreateFunc, DestroyFunc);            \
+    }                                                                                       \
+    using HandleName##Handle = detail::HandleBase<rhi::HandleName, HandleName##CreateInfo>; \
+    using HandleName##Ref = detail::RefBase<rhi::HandleName>;
+
+#define FE_DEFINE_RHI_RESOURCE_RAII_NO_CREATE_INFO(HandleName, CreateFunc, DestroyFunc)   \
+    namespace detail                                                                        \
+    {                                                                                       \
+        FE_DEFINE_RHI_RESOURCE_TRAITS(rhi::HandleName, CreateFunc, DestroyFunc);            \
+    }                                                                                       \
+    using HandleName##Handle = detail::HandleBase<rhi::HandleName, void>;                   \
+    using HandleName##Ref = detail::RefBase<rhi::HandleName>;
+
+#define FE_DEFINE_RHI_RESOURCE_RAII_EXTENDED(HandleName, CreateFunc, DestroyFunc)         \
+    namespace detail                                                                        \
+    {                                                                                       \
+        FE_DEFINE_RHI_RESOURCE_TRAITS(rhi::HandleName, CreateFunc, DestroyFunc);            \
+        using HandleName##Base = HandleBase<rhi::HandleName, HandleName##CreateInfo>;       \
+        using HandleName##RefBase = RefBase<rhi::HandleName>;                               \
+        using HandleName##HandleInterface = HandleName##Interface<HandleName##Base>;        \
+        using HandleName##RefInterface = HandleName##Interface<HandleName##RefBase>;        \
+    }                                                                                       \
+    using HandleName##Handle = detail::HandleName##HandleInterface;                         \
+    using HandleName##Ref = detail::HandleName##RefInterface;
+
 }

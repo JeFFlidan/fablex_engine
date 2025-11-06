@@ -23,12 +23,6 @@ struct DispatchSizes
 namespace detail
 {
 
-FE_DEFINE_RHI_RESOURCE_TRAITS(
-    rhi::CommandBuffer, 
-    rhi::create_command_buffer, 
-    rhi::destroy_command_buffer
-);
-
 template<typename Base>
 class CommandBufferInterface : public Base
 {
@@ -191,14 +185,12 @@ public:
     }
 };
 
-using CommandBufferHandleBase = HandleBase<rhi::CommandBuffer, CommandBufferCreateInfo>;
-using CommandBufferRefBase = RefBase<rhi::CommandBuffer>;
-using CommandBufferHandleInterface = CommandBufferInterface<CommandBufferHandleBase>;
-using CommandBufferRefInterface = CommandBufferInterface<CommandBufferRefBase>;
-
 }
 
-using CommandBufferHandle = detail::CommandBufferHandleInterface;
-using CommandBufferRef = detail::CommandBufferRefInterface;
+FE_DEFINE_RHI_RESOURCE_RAII_EXTENDED(
+    CommandBuffer, 
+    rhi::create_command_buffer, 
+    rhi::destroy_command_buffer
+);
 
 }

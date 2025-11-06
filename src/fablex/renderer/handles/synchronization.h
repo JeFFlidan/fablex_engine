@@ -6,27 +6,16 @@
 namespace fe::renderer
 {
 
-namespace detail
-{
-
-FE_DEFINE_RHI_RESOURCE_TRAITS(
-    rhi::Semaphore, 
+FE_DEFINE_RHI_RESOURCE_RAII_NO_CREATE_INFO(
+    Semaphore, 
     rhi::create_semaphore, 
     rhi::destroy_semaphore
 );
 
-FE_DEFINE_RHI_RESOURCE_TRAITS(
-    rhi::Fence, 
+FE_DEFINE_RHI_RESOURCE_RAII_NO_CREATE_INFO(
+    Fence, 
     rhi::create_fence, 
     rhi::destroy_fence
 );
-
-}
-
-using SemaphoreHandle = detail::HandleBase<rhi::Semaphore, void>;
-using SemaphoreRef = detail::RefBase<rhi::Semaphore>;
-
-using FenceHandle = detail::HandleBase<rhi::Fence, void>;
-using FenceRef = detail::RefBase<rhi::Fence>;
 
 }
