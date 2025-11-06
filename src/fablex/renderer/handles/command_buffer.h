@@ -183,6 +183,21 @@ public:
     {
         rhi::add_pipeline_barriers(this->m_resource, barriers.data(), barriers.size());
     }
+
+    void begin_event(const std::string& eventName)
+    {
+        rhi::begin_event(this->m_resource, eventName);
+    }
+
+    void end_event()
+    {
+        rhi::end_event(this->m_resource);
+    }
+
+    void set_marker(const std::string& markerName)
+    {
+        rhi::set_marker(this->m_resource, markerName);
+    }
 };
 
 }

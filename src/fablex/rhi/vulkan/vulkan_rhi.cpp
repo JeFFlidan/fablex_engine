@@ -5219,6 +5219,50 @@ void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, 
     vkCmdPipelineBarrier2(cmd->vk().cmdBuffer, &dependencyInfo);
 }
 
+void begin_event(CommandBuffer* cmd, const std::string& eventName)
+{
+    FE_CHECK(cmd);
+
+    if (g_instance.debugUtilsMessenger == VK_NULL_HANDLE)
+        return;
+
+    VkDebugUtilsLabelEXT label{};
+    label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    label.pLabelName = eventName.c_str();
+    label.color[0] = 0.0f;
+    label.color[1] = 0.0f;
+    label.color[2] = 0.0f;
+    label.color[3] = 1.0f;
+    vkCmdBeginDebugUtilsLabelEXT(cmd->vk().cmdBuffer, &label);
+}
+
+void end_event(CommandBuffer* cmd)
+{
+    FE_CHECK(cmd);
+
+    if (g_instance.debugUtilsMessenger == VK_NULL_HANDLE)
+        return;
+
+    vkCmdEndDebugUtilsLabelEXT(cmd->vk().cmdBuffer);
+}
+
+void set_marker(CommandBuffer* cmd, const std::string& markerName)
+{
+    FE_CHECK(cmd);
+
+    if (g_instance.debugUtilsMessenger == VK_NULL_HANDLE)
+        return;
+
+    VkDebugUtilsLabelEXT label{};
+    label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    label.pLabelName = markerName.c_str();
+    label.color[0] = 0.0f;
+    label.color[1] = 0.0f;
+    label.color[2] = 0.0f;
+    label.color[3] = 1.0f;
+    vkCmdInsertDebugUtilsLabelEXT(cmd->vk().cmdBuffer, &label);
+}
+
 void acquire_next_image(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex)
 {
     FE_CHECK(swapChain);
@@ -5597,6 +5641,10 @@ void fill_function_table()
     fe::rhi::dispatch_mesh = dispatch_mesh;
     fe::rhi::dispatch_rays = dispatch_rays;
     fe::rhi::add_pipeline_barriers = add_pipeline_barriers;
+
+    fe::rhi::begin_event = begin_event;
+    fe::rhi::end_event = end_event;
+    fe::rhi::set_marker = set_marker;
 
     fe::rhi::acquire_next_image = acquire_next_image;
     fe::rhi::submit = submit;

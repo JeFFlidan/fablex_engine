@@ -447,6 +447,8 @@ void Renderer::record_worker_cmds()
                     rg::RenderPass* renderPass = m_renderPassContainer->render_pass(node->get_info().renderPassName);
                     FE_CHECK(renderPass);
 
+                    cmd.begin_event(renderPass->name().to_string());
+
                     const PipelineBarrierArray& barriers = m_pipelineBarriersByPassName[renderPass->name()];
                     cmd.add_pipeline_barriers(barriers);
 
@@ -482,6 +484,8 @@ void Renderer::record_worker_cmds()
                             renderPass->end_rendering(cmd);
                         }
                     }
+
+                    cmd.end_event();
                 }
 
                 cmd.end_recording();

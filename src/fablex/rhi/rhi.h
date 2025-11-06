@@ -85,6 +85,10 @@ inline PFN_DispatchMesh dispatch_mesh = nullptr;
 inline PFN_DispatchRays dispatch_rays = nullptr;
 inline PFN_AddPipelineBarriers add_pipeline_barriers = nullptr;
 
+inline PFN_BeginEvent begin_event = nullptr;
+inline PFN_EndEvent end_event = nullptr;
+inline PFN_SetMarker set_marker = nullptr;
+
 inline PFN_AcquireNextImage acquire_next_image = nullptr;
 inline PFN_Submit submit = nullptr;
 inline PFN_Present present = nullptr;

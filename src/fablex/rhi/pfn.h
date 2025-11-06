@@ -90,6 +90,10 @@ using PFN_DispatchRays = void(*)(CommandBuffer* cmd, const DispatchRaysInfo* dis
 
 using PFN_AddPipelineBarriers = void(*)(CommandBuffer* cmd, const PipelineBarrier* barriers, uint32 barriersCount);
 
+using PFN_BeginEvent = void(*)(CommandBuffer* cmd, const std::string& eventName);
+using PFN_EndEvent = void(*)(CommandBuffer* cmd);
+using PFN_SetMarker = void(*)(CommandBuffer* cmd, const std::string& markerName);
+
 using PFN_AcquireNextImage = void(*)(SwapChain* swapChain, Semaphore* signalSemaphore, Fence* fence, uint32* frameIndex);
 using PFN_Submit = void(*)(const SubmitInfo* submitInfo);
 using PFN_Present = void(*)(const PresentInfo* presentInfo);
