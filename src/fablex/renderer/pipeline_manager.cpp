@@ -1,15 +1,9 @@
 #include "pipeline_manager.h"
 #include "shader_manager.h"
-#include "device.h"
 #include "render_graph/render_pass.h"
 #include "render_graph/resource_metadata.h"
 #include "render_graph/render_pass_container.h"
 #include "core/task_composer.h"
-#include "rhi/rhi.h"
-#include "rhi/utils.h"
-#include "rhi/resources/cmd.h"
-#include "rhi/resources/buffer.h"
-#include "rhi/resources/pipeline.h"
 #include "rhi/resources/graphics_pipeline_info.h"
 #include "rhi/resources/compute_pipeline_info.h"
 #include "rhi/resources/ray_tracing_pipeline_info.h"
@@ -27,8 +21,7 @@ PipelineManager::PipelineManager(ShaderManager* shaderManager) : m_shaderManager
 
 PipelineManager::~PipelineManager()
 {
-    for (auto& [name, identifier] : m_shaderIdentifiersByName)
-        rhi::destroy_buffer(identifier.buffer);
+
 }
 
 void PipelineManager::create_graphics_pipeline(const rg::PipelineMetadata& pipelineMetadata)
@@ -321,115 +314,11 @@ void PipelineManager::create_pipeline(PipelineName pipelineName, PipelineInfoVar
             m_shaderIdentifiersByName[pipelineName];
         }
 
-        const uint64 identifierSize = Device::shader_identifier_size();
-        const uint64 identifierAlignment = Device::shader_identifier_alignment();
-
-        RayTracingPipelineCreateInfo& infoRef = **info;
-
-        ShaderIdentifierBuffer& identifierBuffer = m_shaderIdentifiersByName[pipelineName];
-        if (identifierBuffer.buffer != nullptr)
+        ShaderIdentifiers& identifiers = m_shaderIdentifiersByName[pipelineName];
+        if (identifiers.is_valid())
             FE_LOG(LogRenderer, FATAL, "Pipeline name {} is not unique.", pipelineName);
 
-        identifierBuffer.stride = identifierSize;
-
-        BufferCreateInfo bufferInfo;
-        bufferInfo.bufferUsage = ResourceUsage::STORAGE_BUFFER;
-        bufferInfo.memoryUsage = MemoryUsage::CPU_TO_GPU;
-        bufferInfo.flags = ResourceFlags::RAY_TRACING;
-
-        uint32 raygenIdentifierCount = 0;
-        uint32 missShaderIdentifierCount = 0;
-        uint32 hitShaderIdentifierCount = 0;
-        uint32 callableShaderIdentifierCount = 0;
-
-        for (const ShaderHitGroup& hitGroup : infoRef.shaderHitGroups)
-        {
-            switch (hitGroup.shaderType)
-            {
-            case ShaderType::RAY_GENERATION:
-                ++raygenIdentifierCount; 
-                break;
-            case ShaderType::RAY_MISS: 
-                ++missShaderIdentifierCount; 
-                break;
-            case ShaderType::RAY_CALLABLE: 
-                ++callableShaderIdentifierCount; 
-                break;
-            case ShaderType::RAY_ANY_HIT:
-            case ShaderType::RAY_CLOSEST_HIT:
-            case ShaderType::RAY_INTERSECTION:
-                ++hitShaderIdentifierCount;
-                break;
-            default:
-                FE_CHECK(0);
-            }
-        }
-
-        uint64 globalOffset = 0;
-
-        identifierBuffer.raygenIdentifier.size = raygenIdentifierCount * identifierSize;
-        identifierBuffer.raygenIdentifier.offset = 0;
-        globalOffset += rhi::align_to(identifierBuffer.raygenIdentifier.size, identifierAlignment);
-
-        identifierBuffer.missIdentifier.size = missShaderIdentifierCount * identifierSize;
-        identifierBuffer.missIdentifier.offset = globalOffset;
-        globalOffset += rhi::align_to(identifierBuffer.missIdentifier.size, identifierAlignment);
-
-        identifierBuffer.hitGroupIdentifier.size = hitShaderIdentifierCount * identifierSize;
-        identifierBuffer.hitGroupIdentifier.offset = globalOffset;
-        globalOffset += rhi::align_to(identifierBuffer.hitGroupIdentifier.size, identifierAlignment);
-
-        identifierBuffer.callableIdentifier.size = callableShaderIdentifierCount * identifierSize;
-        identifierBuffer.callableIdentifier.offset = globalOffset;
-        globalOffset += rhi::align_to(identifierBuffer.callableIdentifier.size, identifierAlignment);
-
-        bufferInfo.size = globalOffset;
-        rhi::create_buffer(&identifierBuffer.buffer, &bufferInfo);
-
-        uint32 groupIndex = 0;
-
-        uint64 raygenLocalOffset = 0;
-        uint64 missLocalOffset = identifierBuffer.missIdentifier.offset;
-        uint64 hitLocalOffset = identifierBuffer.hitGroupIdentifier.offset;
-        uint64 callableLocalOffset = identifierBuffer.callableIdentifier.offset;
-
-        uint8* mappedData = static_cast<uint8*>(identifierBuffer.buffer->mappedData);
-
-        for (const ShaderHitGroup& shaderHitGroup : infoRef.shaderHitGroups)
-        {
-            switch (shaderHitGroup.shaderType)
-            {
-            case ShaderType::RAY_GENERATION:
-            {
-                rhi::write_shader_identifier(pipeline, groupIndex, mappedData + raygenLocalOffset);
-                raygenLocalOffset += identifierSize;
-                break;
-            }
-            case ShaderType::RAY_MISS:
-            {
-                rhi::write_shader_identifier(pipeline, groupIndex, mappedData + missLocalOffset);
-                missLocalOffset += identifierSize;
-                break;
-            }
-            case ShaderType::RAY_INTERSECTION:
-            case ShaderType::RAY_CLOSEST_HIT:
-            case ShaderType::RAY_ANY_HIT:
-            {
-                rhi::write_shader_identifier(pipeline, groupIndex, mappedData + hitLocalOffset);
-                hitLocalOffset += identifierSize;
-                break;
-            }
-            case ShaderType::RAY_CALLABLE:
-            {
-                rhi::write_shader_identifier(pipeline, groupIndex, mappedData + callableLocalOffset);
-                callableLocalOffset += identifierSize;
-                break;
-            }
-            default: FE_CHECK(0);
-            }
-            
-            ++groupIndex;
-        }
+        identifiers.init(pipeline, **info);
     }
 
     pipeline.set_name(pipelineName.to_string());
@@ -440,7 +329,7 @@ void PipelineManager::create_pipeline(PipelineName pipelineName, PipelineInfoVar
 
 void PipelineManager::fill_dispatch_rays_info(PipelineName name, DispatchRaysInfo& outInfo) const
 {
-    outInfo.shaderIdentifierBuffer = m_shaderIdentifiersByName.at(name);
+    m_shaderIdentifiersByName.at(name).fill_dispatch_rays_info(outInfo);
 }
 
 }

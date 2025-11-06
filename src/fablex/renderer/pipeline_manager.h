@@ -1,10 +1,10 @@
 #pragma once
 
 #include "common.h"
-#include "rhi/fwd.h"
+#include "shader_identifiers.h"
 #include "handles/pipeline.h"
 #include "handles/command_buffer.h"
-#include "rhi/resources/ray_tracing.h"
+
 #include "core/task_types.h"
 
 #include <unordered_map>
@@ -43,7 +43,7 @@ private:
     using PipelineInfoVariant = std::variant<GraphicsPipelineCreateInfo*, ComputePipelineCreateInfo*, RayTracingPipelineCreateInfo*>;
 
     std::unordered_map<PipelineName, PipelineHandle> m_pipelineByName;
-    std::unordered_map<PipelineName, rhi::ShaderIdentifierBuffer> m_shaderIdentifiersByName;  // Only for RT pipelines
+    std::unordered_map<PipelineName, ShaderIdentifiers> m_shaderIdentifiersByName;  // Only for RT pipelines
     std::mutex m_pipelineMapMutex;
     std::mutex m_shaderIdentifiersMapMutex;
     ShaderManager* m_shaderManager = nullptr;
