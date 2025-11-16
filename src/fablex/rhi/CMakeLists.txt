@@ -13,10 +13,16 @@ if (WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/*.h
     )
 
-    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${VULKAN_RHI_SRC})
+    file(GLOB D3D12_RHI_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/d3d12/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/d3d12/*.h
+    )
 
-    target_sources(rhi PRIVATE ${VULKAN_RHI_SRC})
-    target_link_libraries(rhi volk vma spirv_reflect core)
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${VULKAN_RHI_SRC})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${D3D12_RHI_SRC})
+
+    target_sources(rhi PRIVATE ${VULKAN_RHI_SRC} ${D3D12_RHI_SRC})
+    target_link_libraries(rhi volk vma spirv_reflect d3d12 core)
 endif()
 
 target_include_directories(rhi 

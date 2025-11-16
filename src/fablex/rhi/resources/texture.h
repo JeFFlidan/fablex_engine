@@ -32,6 +32,15 @@ struct alignas(64) Texture
 #endif // FE_VULKAN
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        ID3D12Resource* texture;
+        D3D12MA::Allocation* allocation;
+        D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = 0;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     uint32 width : 16;

@@ -15,6 +15,13 @@ struct Pipeline
 #endif
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        ID3D12PipelineState* pipelineState = nullptr;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     PipelineType type{PipelineType::UNDEFINED};

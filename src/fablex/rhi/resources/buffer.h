@@ -29,6 +29,15 @@ struct alignas(64) Buffer
 #endif
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        ID3D12Resource* buffer;
+        D3D12MA::Allocation* allocation;
+        D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = 0;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     uint64 size : 32;

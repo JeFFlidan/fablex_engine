@@ -23,6 +23,13 @@ struct CommandPool
 #endif
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        ID3D12CommandAllocator* cmdAllocator = nullptr;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     QueueType queueType;
@@ -39,6 +46,13 @@ struct CommandBuffer
     {
 #if defined(FE_VULKAN)
         VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
+#endif
+    };
+
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        ID3D12CommandList* cmdList = nullptr;
 #endif
     };
 

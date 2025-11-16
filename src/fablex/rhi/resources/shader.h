@@ -21,6 +21,13 @@ struct Shader
 #endif // FE_VULKAN
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        struct IDxcBlobEncoding* shaderBlob = nullptr;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     ShaderType type = ShaderType::UNDEFINED;

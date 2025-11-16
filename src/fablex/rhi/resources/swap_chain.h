@@ -28,6 +28,15 @@ struct SwapChain
 #endif // FE_VULKAN
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        IDXGISwapChain3* swapChain = nullptr;
+        std::vector<ID3D12Resource*> images;
+        std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     Window* window = nullptr;

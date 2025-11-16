@@ -12,7 +12,6 @@ public:
         : m_buffer(info)
     {
         m_data = m_buffer.mapped_data();
-        m_buffer.set_name("STAGING");
     }
 
     void reset()

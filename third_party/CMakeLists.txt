@@ -4,6 +4,9 @@ target_include_directories(volk INTERFACE volk vulkan)
 add_library(vma INTERFACE)
 target_include_directories(vma INTERFACE vma)
 
+add_library(d3d12 INTERFACE)
+target_include_directories(d3d12 INTERFACE ../third_party)
+
 add_library(tinygltf INTERFACE)
 target_include_directories(tinygltf INTERFACE tinygltf)
 

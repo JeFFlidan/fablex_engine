@@ -124,6 +124,15 @@ struct AccelerationStructure
 #endif // FE_VULKAN
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        ID3D12Resource* accelerationStructure;
+        D3D12MA::Allocation* allocation;
+        D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = 0;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     AccelerationStructureInfo info;

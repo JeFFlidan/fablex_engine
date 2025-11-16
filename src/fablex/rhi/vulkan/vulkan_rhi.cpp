@@ -14,6 +14,7 @@
 #include "rhi/rhi.h"
 #include "rhi/init_info.h"
 #include "rhi/utils.h"
+#include "rhi/macro.h"
 #include "rhi/resources.h"
 
 #include "core/logger.h"
@@ -5566,99 +5567,7 @@ void fill_function_table()
 {
     FE_LOG(LogVulkanRHI, INFO, "Starting Vulkan func table initialization.");
 
-    fe::rhi::init = init;
-    fe::rhi::cleanup = cleanup;
-
-    fe::rhi::create_swap_chain = create_swap_chain;
-    fe::rhi::destroy_swap_chain = destroy_swap_chain;
-
-    fe::rhi::create_buffer = create_buffer;
-    fe::rhi::update_buffer = update_buffer;
-    fe::rhi::destroy_buffer = destroy_buffer;
-
-    fe::rhi::create_texture = create_texture;
-    fe::rhi::destroy_texture = destroy_texture;
-    fe::rhi::create_texture_view = create_texture_view;
-    fe::rhi::destroy_texture_view = destroy_texture_view;
-    fe::rhi::create_buffer_view = create_buffer_view;
-    fe::rhi::destroy_buffer_view = destroy_buffer_view;
-    fe::rhi::create_sampler = create_sampler;
-    fe::rhi::destroy_sampler = destroy_sampler;
-    fe::rhi::create_shader = create_shader;
-    fe::rhi::destroy_shader = destroy_shader;
-    fe::rhi::create_graphics_pipeline = create_graphics_pipeline;
-    fe::rhi::create_compute_pipeline = create_compute_pipeline;
-    fe::rhi::create_ray_tracing_pipeline = create_ray_tracing_pipeline;
-    fe::rhi::destroy_pipeline = destroy_pipeline;
-
-    fe::rhi::create_acceleration_structure = create_acceleration_structure;
-    fe::rhi::destroy_acceleration_structure = destroy_acceleration_structure;
-    fe::rhi::write_top_level_acceleration_structure_instance = write_top_level_acceleration_structure_instance;
-    fe::rhi::write_shader_identifier = write_shader_identifier;
-
-    fe::rhi::bind_uniform_buffer = bind_uniform_buffer;
-
-    fe::rhi::create_command_pool = create_command_pool;
-    fe::rhi::destroy_command_pool = destroy_command_pool;
-    fe::rhi::create_command_buffer = create_command_buffer;
-    fe::rhi::destroy_command_buffer = destroy_command_buffer;
-    fe::rhi::begin_command_buffer = begin_command_buffer;
-    fe::rhi::end_command_buffer = end_command_buffer;
-    fe::rhi::reset_command_pool = reset_command_pool;
-
-    fe::rhi::create_semaphore = create_semaphore;
-    fe::rhi::destroy_semaphore = destroy_semaphore;
-    fe::rhi::create_fence = create_fence;
-    fe::rhi::destroy_fence = destroy_fence;
-
-    fe::rhi::fill_buffer = fill_buffer;
-    fe::rhi::copy_buffer = copy_buffer;
-    fe::rhi::copy_texture = copy_texture;
-    fe::rhi::init_texture = init_texture;
-    fe::rhi::copy_buffer_to_texture = copy_buffer_to_texture;
-    fe::rhi::copy_texture_to_buffer = copy_texture_to_buffer;
-    fe::rhi::blit_texture = blit_texture;
-
-    fe::rhi::set_viewports = set_viewports;
-    fe::rhi::set_scissors = set_scissors;
-    
-    fe::rhi::push_constants = push_constants;
-    fe::rhi::bind_vertex_buffer = bind_vertex_buffer;
-    fe::rhi::bind_index_buffer = bind_index_buffer;
-    fe::rhi::bind_pipeline = bind_pipeline;
-
-    fe::rhi::build_acceleration_structure = build_acceleration_structure;
-
-    fe::rhi::begin_rendering = begin_rendering;
-    fe::rhi::end_rendering = end_rendering;
-
-    fe::rhi::draw = draw;
-    fe::rhi::draw_indexed = draw_indexed;
-    fe::rhi::draw_indirect = draw_indirect;
-    fe::rhi::draw_indexed_indirect = draw_indexed_indirect;
-
-    fe::rhi::dispatch = dispatch;
-    fe::rhi::dispatch_mesh = dispatch_mesh;
-    fe::rhi::dispatch_rays = dispatch_rays;
-    fe::rhi::add_pipeline_barriers = add_pipeline_barriers;
-
-    fe::rhi::begin_event = begin_event;
-    fe::rhi::end_event = end_event;
-    fe::rhi::set_marker = set_marker;
-
-    fe::rhi::acquire_next_image = acquire_next_image;
-    fe::rhi::submit = submit;
-    fe::rhi::present = present;
-    fe::rhi::wait_queue_idle = wait_queue_idle;
-    fe::rhi::wait_for_fences = wait_for_fences;
-
-    fe::rhi::get_api = get_api;
-    fe::rhi::set_frame_index = set_frame_index;
-    fe::rhi::set_name = set_name;
-
-    fe::rhi::get_min_offset_alignment = get_min_offset_alignment;
-
-    fe::rhi::get_gpu_properties = get_gpu_properties;
+    FE_FILL_RHI_FUNCTION_TABLE();
 
     FE_LOG(LogVulkanRHI, INFO, "Vulkan func table initialization completed.");
 }

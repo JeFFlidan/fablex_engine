@@ -45,6 +45,13 @@ struct TextureView
 #endif // FE_VULKAN
     };
 
+    struct D3D12
+    {
+#if defined(FE_D3D12)
+        D3D12_CPU_DESCRIPTOR_HANDLE handle;
+#endif
+    };
+
     FE_DEFINE_RHI_RESOURCE()
 
     const Texture* texture;
