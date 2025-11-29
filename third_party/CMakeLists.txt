@@ -41,6 +41,13 @@ add_library(dxc INTERFACE)
 target_include_directories(dxc INTERFACE dxc)
 target_link_libraries(dxc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/dxc/dxcompiler.lib)
 
+add_library(d3d12ma)
+target_include_directories(d3d12ma PUBLIC d3d12ma)
+target_sources(d3d12ma PRIVATE
+    d3d12ma/D3D12MemAlloc.h
+    d3d12ma/D3D12MemAlloc.cpp
+)
+
 add_library(json INTERFACE)
 target_include_directories(json INTERFACE json)
 
