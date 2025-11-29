@@ -16,6 +16,7 @@
 #include "rhi/utils.h"
 #include "rhi/macro.h"
 #include "rhi/resources.h"
+#include "rhi/allocator.h"
 
 #include "core/logger.h"
 #include "core/memory/pool_allocator.h"
@@ -54,307 +55,307 @@ namespace fe::rhi::vulkan
 #pragma region [ UTILITY ]
 //============================================================================================================================================================================================
 
-VkFormat get_format(rhi::Format format)
+VkFormat get_format(Format format)
 {
     switch (format)
     {
-        case rhi::Format::UNDEFINED:
+        case Format::UNDEFINED:
             return VK_FORMAT_UNDEFINED;
-        case rhi::Format::R4G4_UNORM:
+        case Format::R4G4_UNORM:
             return VK_FORMAT_R4G4_UNORM_PACK8;
-        case rhi::Format::R4G4B4A4_UNORM:
+        case Format::R4G4B4A4_UNORM:
             return VK_FORMAT_R4G4B4A4_UNORM_PACK16;
-        case rhi::Format::B4G4R4A4_UNORM:
+        case Format::B4G4R4A4_UNORM:
             return VK_FORMAT_B4G4R4A4_UNORM_PACK16;
-        case rhi::Format::R5G5B5A1_UNORM:
+        case Format::R5G5B5A1_UNORM:
             return VK_FORMAT_R5G5B5A1_UNORM_PACK16;
-        case rhi::Format::B5G5R5A1_UNORM:
+        case Format::B5G5R5A1_UNORM:
             return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
-        case rhi::Format::A1R5G5B5_UNORM:
+        case Format::A1R5G5B5_UNORM:
             return VK_FORMAT_A1R5G5B5_UNORM_PACK16;
 
-        case rhi::Format::R8_UNORM:
+        case Format::R8_UNORM:
             return VK_FORMAT_R8_UNORM;
-        case rhi::Format::R8_SNORM:
+        case Format::R8_SNORM:
             return VK_FORMAT_R8_SNORM;
-        case rhi::Format::R8_UINT:
+        case Format::R8_UINT:
             return VK_FORMAT_R8_UINT;
-        case rhi::Format::R8_SINT:
+        case Format::R8_SINT:
             return VK_FORMAT_R8_SINT;
-        case rhi::Format::R8_SRGB:
+        case Format::R8_SRGB:
             return VK_FORMAT_R8_SRGB;
 
-        case rhi::Format::R8G8_UNORM:
+        case Format::R8G8_UNORM:
             return VK_FORMAT_R8G8_UNORM;
-        case rhi::Format::R8G8_SNORM:
+        case Format::R8G8_SNORM:
             return VK_FORMAT_R8G8_SNORM;
-        case rhi::Format::R8G8_UINT:
+        case Format::R8G8_UINT:
             return VK_FORMAT_R8G8_UINT;
-        case rhi::Format::R8G8_SINT:
+        case Format::R8G8_SINT:
             return VK_FORMAT_R8G8_SINT;
-        case rhi::Format::R8G8_SRGB:
+        case Format::R8G8_SRGB:
             return VK_FORMAT_R8G8_SRGB;
 
-        case rhi::Format::R8G8B8A8_UNORM:
+        case Format::R8G8B8A8_UNORM:
             return VK_FORMAT_R8G8B8A8_UNORM;
-        case rhi::Format::R8G8B8A8_SNORM:
+        case Format::R8G8B8A8_SNORM:
             return VK_FORMAT_R8G8B8A8_SNORM;
-        case rhi::Format::R8G8B8A8_UINT:
+        case Format::R8G8B8A8_UINT:
             return VK_FORMAT_R8G8B8A8_UINT;
-        case rhi::Format::R8G8B8A8_SINT:
+        case Format::R8G8B8A8_SINT:
             return VK_FORMAT_R8G8B8A8_SINT;
-        case rhi::Format::R8G8B8A8_SRGB:
+        case Format::R8G8B8A8_SRGB:
             return VK_FORMAT_R8G8B8A8_SRGB;
 
-        case rhi::Format::B8G8R8A8_SRGB:
+        case Format::B8G8R8A8_SRGB:
             return VK_FORMAT_B8G8R8A8_SRGB;
-        case rhi::Format::B8G8R8A8_UNORM:
+        case Format::B8G8R8A8_UNORM:
             return VK_FORMAT_B8G8R8A8_UNORM;
-        case rhi::Format::B8G8R8A8_SNORM:
+        case Format::B8G8R8A8_SNORM:
             return VK_FORMAT_B8G8R8A8_SNORM;
 
-        case rhi::Format::R10G10B10A2_UNORM:
+        case Format::R10G10B10A2_UNORM:
             return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-        case rhi::Format::R10G10B10A2_SNORM:
+        case Format::R10G10B10A2_SNORM:
             return VK_FORMAT_A2R10G10B10_SNORM_PACK32;
 
-        case rhi::Format::R16_UNORM:
+        case Format::R16_UNORM:
             return VK_FORMAT_R16_UNORM;
-        case rhi::Format::R16_SNORM:
+        case Format::R16_SNORM:
             return VK_FORMAT_R16_SNORM;
-        case rhi::Format::R16_UINT:
+        case Format::R16_UINT:
             return VK_FORMAT_R16_UINT;
-        case rhi::Format::R16_SINT:
+        case Format::R16_SINT:
             return VK_FORMAT_R16_SINT;
-        case rhi::Format::R16_SFLOAT:
+        case Format::R16_SFLOAT:
             return VK_FORMAT_R16_SFLOAT;
 
-        case rhi::Format::R16G16_UNORM:
+        case Format::R16G16_UNORM:
             return VK_FORMAT_R16G16_UNORM;
-        case rhi::Format::R16G16_SNORM:
+        case Format::R16G16_SNORM:
             return VK_FORMAT_R16G16_SNORM;
-        case rhi::Format::R16G16_UINT:
+        case Format::R16G16_UINT:
             return VK_FORMAT_R16G16_UINT;
-        case rhi::Format::R16G16_SINT:
+        case Format::R16G16_SINT:
             return VK_FORMAT_R16G16_SINT;
-        case rhi::Format::R16G16_SFLOAT:
+        case Format::R16G16_SFLOAT:
             return VK_FORMAT_R16G16_SFLOAT;
 
-        case rhi::Format::R16G16B16A16_UNORM:
+        case Format::R16G16B16A16_UNORM:
             return VK_FORMAT_R16G16B16A16_UNORM;
-        case rhi::Format::R16G16B16A16_SNORM:
+        case Format::R16G16B16A16_SNORM:
             return VK_FORMAT_R16G16B16A16_SNORM;
-        case rhi::Format::R16G16B16A16_UINT:
+        case Format::R16G16B16A16_UINT:
             return VK_FORMAT_R16G16B16A16_UINT;
-        case rhi::Format::R16G16B16A16_SINT:
+        case Format::R16G16B16A16_SINT:
             return VK_FORMAT_R16G16B16A16_SINT;
-        case rhi::Format::R16G16B16A16_SFLOAT:
+        case Format::R16G16B16A16_SFLOAT:
             return VK_FORMAT_R16G16B16A16_SFLOAT;
 
-        case rhi::Format::R32_UINT:
+        case Format::R32_UINT:
             return VK_FORMAT_R32_UINT;
-        case rhi::Format::R32_SINT:
+        case Format::R32_SINT:
             return VK_FORMAT_R32_SINT;
-        case rhi::Format::R32_SFLOAT:
+        case Format::R32_SFLOAT:
             return VK_FORMAT_R32_SFLOAT;
-        case rhi::Format::R32G32_UINT:
+        case Format::R32G32_UINT:
             return VK_FORMAT_R32G32_UINT;
-        case rhi::Format::R32G32_SINT:
+        case Format::R32G32_SINT:
             return VK_FORMAT_R32G32_SINT;
-        case rhi::Format::R32G32_SFLOAT:
+        case Format::R32G32_SFLOAT:
             return VK_FORMAT_R32G32_SFLOAT;
 
-        case rhi::Format::R32G32B32_UINT:
+        case Format::R32G32B32_UINT:
             return VK_FORMAT_R32G32B32_UINT;
-        case rhi::Format::R32G32B32_SINT:
+        case Format::R32G32B32_SINT:
             return VK_FORMAT_R32G32B32_SINT;
-        case rhi::Format::R32G32B32_SFLOAT:
+        case Format::R32G32B32_SFLOAT:
             return VK_FORMAT_R32G32B32_SFLOAT;
 
-        case rhi::Format::R32G32B32A32_UINT:
+        case Format::R32G32B32A32_UINT:
             return VK_FORMAT_R32G32B32A32_UINT;
-        case rhi::Format::R32G32B32A32_SINT:
+        case Format::R32G32B32A32_SINT:
             return VK_FORMAT_R32G32B32A32_SINT;
-        case rhi::Format::R32G32B32A32_SFLOAT:
+        case Format::R32G32B32A32_SFLOAT:
             return VK_FORMAT_R32G32B32A32_SFLOAT;
 
-        case rhi::Format::D16_UNORM:
+        case Format::D16_UNORM:
             return VK_FORMAT_D16_UNORM;
-        case rhi::Format::D32_SFLOAT:
+        case Format::D32_SFLOAT:
             return VK_FORMAT_D32_SFLOAT;
 
-        case rhi::Format::S8_UINT:
+        case Format::S8_UINT:
             return VK_FORMAT_S8_UINT;
-        case rhi::Format::D16_UNORM_S8_UINT:
+        case Format::D16_UNORM_S8_UINT:
             return VK_FORMAT_D16_UNORM_S8_UINT;
-        case rhi::Format::D24_UNORM_S8_UINT:
+        case Format::D24_UNORM_S8_UINT:
             return VK_FORMAT_D24_UNORM_S8_UINT;
-        case rhi::Format::D32_SFLOAT_S8_UINT:
+        case Format::D32_SFLOAT_S8_UINT:
             return VK_FORMAT_D32_SFLOAT_S8_UINT;
             
-        case rhi::Format::BC1_RGBA_UNORM:
+        case Format::BC1_RGBA_UNORM:
             return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
-        case rhi::Format::BC1_RGBA_SRGB_UNORM:
+        case Format::BC1_RGBA_SRGB_UNORM:
             return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
-        case rhi::Format::BC2_UNORM:
+        case Format::BC2_UNORM:
             return VK_FORMAT_BC2_UNORM_BLOCK;
-        case rhi::Format::BC2_SRGB:
+        case Format::BC2_SRGB:
             return VK_FORMAT_BC2_SRGB_BLOCK;
-        case rhi::Format::BC3_UNORM:
+        case Format::BC3_UNORM:
             return VK_FORMAT_BC3_UNORM_BLOCK;
-        case rhi::Format::BC3_SRGB:
+        case Format::BC3_SRGB:
             return VK_FORMAT_BC3_SRGB_BLOCK;
-        case rhi::Format::BC4_UNORM:
+        case Format::BC4_UNORM:
             return VK_FORMAT_BC4_UNORM_BLOCK;
-        case rhi::Format::BC4_SNORM:
+        case Format::BC4_SNORM:
             return VK_FORMAT_BC4_SNORM_BLOCK;
-        case rhi::Format::BC5_UNORM:
+        case Format::BC5_UNORM:
             return VK_FORMAT_BC5_UNORM_BLOCK;
-        case rhi::Format::BC5_SNORM:
+        case Format::BC5_SNORM:
             return VK_FORMAT_BC5_SNORM_BLOCK;
-        case rhi::Format::BC6H_UFLOAT:
+        case Format::BC6H_UFLOAT:
             return VK_FORMAT_BC6H_UFLOAT_BLOCK;
-        case rhi::Format::BC6H_SFLOAT:
+        case Format::BC6H_SFLOAT:
             return VK_FORMAT_BC6H_SFLOAT_BLOCK;
-        case rhi::Format::BC7_UNORM:
+        case Format::BC7_UNORM:
             return VK_FORMAT_BC7_UNORM_BLOCK;
-        case rhi::Format::BC7_SRGB:
+        case Format::BC7_SRGB:
             return VK_FORMAT_BC7_SRGB_BLOCK;
     }
 
     return VK_FORMAT_UNDEFINED;
 }
 
-VkSampleCountFlagBits get_sample_count(rhi::SampleCount sampleCount)
+VkSampleCountFlagBits get_sample_count(SampleCount sampleCount)
 {
     switch (sampleCount)
     {
         default:
-        case rhi::SampleCount::UNDEFINED:
+        case SampleCount::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Sample count is UNDEFINED.");
             return VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
-        case rhi::SampleCount::BIT_1:
+        case SampleCount::BIT_1:
             return VK_SAMPLE_COUNT_1_BIT;
-        case rhi::SampleCount::BIT_2:
+        case SampleCount::BIT_2:
             return VK_SAMPLE_COUNT_2_BIT;
-        case rhi::SampleCount::BIT_4:
+        case SampleCount::BIT_4:
             return VK_SAMPLE_COUNT_4_BIT;
-        case rhi::SampleCount::BIT_8:
+        case SampleCount::BIT_8:
             return VK_SAMPLE_COUNT_8_BIT;
-        case rhi::SampleCount::BIT_16:
+        case SampleCount::BIT_16:
             return VK_SAMPLE_COUNT_16_BIT;
-        case rhi::SampleCount::BIT_32:
+        case SampleCount::BIT_32:
             return VK_SAMPLE_COUNT_32_BIT;
-        case rhi::SampleCount::BIT_64:
+        case SampleCount::BIT_64:
             return VK_SAMPLE_COUNT_64_BIT;
     }
 }
 
-VmaMemoryUsage get_memory_usage(rhi::MemoryUsage memoryUsage)
+VmaMemoryUsage get_memory_usage(MemoryUsage memoryUsage)
 {
     switch (memoryUsage)
     {
         default:
-        case rhi::MemoryUsage::AUTO:
-        case rhi::MemoryUsage::CPU_TO_GPU:
-        case rhi::MemoryUsage::GPU_TO_CPU:
+        case MemoryUsage::AUTO:
+        case MemoryUsage::CPU_TO_GPU:
+        case MemoryUsage::GPU_TO_CPU:
             return VMA_MEMORY_USAGE_AUTO;
-        case rhi::MemoryUsage::CPU:
+        case MemoryUsage::CPU:
             return VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
-        case rhi::MemoryUsage::GPU:
+        case MemoryUsage::GPU:
             return VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     }
 }
 
-VkImageType get_image_type(rhi::TextureDimension dimension)
+VkImageType get_image_type(TextureDimension dimension)
 {
     switch (dimension)
     {
         default:
-        case rhi::TextureDimension::UNDEFINED:
+        case TextureDimension::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Texture dimension is UNDEFINED.");
             return VK_IMAGE_TYPE_MAX_ENUM;
-        case rhi::TextureDimension::TEXTURE1D:
+        case TextureDimension::TEXTURE1D:
             return VK_IMAGE_TYPE_1D;
-        case rhi::TextureDimension::TEXTURE2D:
+        case TextureDimension::TEXTURE2D:
             return VK_IMAGE_TYPE_2D;
-        case rhi::TextureDimension::TEXTURE3D:
+        case TextureDimension::TEXTURE3D:
             return VK_IMAGE_TYPE_3D;
     }
 }
 
-void get_filter(rhi::Filter filter, VkSamplerCreateInfo& samplerInfo)
+void get_filter(Filter filter, VkSamplerCreateInfo& samplerInfo)
 {
     switch (filter)
     {
-        case rhi::Filter::MIN_MAG_MIP_NEAREST:
-        case rhi::Filter::MINIMUM_MIN_MAG_MIP_NEAREST:
-        case rhi::Filter::MAXIMUM_MIN_MAG_MIP_NEAREST:
-        case rhi::Filter::COMPARISON_MIN_MAG_MIP_NEAREST:
+        case Filter::MIN_MAG_MIP_NEAREST:
+        case Filter::MINIMUM_MIN_MAG_MIP_NEAREST:
+        case Filter::MAXIMUM_MIN_MAG_MIP_NEAREST:
+        case Filter::COMPARISON_MIN_MAG_MIP_NEAREST:
             samplerInfo.minFilter = VK_FILTER_NEAREST;
             samplerInfo.magFilter = VK_FILTER_NEAREST;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             break;
-        case rhi::Filter::MIN_MAG_NEAREST_MIP_LINEAR:
-        case rhi::Filter::MINIMUM_MIN_MAG_NEAREST_MIP_LINEAR:
-        case rhi::Filter::MAXIMUM_MIN_MAG_NEAREST_MIP_LINEAR:
-        case rhi::Filter::COMPARISON_MIN_MAG_NEAREST_MIP_LINEAR:
+        case Filter::MIN_MAG_NEAREST_MIP_LINEAR:
+        case Filter::MINIMUM_MIN_MAG_NEAREST_MIP_LINEAR:
+        case Filter::MAXIMUM_MIN_MAG_NEAREST_MIP_LINEAR:
+        case Filter::COMPARISON_MIN_MAG_NEAREST_MIP_LINEAR:
             samplerInfo.minFilter = VK_FILTER_NEAREST;
             samplerInfo.magFilter = VK_FILTER_NEAREST;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             break;
-        case rhi::Filter::MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
-        case rhi::Filter::MINIMUM_MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
-        case rhi::Filter::MAXIMUM_MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
-        case rhi::Filter::COMPARISON_MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
+        case Filter::MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
+        case Filter::MINIMUM_MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
+        case Filter::MAXIMUM_MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
+        case Filter::COMPARISON_MIN_NEAREST_MAG_LINEAR_MIP_NEAREST:
             samplerInfo.minFilter = VK_FILTER_NEAREST;
             samplerInfo.magFilter = VK_FILTER_LINEAR;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             break;
-        case rhi::Filter::MIN_NEAREST_MAG_MIP_LINEAR:
-        case rhi::Filter::MINIMUM_MIN_NEAREST_MAG_MIP_LINEAR:
-        case rhi::Filter::MAXIMUM_MIN_NEAREST_MAG_MIP_LINEAR:
-        case rhi::Filter::COMPARISON_MIN_NEAREST_MAG_MIP_LINEAR:
+        case Filter::MIN_NEAREST_MAG_MIP_LINEAR:
+        case Filter::MINIMUM_MIN_NEAREST_MAG_MIP_LINEAR:
+        case Filter::MAXIMUM_MIN_NEAREST_MAG_MIP_LINEAR:
+        case Filter::COMPARISON_MIN_NEAREST_MAG_MIP_LINEAR:
             samplerInfo.minFilter = VK_FILTER_NEAREST;
             samplerInfo.magFilter = VK_FILTER_LINEAR;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             break;
-        case rhi::Filter::MIN_LINEAR_MAG_MIP_NEAREST:
-        case rhi::Filter::MINIMUM_MIN_LINEAR_MAG_MIP_NEAREST:
-        case rhi::Filter::MAXIMUM_MIN_LINEAR_MAG_MIP_NEAREST:
-        case rhi::Filter::COMPARISON_MIN_LINEAR_MAG_MIP_NEAREST:
+        case Filter::MIN_LINEAR_MAG_MIP_NEAREST:
+        case Filter::MINIMUM_MIN_LINEAR_MAG_MIP_NEAREST:
+        case Filter::MAXIMUM_MIN_LINEAR_MAG_MIP_NEAREST:
+        case Filter::COMPARISON_MIN_LINEAR_MAG_MIP_NEAREST:
             samplerInfo.minFilter = VK_FILTER_LINEAR;
             samplerInfo.magFilter = VK_FILTER_NEAREST;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             break;
-        case rhi::Filter::MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
-        case rhi::Filter::MINIMUM_MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
-        case rhi::Filter::MAXIMUM_MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
-        case rhi::Filter::COMPARISON_MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
+        case Filter::MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
+        case Filter::MINIMUM_MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
+        case Filter::MAXIMUM_MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
+        case Filter::COMPARISON_MIN_LINEAR_MAG_NEAREST_MIP_LINEAR:
             samplerInfo.minFilter = VK_FILTER_LINEAR;
             samplerInfo.magFilter = VK_FILTER_NEAREST;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             break;
-        case rhi::Filter::MIN_MAG_LINEAR_MIP_NEAREST:
-        case rhi::Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST:
-        case rhi::Filter::MAXIMUM_MIN_MAG_LINEAR_MIP_NEAREST:
-        case rhi::Filter::COMPARISON_MIN_MAG_LINEAR_MIP_NEAREST:
+        case Filter::MIN_MAG_LINEAR_MIP_NEAREST:
+        case Filter::MINIMUM_MIN_MAG_LINEAR_MIP_NEAREST:
+        case Filter::MAXIMUM_MIN_MAG_LINEAR_MIP_NEAREST:
+        case Filter::COMPARISON_MIN_MAG_LINEAR_MIP_NEAREST:
             samplerInfo.minFilter = VK_FILTER_LINEAR;
             samplerInfo.magFilter = VK_FILTER_LINEAR;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             break;
-        case rhi::Filter::MIN_MAG_MIP_LINEAR:
-        case rhi::Filter::MINIMUM_MIN_MAG_MIP_LINEAR:
-        case rhi::Filter::MAXIMUM_MIN_MAG_MIP_LINEAR:
-        case rhi::Filter::COMPARISON_MIN_MAG_MIP_LINEAR:
+        case Filter::MIN_MAG_MIP_LINEAR:
+        case Filter::MINIMUM_MIN_MAG_MIP_LINEAR:
+        case Filter::MAXIMUM_MIN_MAG_MIP_LINEAR:
+        case Filter::COMPARISON_MIN_MAG_MIP_LINEAR:
             samplerInfo.minFilter = VK_FILTER_LINEAR;
             samplerInfo.magFilter = VK_FILTER_LINEAR;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             break;
-        case rhi::Filter::ANISOTROPIC:
-        case rhi::Filter::MINIMUM_ANISOTROPIC:
-        case rhi::Filter::MAXIMUM_ANISOTROPIC:
-        case rhi::Filter::COMPARISON_ANISOTROPIC:
+        case Filter::ANISOTROPIC:
+        case Filter::MINIMUM_ANISOTROPIC:
+        case Filter::MAXIMUM_ANISOTROPIC:
+        case Filter::COMPARISON_ANISOTROPIC:
             // have to think about this
             samplerInfo.minFilter = VK_FILTER_LINEAR;
             samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -369,86 +370,86 @@ void get_filter(rhi::Filter filter, VkSamplerCreateInfo& samplerInfo)
     }
 }
 
-VkBorderColor get_border_color(rhi::BorderColor borderColor)
+VkBorderColor get_border_color(BorderColor borderColor)
 {
     switch (borderColor)
     {
         default:
-        case rhi::BorderColor::UNDEFINED:
+        case BorderColor::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Border color is UNDEFINED");
             return VK_BORDER_COLOR_MAX_ENUM;
-        case rhi::BorderColor::FLOAT_TRANSPARENT_BLACK:
+        case BorderColor::FLOAT_TRANSPARENT_BLACK:
             return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-        case rhi::BorderColor::INT_TRANSPARENT_BLACK:
+        case BorderColor::INT_TRANSPARENT_BLACK:
             return VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
-        case rhi::BorderColor::FLOAT_OPAQUE_BLACK:
+        case BorderColor::FLOAT_OPAQUE_BLACK:
             return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-        case rhi::BorderColor::INT_OPAQUE_BLACK:
+        case BorderColor::INT_OPAQUE_BLACK:
             return VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        case rhi::BorderColor::FLOAT_OPAQUE_WHITE:
+        case BorderColor::FLOAT_OPAQUE_WHITE:
             return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-        case rhi::BorderColor::INT_OPAQUE_WHITE:
+        case BorderColor::INT_OPAQUE_WHITE:
             return VK_BORDER_COLOR_INT_OPAQUE_WHITE;
     }
 }
 
-VkSamplerAddressMode get_address_mode(rhi::AddressMode addressMode)
+VkSamplerAddressMode get_address_mode(AddressMode addressMode)
 {
     switch (addressMode)
     {
         default:
-        case rhi::AddressMode::UNDEFINED:
+        case AddressMode::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Address mode is UNDEFINED.");
             return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
-        case rhi::AddressMode::REPEAT:
+        case AddressMode::REPEAT:
             return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        case rhi::AddressMode::MIRRORED_REPEAT:
+        case AddressMode::MIRRORED_REPEAT:
             return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-        case rhi::AddressMode::CLAMP_TO_EDGE:
+        case AddressMode::CLAMP_TO_EDGE:
             return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        case rhi::AddressMode::CLAMP_TO_BORDER:
+        case AddressMode::CLAMP_TO_BORDER:
             return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-        case rhi::AddressMode::MIRROR_CLAMP_TO_EDGE:
+        case AddressMode::MIRROR_CLAMP_TO_EDGE:
             return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
     }
 }
 
-VkBufferUsageFlags get_buffer_usage(rhi::ResourceUsage usage)
+VkBufferUsageFlags get_buffer_usage(ResourceUsage usage)
 {
     VkBufferUsageFlags usageFlags = 0;
-    if (has_flag(usage, rhi::ResourceUsage::TRANSFER_SRC))
+    if (has_flag(usage, ResourceUsage::TRANSFER_SRC))
     {
         usageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::TRANSFER_DST))
+    if (has_flag(usage, ResourceUsage::TRANSFER_DST))
     {
         usageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::UNIFORM_TEXEL_BUFFER))
+    if (has_flag(usage, ResourceUsage::UNIFORM_TEXEL_BUFFER))
     {
         usageFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::STORAGE_TEXEL_BUFFER))
+    if (has_flag(usage, ResourceUsage::STORAGE_TEXEL_BUFFER))
     {
         usageFlags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::UNIFORM_BUFFER))
+    if (has_flag(usage, ResourceUsage::UNIFORM_BUFFER))
     {
         usageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::STORAGE_BUFFER))
+    if (has_flag(usage, ResourceUsage::STORAGE_BUFFER))
     {
         usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::INDEX_BUFFER))
+    if (has_flag(usage, ResourceUsage::INDEX_BUFFER))
     {
         usageFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::VERTEX_BUFFER))
+    if (has_flag(usage, ResourceUsage::VERTEX_BUFFER))
     {
         usageFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::INDIRECT_BUFFER))
+    if (has_flag(usage, ResourceUsage::INDIRECT_BUFFER))
     {
         usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     }
@@ -456,380 +457,380 @@ VkBufferUsageFlags get_buffer_usage(rhi::ResourceUsage usage)
     return usageFlags;
 }
 
-VkImageUsageFlags get_image_usage(rhi::ResourceUsage usage)
+VkImageUsageFlags get_image_usage(ResourceUsage usage)
 {
     VkImageUsageFlags usageFlags = 0;
-    if (has_flag(usage, rhi::ResourceUsage::TRANSFER_SRC))
+    if (has_flag(usage, ResourceUsage::TRANSFER_SRC))
     {
         usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::TRANSFER_DST))
+    if (has_flag(usage, ResourceUsage::TRANSFER_DST))
     {
         usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::SAMPLED_TEXTURE))
+    if (has_flag(usage, ResourceUsage::SAMPLED_TEXTURE))
     {
         usageFlags |= VK_IMAGE_USAGE_SAMPLED_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::STORAGE_TEXTURE))
+    if (has_flag(usage, ResourceUsage::STORAGE_TEXTURE))
     {
         usageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::COLOR_ATTACHMENT))
+    if (has_flag(usage, ResourceUsage::COLOR_ATTACHMENT))
     {
         usageFlags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
+    if (has_flag(usage, ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
     {
         usageFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::TRANSIENT_ATTACHMENT))
+    if (has_flag(usage, ResourceUsage::TRANSIENT_ATTACHMENT))
     {
         usageFlags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
     }
-    if (has_flag(usage, rhi::ResourceUsage::INPUT_ATTACHMENT))
+    if (has_flag(usage, ResourceUsage::INPUT_ATTACHMENT))
     {
         usageFlags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     }
     return usageFlags;
 }
 
-VkPrimitiveTopology get_primitive_topology(rhi::TopologyType topologyType)
+VkPrimitiveTopology get_primitive_topology(TopologyType topologyType)
 {
     switch (topologyType)
     {
         default:
-        case rhi::TopologyType::UNDEFINED:
+        case TopologyType::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Topology type is UNDEFINED.");
             return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
-        case rhi::TopologyType::POINT:
+        case TopologyType::POINT:
             return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-        case rhi::TopologyType::LINE:
+        case TopologyType::LINE:
             return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        case rhi::TopologyType::TRIANGLE:
+        case TopologyType::TRIANGLE:
             return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        case rhi::TopologyType::PATCH:
+        case TopologyType::PATCH:
             return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
     }
 }
 
-VkPolygonMode get_polygon_mode(rhi::PolygonMode polygonMode)
+VkPolygonMode get_polygon_mode(PolygonMode polygonMode)
 {
     switch (polygonMode)
     {
         default:
-        case rhi::PolygonMode::UNDEFINED:
+        case PolygonMode::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Polygon mode is UNDEFINED.");
             return VK_POLYGON_MODE_MAX_ENUM;
-        case rhi::PolygonMode::FILL:
+        case PolygonMode::FILL:
             return VK_POLYGON_MODE_FILL;
-        case rhi::PolygonMode::LINE:
+        case PolygonMode::LINE:
             return VK_POLYGON_MODE_LINE;
-        case rhi::PolygonMode::POINT:
+        case PolygonMode::POINT:
             return VK_POLYGON_MODE_POINT;
     }
 }
 
-VkCullModeFlags get_cull_mode(rhi::CullMode cullMode)
+VkCullModeFlags get_cull_mode(CullMode cullMode)
 {
     switch (cullMode)
     {
         default:
-        case rhi::CullMode::UNDEFINED:
+        case CullMode::UNDEFINED:
             return VK_CULL_MODE_FLAG_BITS_MAX_ENUM;
-        case rhi::CullMode::NONE:
+        case CullMode::NONE:
             return VK_CULL_MODE_NONE;
-        case rhi::CullMode::FRONT:
+        case CullMode::FRONT:
             return VK_CULL_MODE_FRONT_BIT;
-        case rhi::CullMode::BACK:
+        case CullMode::BACK:
             return VK_CULL_MODE_BACK_BIT;
-        case rhi::CullMode::FRONT_AND_BACK:
+        case CullMode::FRONT_AND_BACK:
             return VK_CULL_MODE_FRONT_AND_BACK;
     }
 }
 
-VkFrontFace get_front_face(rhi::FrontFace frontFace)
+VkFrontFace get_front_face(FrontFace frontFace)
 {
     switch (frontFace)
     {
         default:
-        case rhi::FrontFace::UNDEFINED:
+        case FrontFace::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Front face is UNDEFINED.");
             return VK_FRONT_FACE_MAX_ENUM;
-        case rhi::FrontFace::CLOCKWISE:
+        case FrontFace::CLOCKWISE:
             return VK_FRONT_FACE_CLOCKWISE;
-        case rhi::FrontFace::COUNTER_CLOCKWISE:
+        case FrontFace::COUNTER_CLOCKWISE:
             return VK_FRONT_FACE_COUNTER_CLOCKWISE;
     }
 }
 
-VkShaderStageFlags get_shader_stage(rhi::ShaderType shaderType)
+VkShaderStageFlags get_shader_stage(ShaderType shaderType)
 {
     switch (shaderType)
     {
         default:
-        case rhi::ShaderType::UNDEFINED:
+        case ShaderType::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Shader type is UNDEFINED.");
             return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
-        case rhi::ShaderType::VERTEX:
+        case ShaderType::VERTEX:
             return VK_SHADER_STAGE_VERTEX_BIT;
-        case rhi::ShaderType::FRAGMENT:
+        case ShaderType::FRAGMENT:
             return VK_SHADER_STAGE_FRAGMENT_BIT;
-        case rhi::ShaderType::TESSELLATION_CONTROL:
+        case ShaderType::TESSELLATION_CONTROL:
             return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-        case rhi::ShaderType::TESSELLATION_EVALUATION:
+        case ShaderType::TESSELLATION_EVALUATION:
             return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-        case rhi::ShaderType::GEOMETRY:
+        case ShaderType::GEOMETRY:
             return VK_SHADER_STAGE_GEOMETRY_BIT;
-        case rhi::ShaderType::COMPUTE:
+        case ShaderType::COMPUTE:
             return VK_SHADER_STAGE_COMPUTE_BIT;
-        case rhi::ShaderType::MESH:
+        case ShaderType::MESH:
             return VK_SHADER_STAGE_MESH_BIT_NV;
-        case rhi::ShaderType::TASK:
+        case ShaderType::TASK:
             return VK_SHADER_STAGE_TASK_BIT_NV;
-        case rhi::ShaderType::RAY_GENERATION:
+        case ShaderType::RAY_GENERATION:
             return VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-        case rhi::ShaderType::RAY_INTERSECTION:
+        case ShaderType::RAY_INTERSECTION:
             return VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-        case rhi::ShaderType::RAY_ANY_HIT:
+        case ShaderType::RAY_ANY_HIT:
             return VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-        case rhi::ShaderType::RAY_CLOSEST_HIT:
+        case ShaderType::RAY_CLOSEST_HIT:
             return VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-        case rhi::ShaderType::RAY_MISS:
+        case ShaderType::RAY_MISS:
             return VK_SHADER_STAGE_MISS_BIT_KHR;
-        case rhi::ShaderType::RAY_CALLABLE:
+        case ShaderType::RAY_CALLABLE:
             return VK_SHADER_STAGE_CALLABLE_BIT_KHR;
     }
 }
 
-VkLogicOp get_logic_op(rhi::LogicOp logicOp)
+VkLogicOp get_logic_op(LogicOp logicOp)
 {
     switch (logicOp)
     {
         default:
-        case rhi::LogicOp::UNDEFINED:
+        case LogicOp::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Logic op is UNDEFINED.");
             return VK_LOGIC_OP_MAX_ENUM;
-        case rhi::LogicOp::CLEAR:
+        case LogicOp::CLEAR:
             return VK_LOGIC_OP_CLEAR;
-        case rhi::LogicOp::AND:
+        case LogicOp::AND:
             return VK_LOGIC_OP_AND;
-        case rhi::LogicOp::AND_REVERSE:
+        case LogicOp::AND_REVERSE:
             return VK_LOGIC_OP_AND_REVERSE;
-        case rhi::LogicOp::COPY:
+        case LogicOp::COPY:
             return VK_LOGIC_OP_COPY;
-        case rhi::LogicOp::AND_INVERTED:
+        case LogicOp::AND_INVERTED:
             return VK_LOGIC_OP_AND_INVERTED;
-        case rhi::LogicOp::NO_OP:
+        case LogicOp::NO_OP:
             return VK_LOGIC_OP_NO_OP;
-        case rhi::LogicOp::XOR:
+        case LogicOp::XOR:
             return VK_LOGIC_OP_XOR;
-        case rhi::LogicOp::OR:
+        case LogicOp::OR:
             return VK_LOGIC_OP_OR;
-        case rhi::LogicOp::NOR:
+        case LogicOp::NOR:
             return VK_LOGIC_OP_NOR;
-        case rhi::LogicOp::EQUIVALENT:
+        case LogicOp::EQUIVALENT:
             return VK_LOGIC_OP_EQUIVALENT;
-        case rhi::LogicOp::INVERT:
+        case LogicOp::INVERT:
             return VK_LOGIC_OP_INVERT;
-        case rhi::LogicOp::OR_REVERSE:
+        case LogicOp::OR_REVERSE:
             return VK_LOGIC_OP_OR_REVERSE;
-        case rhi::LogicOp::COPY_INVERTED:
+        case LogicOp::COPY_INVERTED:
             return VK_LOGIC_OP_COPY_INVERTED;
-        case rhi::LogicOp::OR_INVERTED:
+        case LogicOp::OR_INVERTED:
             return VK_LOGIC_OP_OR_INVERTED;
-        case rhi::LogicOp::NAND:
+        case LogicOp::NAND:
             return VK_LOGIC_OP_NAND;
-        case rhi::LogicOp::SET:
+        case LogicOp::SET:
             return VK_LOGIC_OP_SET;
     }
 }
 
-VkBlendFactor get_blend_factor(rhi::BlendFactor blendFactor)
+VkBlendFactor get_blend_factor(BlendFactor blendFactor)
 {
     switch (blendFactor)
     {
         default:
-        case rhi::BlendFactor::UNDEFINED:
+        case BlendFactor::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Blend factor is UNDEFINED.");
             return VK_BLEND_FACTOR_MAX_ENUM;
-        case rhi::BlendFactor::ZERO:
+        case BlendFactor::ZERO:
             return VK_BLEND_FACTOR_ZERO;
-        case rhi::BlendFactor::ONE:
+        case BlendFactor::ONE:
             return VK_BLEND_FACTOR_ONE;
-        case rhi::BlendFactor::SRC_COLOR:
+        case BlendFactor::SRC_COLOR:
             return VK_BLEND_FACTOR_SRC_COLOR;
-        case rhi::BlendFactor::ONE_MINUS_SRC_COLOR:
+        case BlendFactor::ONE_MINUS_SRC_COLOR:
             return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-        case rhi::BlendFactor::DST_COLOR:
+        case BlendFactor::DST_COLOR:
             return VK_BLEND_FACTOR_DST_COLOR;
-        case rhi::BlendFactor::ONE_MINUS_DST_COLOR:
+        case BlendFactor::ONE_MINUS_DST_COLOR:
             return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-        case rhi::BlendFactor::SRC_ALPHA:
+        case BlendFactor::SRC_ALPHA:
             return VK_BLEND_FACTOR_SRC_ALPHA;
-        case rhi::BlendFactor::ONE_MINUS_SRC_ALPHA:
+        case BlendFactor::ONE_MINUS_SRC_ALPHA:
             return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        case rhi::BlendFactor::DST_ALPHA:
+        case BlendFactor::DST_ALPHA:
             return VK_BLEND_FACTOR_DST_ALPHA;
-        case rhi::BlendFactor::ONE_MINUS_DST_ALPHA:
+        case BlendFactor::ONE_MINUS_DST_ALPHA:
             return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-        case rhi::BlendFactor::CONSTANT_COLOR:
+        case BlendFactor::CONSTANT_COLOR:
             return VK_BLEND_FACTOR_CONSTANT_COLOR;
-        case rhi::BlendFactor::ONE_MINUS_CONSTANT_COLOR:
+        case BlendFactor::ONE_MINUS_CONSTANT_COLOR:
             return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
-        case rhi::BlendFactor::CONSTANT_ALPHA:
+        case BlendFactor::CONSTANT_ALPHA:
             return VK_BLEND_FACTOR_CONSTANT_ALPHA;
-        case rhi::BlendFactor::ONE_MINUS_CONSTANT_ALPHA:
+        case BlendFactor::ONE_MINUS_CONSTANT_ALPHA:
             return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
-        case rhi::BlendFactor::SRC_ALPHA_SATURATE:
+        case BlendFactor::SRC_ALPHA_SATURATE:
             return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
-        case rhi::BlendFactor::SRC1_COLOR:
+        case BlendFactor::SRC1_COLOR:
             return VK_BLEND_FACTOR_SRC1_COLOR;
-        case rhi::BlendFactor::ONE_MINUS_SRC1_COLOR:
+        case BlendFactor::ONE_MINUS_SRC1_COLOR:
             return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
-        case rhi::BlendFactor::SRC1_ALPHA:
+        case BlendFactor::SRC1_ALPHA:
             return VK_BLEND_FACTOR_SRC1_ALPHA;
-        case rhi::BlendFactor::ONE_MINUS_SRC1_ALPHA:
+        case BlendFactor::ONE_MINUS_SRC1_ALPHA:
             return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
     }
 }
 
-VkBlendOp get_blend_op(rhi::BlendOp blendOp)
+VkBlendOp get_blend_op(BlendOp blendOp)
 {
     switch (blendOp)
     {
         default:
-        case rhi::BlendOp::UNDEFINED:
+        case BlendOp::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Blend op is UNDEFINED.");
             return VK_BLEND_OP_MAX_ENUM;
-        case rhi::BlendOp::ADD:
+        case BlendOp::ADD:
             return VK_BLEND_OP_ADD;
-        case rhi::BlendOp::SUBTRACT:
+        case BlendOp::SUBTRACT:
             return VK_BLEND_OP_SUBTRACT;
-        case rhi::BlendOp::REVERSE_SUBTRACT:
+        case BlendOp::REVERSE_SUBTRACT:
             return VK_BLEND_OP_REVERSE_SUBTRACT;
-        case rhi::BlendOp::MIN:
+        case BlendOp::MIN:
             return VK_BLEND_OP_MIN;
-        case rhi::BlendOp::MAX:
+        case BlendOp::MAX:
             return VK_BLEND_OP_MAX;
     }
 }
 
-VkCompareOp get_compare_op(rhi::CompareOp compareOp)
+VkCompareOp get_compare_op(CompareOp compareOp)
 {
     switch (compareOp)
     {
         default:
-        case rhi::CompareOp::UNDEFINED:
+        case CompareOp::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Compare op is UNDEFINED.");
             return VK_COMPARE_OP_MAX_ENUM;
-        case rhi::CompareOp::NEVER:
+        case CompareOp::NEVER:
             return VK_COMPARE_OP_NEVER;
-        case rhi::CompareOp::LESS:
+        case CompareOp::LESS:
             return VK_COMPARE_OP_LESS;
-        case rhi::CompareOp::EQUAL:
+        case CompareOp::EQUAL:
             return VK_COMPARE_OP_EQUAL;
-        case rhi::CompareOp::LESS_OR_EQUAL:
+        case CompareOp::LESS_OR_EQUAL:
             return VK_COMPARE_OP_LESS_OR_EQUAL;
-        case rhi::CompareOp::GREATER:
+        case CompareOp::GREATER:
             return VK_COMPARE_OP_GREATER;
-        case rhi::CompareOp::NOT_EQUAL:
+        case CompareOp::NOT_EQUAL:
             return VK_COMPARE_OP_NOT_EQUAL;
-        case rhi::CompareOp::GREATER_OR_EQUAL:
+        case CompareOp::GREATER_OR_EQUAL:
             return VK_COMPARE_OP_GREATER_OR_EQUAL;
-        case rhi::CompareOp::ALWAYS:
+        case CompareOp::ALWAYS:
             return VK_COMPARE_OP_ALWAYS;
     }
 }
 
-VkStencilOp get_stencil_op(rhi::StencilOp stencilOp)
+VkStencilOp get_stencil_op(StencilOp stencilOp)
 {
     switch (stencilOp)
     {
         default:
-        case rhi::StencilOp::UNDEFINED:
+        case StencilOp::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Stencil op is UNDEFINED.");
             return VK_STENCIL_OP_MAX_ENUM;
-        case rhi::StencilOp::KEEP:
+        case StencilOp::KEEP:
             return VK_STENCIL_OP_KEEP;
-        case rhi::StencilOp::ZERO:
+        case StencilOp::ZERO:
             return VK_STENCIL_OP_ZERO;
-        case rhi::StencilOp::REPLACE:
+        case StencilOp::REPLACE:
             return VK_STENCIL_OP_REPLACE;
-        case rhi::StencilOp::INCREMENT_AND_CLAMP:
+        case StencilOp::INCREMENT_AND_CLAMP:
             return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
-        case rhi::StencilOp::DECREMENT_AND_CLAMP:
+        case StencilOp::DECREMENT_AND_CLAMP:
             return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
-        case rhi::StencilOp::INVERT:
+        case StencilOp::INVERT:
             return VK_STENCIL_OP_INVERT;
-        case rhi::StencilOp::INCREMENT_AND_WRAP:
+        case StencilOp::INCREMENT_AND_WRAP:
             return VK_STENCIL_OP_INCREMENT_AND_WRAP;
-        case rhi::StencilOp::DECREMENT_AND_WRAP:
+        case StencilOp::DECREMENT_AND_WRAP:
             return VK_STENCIL_OP_DECREMENT_AND_WRAP;
     }
 }
 
-VkAttachmentLoadOp get_attach_load_op(rhi::LoadOp loadOp)
+VkAttachmentLoadOp get_attach_load_op(LoadOp loadOp)
 {
     switch (loadOp)
     {
         default:
-        case rhi::LoadOp::LOAD:
+        case LoadOp::LOAD:
             return VK_ATTACHMENT_LOAD_OP_LOAD;
-        case rhi::LoadOp::CLEAR:
+        case LoadOp::CLEAR:
             return VK_ATTACHMENT_LOAD_OP_CLEAR;
-        case rhi::LoadOp::DONT_CARE:
+        case LoadOp::DONT_CARE:
             return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     }
 }
 
-VkAttachmentStoreOp get_attach_store_op(rhi::StoreOp storeOp)
+VkAttachmentStoreOp get_attach_store_op(StoreOp storeOp)
 {
     switch (storeOp)
     {
         default:
-        case rhi::StoreOp::STORE:
+        case StoreOp::STORE:
             return VK_ATTACHMENT_STORE_OP_STORE;
-        case rhi::StoreOp::DONT_CARE:
+        case StoreOp::DONT_CARE:
             return VK_ATTACHMENT_STORE_OP_DONT_CARE;
     }
 }
 
-VkImageLayout get_image_layout(rhi::ResourceLayout resourceLayout)
+VkImageLayout get_image_layout(ResourceLayout resourceLayout)
 {
-    if (has_flag(resourceLayout, rhi::ResourceLayout::UNDEFINED))
+    if (has_flag(resourceLayout, ResourceLayout::UNDEFINED))
     {
         return VK_IMAGE_LAYOUT_UNDEFINED;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::GENERAL))
+    if (has_flag(resourceLayout, ResourceLayout::GENERAL))
     {
         return VK_IMAGE_LAYOUT_GENERAL;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::SHADER_READ))
+    if (has_flag(resourceLayout, ResourceLayout::SHADER_READ))
     {
         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::COLOR_ATTACHMENT))
+    if (has_flag(resourceLayout, ResourceLayout::COLOR_ATTACHMENT))
     {
         return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::DEPTH_STENCIL))
+    if (has_flag(resourceLayout, ResourceLayout::DEPTH_STENCIL))
     {
         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::DEPTH_STENCIL_READ_ONLY))
+    if (has_flag(resourceLayout, ResourceLayout::DEPTH_STENCIL_READ_ONLY))
     {
         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::TRANSFER_SRC))
+    if (has_flag(resourceLayout, ResourceLayout::TRANSFER_SRC))
     {
         return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::TRANSFER_DST))
+    if (has_flag(resourceLayout, ResourceLayout::TRANSFER_DST))
     {
         return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::PRESENT_ATTACHMENT))
+    if (has_flag(resourceLayout, ResourceLayout::PRESENT_ATTACHMENT))
     {
         return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     }
@@ -837,103 +838,103 @@ VkImageLayout get_image_layout(rhi::ResourceLayout resourceLayout)
     return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
-VkAccessFlags2 get_access(rhi::ResourceLayout resourceLayout)
+VkAccessFlags2 get_access(ResourceLayout resourceLayout)
 {
     VkAccessFlags accessFlags = 0;
-    if (has_flag(resourceLayout, rhi::ResourceLayout::INDIRECT_COMMAND_BUFFER))
+    if (has_flag(resourceLayout, ResourceLayout::INDIRECT_COMMAND_BUFFER))
     {
         accessFlags |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::INDEX_BUFFER))
+    if (has_flag(resourceLayout, ResourceLayout::INDEX_BUFFER))
     {
         accessFlags |= VK_ACCESS_2_INDEX_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::VERTEX_BUFFER))
+    if (has_flag(resourceLayout, ResourceLayout::VERTEX_BUFFER))
     {
         accessFlags |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::UNIFORM_BUFFER))
+    if (has_flag(resourceLayout, ResourceLayout::UNIFORM_BUFFER))
     {
         accessFlags |= VK_ACCESS_2_UNIFORM_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::SHADER_READ))
+    if (has_flag(resourceLayout, ResourceLayout::SHADER_READ))
     {
         accessFlags |= VK_ACCESS_2_SHADER_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::SHADER_WRITE))
+    if (has_flag(resourceLayout, ResourceLayout::SHADER_WRITE))
     {
         accessFlags |= VK_ACCESS_2_SHADER_WRITE_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::COLOR_ATTACHMENT))
+    if (has_flag(resourceLayout, ResourceLayout::COLOR_ATTACHMENT))
     {
         accessFlags |= VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::DEPTH_STENCIL))
+    if (has_flag(resourceLayout, ResourceLayout::DEPTH_STENCIL))
     {
         accessFlags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::DEPTH_STENCIL_READ_ONLY))
+    if (has_flag(resourceLayout, ResourceLayout::DEPTH_STENCIL_READ_ONLY))
     {
         accessFlags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::TRANSFER_SRC))
+    if (has_flag(resourceLayout, ResourceLayout::TRANSFER_SRC))
     {
         accessFlags |= VK_ACCESS_2_TRANSFER_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::TRANSFER_DST))
+    if (has_flag(resourceLayout, ResourceLayout::TRANSFER_DST))
     {
         accessFlags |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::MEMORY_READ))
+    if (has_flag(resourceLayout, ResourceLayout::MEMORY_READ))
     {
         accessFlags |= VK_ACCESS_2_MEMORY_READ_BIT;
     }
-    if (has_flag(resourceLayout, rhi::ResourceLayout::MEMORY_WRITE))
+    if (has_flag(resourceLayout, ResourceLayout::MEMORY_WRITE))
     {
         accessFlags |= VK_ACCESS_2_MEMORY_WRITE_BIT;
     }
     return accessFlags;
 }
 
-VkPipelineBindPoint get_pipeline_bind_point(rhi::PipelineType pipelineType)
+VkPipelineBindPoint get_pipeline_bind_point(PipelineType pipelineType)
 {
     switch (pipelineType)
     {
         default:
-        case rhi::PipelineType::UNDEFINED:
+        case PipelineType::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Pipeline type is UNDEFINED.");
             return VK_PIPELINE_BIND_POINT_MAX_ENUM;
-        case rhi::PipelineType::GRAPHICS:
+        case PipelineType::GRAPHICS:
             return VK_PIPELINE_BIND_POINT_GRAPHICS;
-        case rhi::PipelineType::COMPUTE:
+        case PipelineType::COMPUTE:
             return VK_PIPELINE_BIND_POINT_COMPUTE;
-        case rhi::PipelineType::RAY_TRACING:
+        case PipelineType::RAY_TRACING:
             return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
     }
 }
 
-VkImageAspectFlags get_image_aspect(rhi::ResourceUsage usage)
+VkImageAspectFlags get_image_aspect(ResourceUsage usage)
 {
-    if (has_flag(usage, rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
+    if (has_flag(usage, ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
     {
         return VK_IMAGE_ASPECT_DEPTH_BIT;
     }
     return VK_IMAGE_ASPECT_COLOR_BIT;
 }
 
-VkImageAspectFlags get_image_aspect(rhi::TextureAspect textureAspect)
+VkImageAspectFlags get_image_aspect(TextureAspect textureAspect)
 {
     switch (textureAspect)
     {
         default:
-        case rhi::TextureAspect::UNDEFINED:
+        case TextureAspect::UNDEFINED:
             FE_LOG(LogVulkanRHI, ERROR, "Texture aspect is UNDEFINED.");
             return VK_IMAGE_ASPECT_NONE;
-        case rhi::TextureAspect::COLOR:
+        case TextureAspect::COLOR:
             return VK_IMAGE_ASPECT_COLOR_BIT;
-        case rhi::TextureAspect::DEPTH:
+        case TextureAspect::DEPTH:
             return VK_IMAGE_ASPECT_DEPTH_BIT;
-        case rhi::TextureAspect::STENCIL:
+        case TextureAspect::STENCIL:
             return VK_IMAGE_ASPECT_STENCIL_BIT;
     }
 }
@@ -952,35 +953,35 @@ VkColorSpaceKHR get_color_space(ColorSpace colorSpace)
     }
 }
 
-// VkQueryType get_query_type(rhi::QueryType queryType)
+// VkQueryType get_query_type(QueryType queryType)
 // {
 //     switch (queryType)
 //     {
-//         case rhi::QueryType::OCCLUSION:
-//         case rhi::QueryType::BINARY_OCCLUSION:
+//         case QueryType::OCCLUSION:
+//         case QueryType::BINARY_OCCLUSION:
 //             return VK_QUERY_TYPE_OCCLUSION;
-//         case rhi::QueryType::PIPELINE_STATISTICS:
+//         case QueryType::PIPELINE_STATISTICS:
 //             return VK_QUERY_TYPE_PIPELINE_STATISTICS;
-//         case rhi::QueryType::TIMESTAMP:
+//         case QueryType::TIMESTAMP:
 //             return VK_QUERY_TYPE_TIMESTAMP;
 //     }
 // }
 
-VkComponentSwizzle get_component_swizzle(rhi::ComponentSwizzle swizzle)
+VkComponentSwizzle get_component_swizzle(ComponentSwizzle swizzle)
 {
     switch (swizzle)
     {
-        case rhi::ComponentSwizzle::R:
+        case ComponentSwizzle::R:
             return VK_COMPONENT_SWIZZLE_R;
-        case rhi::ComponentSwizzle::G:
+        case ComponentSwizzle::G:
             return VK_COMPONENT_SWIZZLE_G;
-        case rhi::ComponentSwizzle::B:
+        case ComponentSwizzle::B:
             return VK_COMPONENT_SWIZZLE_B;
-        case rhi::ComponentSwizzle::A:
+        case ComponentSwizzle::A:
             return VK_COMPONENT_SWIZZLE_A;
-        case rhi::ComponentSwizzle::ONE:
+        case ComponentSwizzle::ONE:
             return VK_COMPONENT_SWIZZLE_ONE;
-        case rhi::ComponentSwizzle::ZERO:
+        case ComponentSwizzle::ZERO:
             return VK_COMPONENT_SWIZZLE_ZERO;
         default:
             FE_LOG(LogVulkanRHI, ERROR, "Swizzle is UNDEFINED.");
@@ -988,7 +989,7 @@ VkComponentSwizzle get_component_swizzle(rhi::ComponentSwizzle swizzle)
     }
 }
 
-VkComponentMapping get_component_mapping(const rhi::ComponentMapping& mapping)
+VkComponentMapping get_component_mapping(const ComponentMapping& mapping)
 {
     VkComponentMapping vkMapping;
     vkMapping.r = get_component_swizzle(mapping.r);
@@ -1081,7 +1082,7 @@ public:
             }
         }
 
-        if (validationMode != rhi::ValidationMode::DISABLED)
+        if (validationMode != ValidationMode::DISABLED)
         {
             // Took from https://github.com/turanszkij/WickedEngine/blob/1c49e4984a7f63be44d06d7b7c0949386d531bd8/WickedEngine/wiGraphicsDevice_Vulkan.cpp
             static const std::vector<const char*> validationLayersPriority[] =
@@ -1129,14 +1130,14 @@ public:
         VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo{};
         debugUtilsCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
-        if (validationMode != rhi::ValidationMode::DISABLED && canUseDebugUtils)
+        if (validationMode != ValidationMode::DISABLED && canUseDebugUtils)
         {
             debugUtilsCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
             debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
             debugUtilsCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
             debugUtilsCreateInfo.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-            if (validationMode == rhi::ValidationMode::VERBOSE)
+            if (validationMode == ValidationMode::VERBOSE)
             {
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
@@ -1150,7 +1151,7 @@ public:
 
         volkLoadInstanceOnly(instance);
 
-        if (validationMode != rhi::ValidationMode::DISABLED && canUseDebugUtils)
+        if (validationMode != ValidationMode::DISABLED && canUseDebugUtils)
         {
             VK_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugUtilsCreateInfo, nullptr, &debugUtilsMessenger));
         }
@@ -1571,23 +1572,23 @@ private:
         switch (properties2.properties.deviceType)
         {
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                gpuProperties.gpuType = rhi::GPUType::INTEGRATED;
+                gpuProperties.gpuType = GPUType::INTEGRATED;
                 break;
             case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                gpuProperties.gpuType = rhi::GPUType::DISCRETE;
+                gpuProperties.gpuType = GPUType::DISCRETE;
                 break;
             case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                gpuProperties.gpuType = rhi::GPUType::VIRTUAL;
+                gpuProperties.gpuType = GPUType::VIRTUAL;
                 break;
             default:
-                gpuProperties.gpuType = rhi::GPUType::OTHER;
+                gpuProperties.gpuType = GPUType::OTHER;
                 break;
         }
     
         if (features2.features.tessellationShader == VK_TRUE)
         {
             FE_LOG(LogVulkanRHI, INFO, "GPU has tessellation shader capability");
-            gpuProperties.capabilities |= rhi::GPUCapability::TESSELLATION;
+            gpuProperties.capabilities |= GPUCapability::TESSELLATION;
         }
         if (
             rayTracingPipelineFeatures.rayTracingPipeline == VK_TRUE &&
@@ -1596,7 +1597,7 @@ private:
             features1_2.bufferDeviceAddress == VK_TRUE)
         {
             FE_LOG(LogVulkanRHI, INFO, "GPU has ray tracing capability");
-            gpuProperties.capabilities |= rhi::GPUCapability::RAY_TRACING;
+            gpuProperties.capabilities |= GPUCapability::RAY_TRACING;
             gpuProperties.shaderIdentifierSize = rayTracingPipelineProperties.shaderGroupHandleSize;
             gpuProperties.shaderIdentifierAlignment = rayTracingPipelineProperties.shaderGroupBaseAlignment;
             gpuProperties.accelerationStructureInstanceSize = sizeof(VkAccelerationStructureInstanceKHR);
@@ -1604,47 +1605,47 @@ private:
         if (meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE)
         {
             FE_LOG(LogVulkanRHI, INFO, "GPU has task shader and mesh shader capabilities");
-            gpuProperties.capabilities |= rhi::GPUCapability::MESH_SHADER;
+            gpuProperties.capabilities |= GPUCapability::MESH_SHADER;
         }
         if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
         {
             FE_LOG(LogVulkanRHI, INFO, "GPU has variable rate shading capability");
-            gpuProperties.capabilities |= rhi::GPUCapability::VARIABLE_RATE_SHADING;
+            gpuProperties.capabilities |= GPUCapability::VARIABLE_RATE_SHADING;
         }
         if (fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
         {
             FE_LOG(LogVulkanRHI, INFO, "GPU has varialbe rate shading tier 2 capability");
-            gpuProperties.capabilities |= rhi::GPUCapability::VARIABLE_RATE_SHADING_TIER2;
+            gpuProperties.capabilities |= GPUCapability::VARIABLE_RATE_SHADING_TIER2;
         }
         if (fragmentShadingRateProperties.fragmentShadingRateWithFragmentShaderInterlock == VK_TRUE)
         {
             FE_LOG(LogVulkanRHI, INFO, "GPU has fragment shader intelock capability");
-            gpuProperties.capabilities |= rhi::GPUCapability::FRAGMENT_SHADER_INTERLOCK;
+            gpuProperties.capabilities |= GPUCapability::FRAGMENT_SHADER_INTERLOCK;
         }
         if (features2.features.sparseBinding == VK_TRUE && features2.features.sparseResidencyAliased == VK_TRUE)
         {
             if (properties2.properties.sparseProperties.residencyNonResidentStrict == VK_TRUE)
             {
                 FE_LOG(LogVulkanRHI, INFO, "GPU has sparse null mapping capability");
-                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_NULL_MAPPING;
+                gpuProperties.capabilities |= GPUCapability::SPARSE_NULL_MAPPING;
             }
             if (features2.features.sparseResidencyBuffer == VK_TRUE)
             {
                 FE_LOG(LogVulkanRHI, INFO, "GPU has sparse buffer capability");
-                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_BUFFER;
+                gpuProperties.capabilities |= GPUCapability::SPARSE_BUFFER;
             }
             if (features2.features.sparseResidencyImage2D == VK_TRUE)
             {
                 FE_LOG(LogVulkanRHI, INFO, "GPU has sparse texture2D capability");
-                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_TEXTURE2D;
+                gpuProperties.capabilities |= GPUCapability::SPARSE_TEXTURE2D;
             }
             if (features2.features.sparseResidencyImage3D == VK_TRUE)
             {
                 FE_LOG(LogVulkanRHI, INFO, "GPU has sparse texture3D capability");
-                gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_TEXTURE3D;
+                gpuProperties.capabilities |= GPUCapability::SPARSE_TEXTURE3D;
             }
             FE_LOG(LogVulkanRHI, INFO, "GPU has sparse tile pool capability");
-            gpuProperties.capabilities |= rhi::GPUCapability::SPARSE_TILE_POOL;
+            gpuProperties.capabilities |= GPUCapability::SPARSE_TILE_POOL;
         }
         const VkPhysicalDeviceMemoryProperties& memoryProperties = memoryProperties2.memoryProperties;
         for (uint32_t i = 0; i != memoryProperties.memoryHeapCount; ++i)
@@ -1657,12 +1658,12 @@ private:
                         memoryProperties.memoryTypes[j].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
                     {
                         FE_LOG(LogVulkanRHI, INFO, "GPU has cache coherent UMA capability");
-                        gpuProperties.capabilities |= rhi::GPUCapability::CACHE_COHERENT_UMA;
+                        gpuProperties.capabilities |= GPUCapability::CACHE_COHERENT_UMA;
                         break;
                     }
                 }
             }
-            if (has_flag(gpuProperties.capabilities, rhi::GPUCapability::CACHE_COHERENT_UMA))
+            if (has_flag(gpuProperties.capabilities, GPUCapability::CACHE_COHERENT_UMA))
             {
                 break;
             }
@@ -1684,20 +1685,6 @@ void set_debug_name(std::string name, VkObjectType type, uint64 handle)
 class Allocator
 {
 public:
-    ThreadSafePoolAllocator<SwapChain, 4> swapChainAllocator;
-    ThreadSafePoolAllocator<Pipeline, 1024> pipelineAllocator;
-    ThreadSafePoolAllocator<Shader, 1024> shaderAllocator;
-    ThreadSafePoolAllocator<Buffer, 512> bufferAllocator;
-    ThreadSafePoolAllocator<Texture, 256> textureAllocator;
-    ThreadSafePoolAllocator<TextureView, 512> textureViewAllocator;
-    ThreadSafePoolAllocator<BufferView, 512> bufferViewAllocator;
-    ThreadSafePoolAllocator<Sampler, 256> samplerAllocator;
-    ThreadSafePoolAllocator<CommandPool, 18> cmdPoolAllocator;
-    ThreadSafePoolAllocator<CommandBuffer, 64> cmdBufferAllocator;
-    ThreadSafePoolAllocator<Semaphore, 24> semaphoreAllocator;
-    ThreadSafePoolAllocator<Fence, 8> fenceAllocator;
-    ThreadSafePoolAllocator<AccelerationStructure, 512> accelerationStructureAllocator;
-
     VmaAllocator gpuAllocator = VK_NULL_HANDLE;
 
     void init()
@@ -1838,16 +1825,16 @@ public:
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 
-        if (bufferView->format != rhi::Format::UNDEFINED)
+        if (bufferView->format != Format::UNDEFINED)
         {
             switch (bufferView->type)
             {
-            case rhi::ViewType::SRV:
+            case ViewType::SRV:
                 writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
                 writeDescriptorSet.dstSet = m_uniformTexelBufferBindlessPool.set;
                 bufferView->descriptorIndex = m_uniformTexelBufferBindlessPool.allocate();
                 break;
-            case rhi::ViewType::UAV:
+            case ViewType::UAV:
                 writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
                 writeDescriptorSet.dstSet = m_storageTexelBufferBindlessPool.set;
                 bufferView->descriptorIndex = m_storageTexelBufferBindlessPool.allocate();
@@ -1935,20 +1922,20 @@ public:
 
         switch (textureView->type)
         {
-        case rhi::ViewType::SRV:
-        case rhi::ViewType::RTV:
-        case rhi::ViewType::DSV:
+        case ViewType::SRV:
+        case ViewType::RTV:
+        case ViewType::DSV:
             setSampledImageDescriptor();
             break;
-        case rhi::ViewType::UAV:
+        case ViewType::UAV:
             setStorageImageDescriptor();
             break;
-        case rhi::ViewType::AUTO:
-            if (has_flag(textureView->texture->textureUsage, rhi::ResourceUsage::SAMPLED_TEXTURE))
+        case ViewType::AUTO:
+            if (has_flag(textureView->texture->textureUsage, ResourceUsage::SAMPLED_TEXTURE))
             {
                 setSampledImageDescriptor();
             }
-            if (has_flag(textureView->texture->textureUsage, rhi::ResourceUsage::STORAGE_TEXTURE))
+            if (has_flag(textureView->texture->textureUsage, ResourceUsage::STORAGE_TEXTURE))
             {
                 setStorageImageDescriptor();
             }
@@ -2002,14 +1989,14 @@ public:
 
     void free_descriptor(BufferView* bufferView)
     {
-        if (bufferView->format != rhi::Format::UNDEFINED)
+        if (bufferView->format != Format::UNDEFINED)
         {
             switch (bufferView->type)
             {
-            case rhi::ViewType::SRV:
+            case ViewType::SRV:
                 m_uniformTexelBufferBindlessPool.free(bufferView->descriptorIndex);
                 break;
-            case rhi::ViewType::UAV:
+            case ViewType::UAV:
                 m_storageTexelBufferBindlessPool.free(bufferView->descriptorIndex);
                 break;
             default:
@@ -2028,20 +2015,20 @@ public:
     {
         switch (textureView->type)
         {
-        case rhi::ViewType::SRV:
-        case rhi::ViewType::RTV:
-        case rhi::ViewType::DSV:
+        case ViewType::SRV:
+        case ViewType::RTV:
+        case ViewType::DSV:
             m_imageBindlessPool.free(textureView->descriptorIndex);
             break;
-        case rhi::ViewType::UAV:
+        case ViewType::UAV:
             m_storageImageBindlessPool.free(textureView->descriptorIndex);
             break;
-        case rhi::ViewType::AUTO:
-            if (has_flag(textureView->texture->textureUsage, rhi::ResourceUsage::SAMPLED_TEXTURE))
+        case ViewType::AUTO:
+            if (has_flag(textureView->texture->textureUsage, ResourceUsage::SAMPLED_TEXTURE))
             {
                 m_imageBindlessPool.free(textureView->descriptorIndex);
             }
-            if (has_flag(textureView->texture->textureUsage, rhi::ResourceUsage::STORAGE_TEXTURE))
+            if (has_flag(textureView->texture->textureUsage, ResourceUsage::STORAGE_TEXTURE))
             {
                 m_storageImageBindlessPool.free(textureView->descriptorIndex);
             }
@@ -2695,6 +2682,28 @@ private:
 
 uint64 g_frameIndex = 0;
 
+template<typename T>
+T* allocate_resource()
+{
+    T* resource = ResourceAllocator<T>::allocate();
+    FE_CHECK(resource);
+    resource->init_vk();
+    return resource;
+}
+
+template<typename T>
+void free_resource(T* resource)
+{
+    ResourceAllocator<T>::free(resource);
+}
+
+template<typename T>
+void free_resource_and_descriptor(T* resource)
+{
+    g_descriptorHeap.free_descriptor(resource);
+    ResourceAllocator<T>::free(resource);   
+}
+
 VkSurfaceKHR create_surface(const WindowInfo& windowInfo)
 {
     VkSurfaceKHR surface;
@@ -3191,9 +3200,7 @@ void create_swap_chain(SwapChain** swapChain, const SwapChainInfo* info)
     FE_CHECK(info->window);
     const WindowInfo& windowInfo = info->window->get_info();
 
-    SwapChain* swapChainPtr = g_allocator.swapChainAllocator.allocate();
-    FE_CHECK(swapChainPtr);
-    swapChainPtr->init_vk();
+    SwapChain* swapChainPtr = allocate_resource<SwapChain>();
 
     swapChainPtr->window = info->window;
     swapChainPtr->vk().surface = create_surface(windowInfo);
@@ -3216,17 +3223,17 @@ void create_swap_chain(SwapChain** swapChain, const SwapChainInfo* info)
             switch (availableFormat.surfaceFormat.colorSpace)
             {
             case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
-                swapChainPtr->colorSpace = rhi::ColorSpace::SRGB;
+                swapChainPtr->colorSpace = ColorSpace::SRGB;
                 break;
             case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
-                swapChainPtr->colorSpace = rhi::ColorSpace::HDR_LINEAR;
+                swapChainPtr->colorSpace = ColorSpace::HDR_LINEAR;
                 break;
             case VK_COLOR_SPACE_HDR10_ST2084_EXT:
-                swapChainPtr->colorSpace = rhi::ColorSpace::HDR10_ST2084;
+                swapChainPtr->colorSpace = ColorSpace::HDR10_ST2084;
                 break;
             default:
                 FE_LOG(LogVulkanRHI, WARNING, "Available format has non-supported color space. Nonlinear sRGB will be used.");
-                swapChainPtr->colorSpace = rhi::ColorSpace::SRGB;
+                swapChainPtr->colorSpace = ColorSpace::SRGB;
                 break;
             }
 
@@ -3262,7 +3269,7 @@ void destroy_swap_chain(SwapChain* swapChain)
     if (swapChain->vk().surface != VK_NULL_HANDLE)
         vkDestroySurfaceKHR(g_instance.instance, swapChain->vk().surface, nullptr);
 
-    g_allocator.swapChainAllocator.free(swapChain);
+    free_resource(swapChain);
 }
 
 void create_buffer(Buffer** buffer, const BufferInfo* info)
@@ -3270,9 +3277,7 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
     FE_CHECK(buffer);
     FE_CHECK(info);
 
-    Buffer* bufferPtr = g_allocator.bufferAllocator.allocate();
-    FE_CHECK(bufferPtr);
-    bufferPtr->init_vk();
+    Buffer* bufferPtr = allocate_resource<Buffer>();
 
     bufferPtr->bufferUsage = info->bufferUsage;
     bufferPtr->memoryUsage = info->memoryUsage;
@@ -3293,7 +3298,7 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
     if (g_device.features1_2.bufferDeviceAddress == VK_TRUE)
         bufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-    if (has_flag(info->flags, rhi::ResourceFlags::RAY_TRACING))
+    if (has_flag(info->flags, ResourceFlags::RAY_TRACING))
     {
         bufferCreateInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
         bufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
@@ -3306,11 +3311,11 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
 
     switch (info->memoryUsage)
     {
-        case rhi::MemoryUsage::CPU:
-        case rhi::MemoryUsage::CPU_TO_GPU:
+        case MemoryUsage::CPU:
+        case MemoryUsage::CPU_TO_GPU:
             allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
             break;
-        case rhi::MemoryUsage::GPU_TO_CPU:
+        case MemoryUsage::GPU_TO_CPU:
             allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
             break;
         default:
@@ -3320,7 +3325,7 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
     
     VK_CHECK(vmaCreateBuffer(g_allocator.gpuAllocator, &bufferCreateInfo, &allocCreateInfo, &bufferPtr->vk().buffer, &bufferPtr->vk().allocation, nullptr));
 
-    if (has_flag(bufferPtr->bufferUsage, rhi::ResourceUsage::STORAGE_BUFFER))
+    if (has_flag(bufferPtr->bufferUsage, ResourceUsage::STORAGE_BUFFER))
         g_descriptorHeap.allocate_descriptor(bufferPtr);
 
     if (bufferCreateInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
@@ -3330,8 +3335,8 @@ void create_buffer(Buffer** buffer, const BufferInfo* info)
 
     switch (info->memoryUsage)
     {
-    case rhi::MemoryUsage::CPU:
-    case rhi::MemoryUsage::CPU_TO_GPU:
+    case MemoryUsage::CPU:
+    case MemoryUsage::CPU_TO_GPU:
     {
         if (info->initData)
             memcpy(bufferPtr->mappedData, info->initData, info->initDataSize);
@@ -3350,7 +3355,7 @@ void update_buffer(Buffer* buffer, uint64 size, const void* data)
     FE_CHECK(data);
     FE_CHECK(size);
 
-    if (buffer->memoryUsage == rhi::MemoryUsage::GPU)
+    if (buffer->memoryUsage == MemoryUsage::GPU)
 		FE_LOG(LogVulkanRHI, FATAL, "Can't copy data from CPU to buffer if memory usage is VMA_MEMORY_USAGE_GPU_ONLY");
 
     memcpy(buffer->mappedData, data, size);
@@ -3364,8 +3369,7 @@ void destroy_buffer(Buffer* buffer)
     if (buffer->vk().buffer != VK_NULL_HANDLE)
         vmaDestroyBuffer(g_allocator.gpuAllocator, buffer->vk().buffer, buffer->vk().allocation);
 
-    g_descriptorHeap.free_descriptor(buffer);
-    g_allocator.bufferAllocator.free(buffer);
+    free_resource_and_descriptor(buffer);
 }
 
 void create_texture(Texture** texture, const TextureInfo* info)
@@ -3379,16 +3383,14 @@ void create_texture(Texture** texture, const TextureInfo* info)
     if (info->textureUsage == ResourceUsage::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "create_texture(): Undefined texture usage.");
     
-    if (info->samplesCount == rhi::SampleCount::UNDEFINED)
+    if (info->samplesCount == SampleCount::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "create_texture(): Undefined sample count.");
     
-    if (info->dimension == rhi::TextureDimension::UNDEFINED)
+    if (info->dimension == TextureDimension::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "create_texture(): Undefined texture dimension.");
 
 
-    Texture* texturePtr = g_allocator.textureAllocator.allocate();
-    FE_CHECK(texturePtr);
-    texturePtr->init_vk();
+    Texture* texturePtr = allocate_resource<Texture>();
 
     texturePtr->width = info->width;
     texturePtr->height = info->height;
@@ -3414,12 +3416,12 @@ void create_texture(Texture** texture, const TextureInfo* info)
     createInfo.extent = VkExtent3D{ info->width, info->height, depth };
     createInfo.samples = get_sample_count(info->samplesCount);
     
-    if (has_flag(info->flags, rhi::ResourceFlags::CUBE_TEXTURE))
+    if (has_flag(info->flags, ResourceFlags::CUBE_TEXTURE))
     {
         createInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-    if (has_flag(info->textureUsage, rhi::ResourceUsage::STORAGE_TEXTURE) && is_format_srgb(info->format))
+    if (has_flag(info->textureUsage, ResourceUsage::STORAGE_TEXTURE) && is_format_srgb(info->format))
     {
         createInfo.flags |= VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
     }
@@ -3444,11 +3446,11 @@ void create_texture(Texture** texture, const TextureInfo* info)
     
     switch (info->memoryUsage)
     {
-    case rhi::MemoryUsage::CPU:
-    case rhi::MemoryUsage::CPU_TO_GPU:
+    case MemoryUsage::CPU:
+    case MemoryUsage::CPU_TO_GPU:
         allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         break;
-    case rhi::MemoryUsage::GPU_TO_CPU:
+    case MemoryUsage::GPU_TO_CPU:
         allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
         break;
     default:
@@ -3477,7 +3479,7 @@ void destroy_texture(Texture* texture)
     if (texture->vk().image != VK_NULL_HANDLE)
         vmaDestroyImage(g_allocator.gpuAllocator, texture->vk().image, texture->vk().allocation);
 
-    g_allocator.textureAllocator.free(texture);
+    free_resource(texture);
 }
 
 void create_texture_view(TextureView** textureView, const TextureViewInfo* info)
@@ -3487,9 +3489,7 @@ void create_texture_view(TextureView** textureView, const TextureViewInfo* info)
     FE_CHECK(info->texture);
 
     const Texture* texture = info->texture;
-    TextureView* textureViewPtr = g_allocator.textureViewAllocator.allocate();
-    FE_CHECK(textureViewPtr);
-    textureViewPtr->init_vk();
+    TextureView* textureViewPtr = allocate_resource<TextureView>();
 
     textureViewPtr->texture = texture;
     textureViewPtr->baseMipLevel = info->baseMipLevel;
@@ -3534,7 +3534,7 @@ void create_texture_view(TextureView** textureView, const TextureViewInfo* info)
     {
         if (texture->layersCount > 1)
         {
-            if (has_flag(texture->flags, rhi::ResourceFlags::CUBE_TEXTURE))
+            if (has_flag(texture->flags, ResourceFlags::CUBE_TEXTURE))
             {
                 if (texture->layersCount > 6)
                 {
@@ -3555,7 +3555,7 @@ void create_texture_view(TextureView** textureView, const TextureViewInfo* info)
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         }
     }
-    else if (texture->dimension == rhi::TextureDimension::TEXTURE3D)
+    else if (texture->dimension == TextureDimension::TEXTURE3D)
     {
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
     }
@@ -3566,7 +3566,7 @@ void create_texture_view(TextureView** textureView, const TextureViewInfo* info)
     }
     
     createInfo.image = texture->vk().image;
-    createInfo.format = info->format == rhi::Format::UNDEFINED ? get_format(texture->format) : get_format(info->format);
+    createInfo.format = info->format == Format::UNDEFINED ? get_format(texture->format) : get_format(info->format);
     createInfo.subresourceRange.baseMipLevel = info->baseMipLevel;
     createInfo.subresourceRange.levelCount = info->mipLevels;
     createInfo.subresourceRange.baseArrayLayer = info->baseLayer;
@@ -3596,8 +3596,7 @@ void destroy_texture_view(TextureView* textureView)
     if (textureView->vk().imageView != VK_NULL_HANDLE)
         vkDestroyImageView(g_device.device, textureView->vk().imageView, nullptr);
 
-    g_descriptorHeap.free_descriptor(textureView);
-    g_allocator.textureViewAllocator.free(textureView);
+    free_resource_and_descriptor(textureView);
 }
 
 void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info)
@@ -3611,15 +3610,13 @@ void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info)
     if (buffer->size < info->offset + info->size)
         FE_LOG(LogVulkanRHI, FATAL, "create_buffer_view(): Buffer view needs more memory than buffer can provide. Buffer size: {}; View offset: {}; View size: {}", buffer->size, info->offset, info->size);
 
-    if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::STORAGE_TEXEL_BUFFER) ||
-        !has_flag(buffer->bufferUsage, rhi::ResourceUsage::UNIFORM_TEXEL_BUFFER))
+    if (!has_flag(buffer->bufferUsage, ResourceUsage::STORAGE_TEXEL_BUFFER) ||
+        !has_flag(buffer->bufferUsage, ResourceUsage::UNIFORM_TEXEL_BUFFER))
     {
         FE_LOG(LogVulkanRHI, FATAL, "create_buffer_view(): Buffer usage is neither STORAGE_TEXEL_BUFFER nor UNIFORM_TEXEL_BUFFER");
     }
 
-    BufferView* bufferViewPtr = g_allocator.bufferViewAllocator.allocate();
-    FE_CHECK(bufferViewPtr);
-    bufferViewPtr->init_vk();
+    BufferView* bufferViewPtr = allocate_resource<BufferView>();
 
     bufferViewPtr->buffer = buffer;
     bufferViewPtr->offset = info->offset;
@@ -3634,7 +3631,7 @@ void create_buffer_view(BufferView** bufferView, const BufferViewInfo* info)
     if (is_format_srgb(bufferViewPtr->format))
         bufferViewPtr->format = get_non_srgb_format(bufferViewPtr->format);
 
-    if (bufferViewPtr->format != rhi::Format::UNDEFINED)
+    if (bufferViewPtr->format != Format::UNDEFINED)
     {
         VkBufferViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
@@ -3658,8 +3655,7 @@ void destroy_buffer_view(BufferView* bufferView)
     if (bufferView->vk().bufferView != VK_NULL_HANDLE)
         vkDestroyBufferView(g_device.device, bufferView->vk().bufferView, nullptr);
 
-    g_descriptorHeap.free_descriptor(bufferView);
-    g_allocator.bufferViewAllocator.free(bufferView);
+    free_resource_and_descriptor(bufferView);
 }
 
 void create_sampler(Sampler** sampler, const SamplerInfo* info)
@@ -3667,16 +3663,14 @@ void create_sampler(Sampler** sampler, const SamplerInfo* info)
     FE_CHECK(sampler);
     FE_CHECK(info);
 
-    Sampler* samplerPtr = g_allocator.samplerAllocator.allocate();
-    FE_CHECK(samplerPtr);
-    samplerPtr->init_vk();
+    Sampler* samplerPtr = allocate_resource<Sampler>();
 
     samplerPtr->descriptorIndex = DescriptorHeap::s_undefinedDescriptor;
 
-    if (info->addressMode == rhi::AddressMode::UNDEFINED)
+    if (info->addressMode == AddressMode::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "create_sampler(): Undefined address mode. Failed to create VkSampler");
     
-    if (info->filter == rhi::Filter::UNDEFINED)
+    if (info->filter == Filter::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "create_sampler(): Undefined filter. Failed to create VkSampler");
 
     VkSamplerCreateInfo createInfo{};
@@ -3690,7 +3684,7 @@ void create_sampler(Sampler** sampler, const SamplerInfo* info)
     createInfo.mipLodBias = 0.0f;
     if (createInfo.anisotropyEnable == VK_TRUE)
         createInfo.maxAnisotropy = info->maxAnisotropy;
-    if (info->borderColor != rhi::BorderColor::UNDEFINED)
+    if (info->borderColor != BorderColor::UNDEFINED)
         createInfo.borderColor = get_border_color(info->borderColor);
 
     // Using of min max sampler filter
@@ -3742,8 +3736,7 @@ void destroy_sampler(Sampler* sampler)
     if (sampler->vk().sampler != VK_NULL_HANDLE)
         vkDestroySampler(g_device.device, sampler->vk().sampler, nullptr);
 
-    g_descriptorHeap.free_descriptor(sampler);
-    g_allocator.samplerAllocator.free(sampler);
+    free_resource_and_descriptor(sampler);
 }
 
 void create_shader(Shader** shader, const ShaderInfo* info)
@@ -3751,9 +3744,7 @@ void create_shader(Shader** shader, const ShaderInfo* info)
     FE_CHECK(shader);
     FE_CHECK(info);
 
-    Shader* shaderPtr = g_allocator.shaderAllocator.allocate();
-    FE_CHECK(shaderPtr);
-    shaderPtr->init_vk();
+    Shader* shaderPtr = allocate_resource<Shader>();
 
     shaderPtr->type = info->shaderType;
 
@@ -3783,7 +3774,7 @@ void destroy_shader(Shader* shader)
     if (shader->vk().shader != VK_NULL_HANDLE)
         vkDestroyShaderModule(g_device.device, shader->vk().shader, nullptr);
 
-    g_allocator.shaderAllocator.free(shader);
+    free_resource(shader);
 }
 
 void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* info)
@@ -3804,13 +3795,13 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     viewportState.pViewports = nullptr;
     viewportState.viewportCount = 1;
 
-    if (info->rasterizationState.cullMode == rhi::CullMode::UNDEFINED)
+    if (info->rasterizationState.cullMode == CullMode::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined cull mode. Failed to create VkPipeline.");
     
-    if (info->rasterizationState.polygonMode == rhi::PolygonMode::UNDEFINED)
+    if (info->rasterizationState.polygonMode == PolygonMode::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined polygon mode. Failed to create VkPipeline.");
         
-    if (info->rasterizationState.frontFace == rhi::FrontFace::UNDEFINED)
+    if (info->rasterizationState.frontFace == FrontFace::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined front face. Failed to create VkPipeline.");
 
     VkPipelineRasterizationStateCreateInfo rasterizationState{};
@@ -3826,7 +3817,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     rasterizationState.depthBiasClamp = 0.0f;
     rasterizationState.depthBiasSlopeFactor = 0.0f;
 
-    if (info->multisampleState.sampleCount == rhi::SampleCount::UNDEFINED)
+    if (info->multisampleState.sampleCount == SampleCount::UNDEFINED)
         FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined sample count. Failed to create VkPipeline.");
 
     VkPipelineMultisampleStateCreateInfo multisampleState{};
@@ -3851,7 +3842,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
     for (auto& desc : info->attributeDescriptions)
     {
-        if (desc.format == rhi::Format::UNDEFINED)
+        if (desc.format == Format::UNDEFINED)
             FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined format. Failed to create VkPipeline.");
         
         VkVertexInputAttributeDescription description;
@@ -3888,22 +3879,22 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
         attachmentState.blendEnable = VK_FALSE;
         if (attach.isBlendEnabled)
         {
-            if (attach.srcColorBlendFactor == rhi::BlendFactor::UNDEFINED)
+            if (attach.srcColorBlendFactor == BlendFactor::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined src color blend factor. Failed to create VkPipeline.");
             
-            if (attach.dstColorBlendFactor == rhi::BlendFactor::UNDEFINED)
+            if (attach.dstColorBlendFactor == BlendFactor::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined dst color blend factor. Failed to create VkPipeline.");
             
-            if (attach.srcAlphaBlendFactor == rhi::BlendFactor::UNDEFINED)
+            if (attach.srcAlphaBlendFactor == BlendFactor::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined src alpha blend factor. Failed to create VkPipeline.");
             
-            if (attach.dstAlphaBlendFactor == rhi::BlendFactor::UNDEFINED)
+            if (attach.dstAlphaBlendFactor == BlendFactor::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined dst alpha blend factor. Failed to create VkPipeline.");
             
-            if (attach.colorBlendOp == rhi::BlendOp::UNDEFINED)
+            if (attach.colorBlendOp == BlendOp::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined color blend op. Failed to create VkPipeline.");
             
-            if (attach.alphaBlendOp == rhi::BlendOp::UNDEFINED)
+            if (attach.alphaBlendOp == BlendOp::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined alpha blend op. Failed to create VkPipeline.");
             
             attachmentState.blendEnable = VK_TRUE;
@@ -3933,7 +3924,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     pipelineStages.reserve(info->shaderStages.size());
     for (Shader* shader : info->shaderStages)
     {
-        if (shader->type == rhi::ShaderType::UNDEFINED)
+        if (shader->type == ShaderType::UNDEFINED)
             FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Shader type is undefined.");
         
         VkPipelineShaderStageCreateInfo& shaderStage = pipelineStages.emplace_back();
@@ -3946,7 +3937,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
         shaderStage.pSpecializationInfo = nullptr;
     }
 
-    if (info->depthStencilState.compareOp == rhi::CompareOp::UNDEFINED && info->depthStencilState.isDepthTestEnabled)
+    if (info->depthStencilState.compareOp == CompareOp::UNDEFINED && info->depthStencilState.isDepthTestEnabled)
         FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined compare op, depth. Failed to create VkPipeline.");
     
     VkPipelineDepthStencilStateCreateInfo depthStencilState{};
@@ -3958,7 +3949,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     depthStencilState.minDepthBounds = 0.0f;
     depthStencilState.maxDepthBounds = 1.0f;
     depthStencilState.stencilTestEnable = VK_FALSE;
-    std::vector<rhi::StencilOpState> stencilOps = { info->depthStencilState.backStencil, info->depthStencilState.frontStencil };
+    std::vector<StencilOpState> stencilOps = { info->depthStencilState.backStencil, info->depthStencilState.frontStencil };
     if (info->depthStencilState.isStencilTestEnabled)
     {
         depthStencilState.stencilTestEnable = VK_TRUE;
@@ -3966,16 +3957,16 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
         std::vector<VkStencilOpState> vkStencilStates;
         for (auto& stencilState : stencilOps)
         {
-            if (stencilState.compareOp == rhi::CompareOp::UNDEFINED)
+            if (stencilState.compareOp == CompareOp::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined compare op, stencil. Failed to create VkPipeline.");
             
-            if (stencilState.failOp == rhi::StencilOp::UNDEFINED)
+            if (stencilState.failOp == StencilOp::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Undefined fail op stencil. Failed to create VkPipeline.");
             
-            if (stencilState.passOp == rhi::StencilOp::UNDEFINED)
+            if (stencilState.passOp == StencilOp::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined pass op stencil. Failed to create VkPipeline.");
             
-            if (stencilState.depthFailOp == rhi::StencilOp::UNDEFINED)
+            if (stencilState.depthFailOp == StencilOp::UNDEFINED)
                 FE_LOG(LogVulkanRHI, FATAL, "VulkanPipeline::create_graphics_pipeline(): Undefined depth fail op stencil. Failed to create VkPipeline.");
             
             VkStencilOpState stencilOp{};
@@ -4020,7 +4011,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     
     pipelineRenderingCreateInfo.pColorAttachmentFormats = colorAttachFormats.size() ? colorAttachFormats.data() : nullptr;
     pipelineRenderingCreateInfo.colorAttachmentCount = colorAttachFormats.size();
-    if (info->depthFormat != rhi::Format::UNDEFINED)
+    if (info->depthFormat != Format::UNDEFINED)
     {
         pipelineRenderingCreateInfo.depthAttachmentFormat = get_format(info->depthFormat);
         if (support_stencil(info->depthFormat))
@@ -4029,9 +4020,7 @@ void create_graphics_pipeline(Pipeline** pipeline, const GraphicsPipelineInfo* i
     
     pipelineInfo.pNext = &pipelineRenderingCreateInfo;
 
-    Pipeline* pipelinePtr = g_allocator.pipelineAllocator.allocate();
-    FE_CHECK(pipelinePtr);
-    pipelinePtr->init_vk();
+    Pipeline* pipelinePtr = allocate_resource<Pipeline>();
 
     pipelinePtr->type = PipelineType::GRAPHICS;
     pipelinePtr->vk().layoutHash = layout.layoutHash;
@@ -4058,9 +4047,7 @@ void create_compute_pipeline(Pipeline** pipeline, const ComputePipelineInfo* inf
     createInfo.layout = layout.layout;
     createInfo.stage = shaderStage;
 
-    Pipeline* pipelinePtr = g_allocator.pipelineAllocator.allocate();
-    FE_CHECK(pipelinePtr);
-    pipelinePtr->init_vk();
+    Pipeline* pipelinePtr = allocate_resource<Pipeline>();
 
     pipelinePtr->type = PipelineType::COMPUTE;
     pipelinePtr->vk().layoutHash = layout.layoutHash;
@@ -4085,7 +4072,7 @@ void create_ray_tracing_pipeline(Pipeline** pipeline, const RayTracingPipelineIn
 
     for (const ShaderLibrary& shaderLibrary : info->shaderLibraries)
     {
-        if (shaderLibrary.type == rhi::ShaderType::UNDEFINED)
+        if (shaderLibrary.type == ShaderType::UNDEFINED)
             FE_LOG(LogVulkanRHI, FATAL, "create_graphics_pipeline(): Shader type is undefined.");
 
         FE_CHECK(shaderLibrary.shader);
@@ -4144,9 +4131,7 @@ void create_ray_tracing_pipeline(Pipeline** pipeline, const RayTracingPipelineIn
     createInfo.basePipelineHandle = VK_NULL_HANDLE;
     createInfo.basePipelineIndex = 0;
 
-    Pipeline* pipelinePtr = g_allocator.pipelineAllocator.allocate();
-    FE_CHECK(pipelinePtr);
-    pipelinePtr->init_vk();
+    Pipeline* pipelinePtr = allocate_resource<Pipeline>();
 
     pipelinePtr->type = PipelineType::RAY_TRACING;
     pipelinePtr->vk().layoutHash = layout.layoutHash;
@@ -4164,7 +4149,7 @@ void destroy_pipeline(Pipeline* pipeline)
     if (pipeline->vk().pipeline != VK_NULL_HANDLE)
         vkDestroyPipeline(g_device.device, pipeline->vk().pipeline, nullptr);
 
-    g_allocator.pipelineAllocator.free(pipeline);
+    free_resource(pipeline);
 }
 
 void create_acceleration_structure(AccelerationStructure** accelerationStructure, const AccelerationStructureInfo* info)
@@ -4172,9 +4157,7 @@ void create_acceleration_structure(AccelerationStructure** accelerationStructure
     FE_CHECK(accelerationStructure);
     FE_CHECK(info);
 
-    AccelerationStructure* accelerationStructurePtr = g_allocator.accelerationStructureAllocator.allocate();
-    FE_CHECK(accelerationStructurePtr);
-    accelerationStructurePtr->init_vk();
+    AccelerationStructure* accelerationStructurePtr = allocate_resource<AccelerationStructure>();
     accelerationStructurePtr->vk().accelerationStructure = VK_NULL_HANDLE;
 
     accelerationStructurePtr->info = *info;
@@ -4272,7 +4255,7 @@ void destroy_acceleration_structure(AccelerationStructure* accelerationStructure
     if (accelerationStructure->vk().accelerationStructure != VK_NULL_HANDLE)
         vkDestroyAccelerationStructureKHR(g_device.device, accelerationStructure->vk().accelerationStructure, nullptr);
 
-    g_allocator.accelerationStructureAllocator.free(accelerationStructure);
+    free_resource(accelerationStructure);
 }
 
 void write_top_level_acceleration_structure_instance(TLASInstance* instance, void* dst)
@@ -4303,7 +4286,7 @@ void write_top_level_acceleration_structure_instance(TLASInstance* instance, voi
 
 void write_shader_identifier(Pipeline* pipeline, uint32 groupIndex, void* dst)
 {
-    FE_CHECK(pipeline->type == rhi::PipelineType::RAY_TRACING);
+    FE_CHECK(pipeline->type == PipelineType::RAY_TRACING);
 
     vkGetRayTracingShaderGroupHandlesKHR(
         g_device.device, 
@@ -4319,7 +4302,7 @@ void bind_uniform_buffer(Buffer* buffer, uint32 frameIndex, uint32 slot, uint32 
 {
     FE_CHECK(buffer);
 
-    if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::UNIFORM_BUFFER))
+    if (!has_flag(buffer->bufferUsage, ResourceUsage::UNIFORM_BUFFER))
         FE_LOG(LogVulkanRHI, FATAL, "bind_uniform_buffer(): Can't bind buffer without ResourceUsage::UNIFORM_BUFFER");
 
     if (!size)
@@ -4333,9 +4316,7 @@ void create_command_pool(CommandPool** cmdPool, const CommandPoolInfo* info)
     FE_CHECK(cmdPool);
     FE_CHECK(info);
 
-    CommandPool* cmdPoolPtr = g_allocator.cmdPoolAllocator.allocate();
-    FE_CHECK(cmdPoolPtr);
-    cmdPoolPtr->init_vk();
+    CommandPool* cmdPoolPtr = allocate_resource<CommandPool>();
 
     cmdPoolPtr->queueType = info->queueType;
     
@@ -4357,7 +4338,7 @@ void destroy_command_pool(CommandPool* cmdPool)
     if (cmdPool->vk().cmdPool != VK_NULL_HANDLE)
         vkDestroyCommandPool(g_device.device, cmdPool->vk().cmdPool, nullptr);
 
-    g_allocator.cmdPoolAllocator.free(cmdPool);
+    free_resource(cmdPool);
 }
 
 void create_command_buffer(CommandBuffer** cmd, const CommandBufferInfo* info)
@@ -4365,9 +4346,7 @@ void create_command_buffer(CommandBuffer** cmd, const CommandBufferInfo* info)
     FE_CHECK(cmd);
     FE_CHECK(info);
 
-    CommandBuffer* cmdPtr = g_allocator.cmdBufferAllocator.allocate();
-    FE_CHECK(cmdPtr);
-    cmdPtr->init_vk();
+    CommandBuffer* cmdPtr = allocate_resource<CommandBuffer>();
 
     cmdPtr->cmdPool = info->cmdPool;
 
@@ -4389,7 +4368,7 @@ void destroy_command_buffer(CommandBuffer* cmd)
     if (cmd->vk().cmdBuffer != VK_NULL_HANDLE)
         vkFreeCommandBuffers(g_device.device, cmd->cmdPool->vk().cmdPool, 1, &cmd->vk().cmdBuffer);
 
-    g_allocator.cmdBufferAllocator.free(cmd);
+    free_resource(cmd);
 }
 
 void begin_command_buffer(CommandBuffer* cmd)
@@ -4423,9 +4402,7 @@ void create_semaphore(Semaphore** semaphore)
 {
     FE_CHECK(semaphore);
 
-    Semaphore* semaphorePtr = g_allocator.semaphoreAllocator.allocate();
-    FE_CHECK(semaphorePtr);
-    semaphorePtr->init_vk();
+    Semaphore* semaphorePtr = allocate_resource<Semaphore>();
 
     VkSemaphoreCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -4442,15 +4419,15 @@ void destroy_semaphore(Semaphore* semaphore)
 
     if (semaphore->vk().semaphore != VK_NULL_HANDLE)
         vkDestroySemaphore(g_device.device, semaphore->vk().semaphore, nullptr);
+
+    free_resource(semaphore);
 }
 
 void create_fence(Fence** fence)
 {
     FE_CHECK(fence);
 
-    Fence* fencePtr = g_allocator.fenceAllocator.allocate();
-    FE_CHECK(fencePtr);
-    fencePtr->init_vk();
+    Fence* fencePtr = allocate_resource<Fence>();
 
     VkFenceCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -4466,6 +4443,8 @@ void destroy_fence(Fence* fence)
 
     if (fence->vk().fence != VK_NULL_HANDLE)
         vkDestroyFence(g_device.device, fence->vk().fence, nullptr);
+
+    free_resource(fence);
 }
 
 void fill_buffer(CommandBuffer* cmd, Buffer* dstBuffer, uint32 dstOffset, uint32 size, uint32 data)
@@ -4482,10 +4461,10 @@ void copy_buffer(CommandBuffer* cmd, Buffer* srcBuffer, Buffer* dstBuffer, uint3
     FE_CHECK(srcBuffer);
     FE_CHECK(dstBuffer);
 
-    if (!has_flag(srcBuffer->bufferUsage, rhi::ResourceUsage::TRANSFER_SRC))
+    if (!has_flag(srcBuffer->bufferUsage, ResourceUsage::TRANSFER_SRC))
         FE_LOG(LogVulkanRHI, FATAL, "copy_buffer(): Source buffer doesn't have TRANSFER_SRC usage.");
         
-    if (!has_flag(dstBuffer->bufferUsage, rhi::ResourceUsage::TRANSFER_DST))
+    if (!has_flag(dstBuffer->bufferUsage, ResourceUsage::TRANSFER_DST))
         FE_LOG(LogVulkanRHI, FATAL, "copy_buffer(): Destination buffer doesn't have TRANSFER_DST usage.");
 
     VkBufferCopy2 copy{};
@@ -4509,10 +4488,10 @@ void copy_texture(CommandBuffer* cmd, Texture* srcTexture, Texture* dstTexture)
     FE_CHECK(srcTexture);
     FE_CHECK(dstTexture);
 
-    if (!has_flag(srcTexture->textureUsage, rhi::ResourceUsage::TRANSFER_SRC))
+    if (!has_flag(srcTexture->textureUsage, ResourceUsage::TRANSFER_SRC))
         FE_LOG(LogVulkanRHI, FATAL, "copy_texture(): Source texture doesn't have TRANSFER_SRC usage.");
         
-    if (!has_flag(dstTexture->textureUsage, rhi::ResourceUsage::TRANSFER_DST))
+    if (!has_flag(dstTexture->textureUsage, ResourceUsage::TRANSFER_DST))
         FE_LOG(LogVulkanRHI, FATAL, "copy_texture(): Destination texture doesn't have TRANSFER_DST usage.");
 
     VkImageCopy2 copy{};
@@ -4600,9 +4579,9 @@ void copy_buffer_to_texture(CommandBuffer* cmd, Buffer* srcBuffer, Texture* dstT
     FE_CHECK(srcBuffer);
     FE_CHECK(dstTexture);
 
-    if (!has_flag(srcBuffer->bufferUsage, rhi::ResourceUsage::TRANSFER_SRC))
+    if (!has_flag(srcBuffer->bufferUsage, ResourceUsage::TRANSFER_SRC))
         FE_LOG(LogVulkanRHI, FATAL, "copy_buffer_to_texture(): Source buffer doesn't have TRANSFER_SRC usage.");
-    if (!has_flag(dstTexture->textureUsage, rhi::ResourceUsage::TRANSFER_DST))
+    if (!has_flag(dstTexture->textureUsage, ResourceUsage::TRANSFER_DST))
         FE_LOG(LogVulkanRHI, FATAL, "copy_buffer_to_texture(): Destination buffer doesn't have TRANSFER_DST usage.");
 
     add_pre_transfer_image_barrier(cmd, dstTexture);
@@ -4637,9 +4616,9 @@ void copy_texture_to_buffer(CommandBuffer* cmd, Texture* srcTexture, Buffer* dst
     FE_CHECK(srcTexture);
     FE_CHECK(dstBuffer);
 
-    if (!has_flag(srcTexture->textureUsage, rhi::ResourceUsage::TRANSFER_SRC))
+    if (!has_flag(srcTexture->textureUsage, ResourceUsage::TRANSFER_SRC))
         FE_LOG(LogVulkanRHI, FATAL, "copy_texture_to_buffer(): Source texture doesn't have TRANSFER_SRC usage.");
-    if (!has_flag(dstBuffer->bufferUsage, rhi::ResourceUsage::TRANSFER_DST))
+    if (!has_flag(dstBuffer->bufferUsage, ResourceUsage::TRANSFER_DST))
         FE_LOG(LogVulkanRHI, FATAL, "copy_texture_to_buffer(): Destination buffer doesn't have TRANSFER_DST usage.");
     
     VkCopyImageToBufferInfo2 copyImageToBufferInfo{};
@@ -4689,10 +4668,10 @@ void blit_texture(
     FE_CHECK(srcTexture);
     FE_CHECK(dstTexture);
 
-    if (!has_flag(srcTexture->textureUsage, rhi::ResourceUsage::TRANSFER_SRC))
-        FE_LOG(LogVulkanRHI, FATAL, "VulkanRHI::blit_texture(): Source buffer doesn't have TRANSFER_SRC usage.");
-    if (!has_flag(dstTexture->textureUsage, rhi::ResourceUsage::TRANSFER_DST))
-        FE_LOG(LogVulkanRHI, FATAL, "VulkanRHI::blit_texture(): Destination buffer doesn't have TRANSFER_DST usage.");
+    if (!has_flag(srcTexture->textureUsage, ResourceUsage::TRANSFER_SRC))
+        FE_LOG(LogVulkanRHI, FATAL, "Vulkanblit_texture(): Source buffer doesn't have TRANSFER_SRC usage.");
+    if (!has_flag(dstTexture->textureUsage, ResourceUsage::TRANSFER_DST))
+        FE_LOG(LogVulkanRHI, FATAL, "Vulkanblit_texture(): Destination buffer doesn't have TRANSFER_DST usage.");
 
     VkImageBlit2 imageBlit{};
     imageBlit.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
@@ -4789,7 +4768,7 @@ void bind_vertex_buffer(CommandBuffer* cmd, Buffer* buffer)
     FE_CHECK(cmd);
     FE_CHECK(buffer);
 
-    if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::VERTEX_BUFFER))
+    if (!has_flag(buffer->bufferUsage, ResourceUsage::VERTEX_BUFFER))
         FE_LOG(LogVulkanRHI, FATAL, "bind_vertex_buffer(): Buffer wasn't created with VERTEX_BUFFER usage.");
 
     VkDeviceSize offset = 0;
@@ -4801,7 +4780,7 @@ void bind_index_buffer(CommandBuffer* cmd, Buffer* buffer, uint64 offset)
     FE_CHECK(cmd);
     FE_CHECK(buffer);
 
-    if (!has_flag(buffer->bufferUsage, rhi::ResourceUsage::INDEX_BUFFER))
+    if (!has_flag(buffer->bufferUsage, ResourceUsage::INDEX_BUFFER))
         FE_LOG(LogVulkanRHI, FATAL, "bind_index_buffer(): Buffer wasn't created with INDEX_BUFFER usage.");
 
 	vkCmdBindIndexBuffer(cmd->vk().cmdBuffer, buffer->vk().buffer, offset, VK_INDEX_TYPE_UINT32);
@@ -4862,11 +4841,11 @@ void begin_rendering(CommandBuffer* cmd, RenderingBeginInfo* beginInfo)
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 
-    if (has_flag(beginInfo->flags, rhi::RenderingBeginInfoFlags::RESUMING))
+    if (has_flag(beginInfo->flags, RenderingBeginInfoFlags::RESUMING))
     {
         renderingInfo.flags |= VK_RENDERING_RESUMING_BIT;
     }
-    if (has_flag(beginInfo->flags, rhi::RenderingBeginInfoFlags::SUSPENDING))
+    if (has_flag(beginInfo->flags, RenderingBeginInfoFlags::SUSPENDING))
     {
         renderingInfo.flags |= VK_RENDERING_SUSPENDING_BIT;
     }
@@ -4906,7 +4885,7 @@ void begin_rendering(CommandBuffer* cmd, RenderingBeginInfo* beginInfo)
         {
             const Texture* texture = renderTarget.target->texture;
 
-            if (has_flag(texture->textureUsage, rhi::ResourceUsage::COLOR_ATTACHMENT))
+            if (has_flag(texture->textureUsage, ResourceUsage::COLOR_ATTACHMENT))
             {
                 VkRenderingAttachmentInfo& attachmentInfo = colorAttachments.emplace_back();
                 attachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -4922,9 +4901,9 @@ void begin_rendering(CommandBuffer* cmd, RenderingBeginInfo* beginInfo)
                     renderTarget.clearValue.color[3] 
                 } };
             }
-            else if (has_flag(texture->textureUsage, rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
+            else if (has_flag(texture->textureUsage, ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
             {
-                if (texture->format != rhi::Format::S8_UINT)
+                if (texture->format != Format::S8_UINT)
                 {
                     depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
                     depthAttachment.imageView = renderTarget.target->vk().imageView;
@@ -4932,7 +4911,7 @@ void begin_rendering(CommandBuffer* cmd, RenderingBeginInfo* beginInfo)
                     depthAttachment.storeOp = get_attach_store_op(renderTarget.storeOp);
                     depthAttachment.clearValue.depthStencil.depth = renderTarget.clearValue.depthStencil.depth;
 
-                    if (texture->format != rhi::Format::D16_UNORM && texture->format != rhi::Format::D32_SFLOAT)
+                    if (texture->format != Format::D16_UNORM && texture->format != Format::D32_SFLOAT)
                     {
                         depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                         depthAttachment.clearValue.depthStencil.stencil = renderTarget.clearValue.depthStencil.stencil;
@@ -5129,9 +5108,9 @@ void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, 
 
         switch (pipelineBarrier.type)
         {
-        case rhi::PipelineBarrier::MEMORY:
+        case PipelineBarrier::MEMORY:
         {
-            const rhi::PipelineBarrier::MemoryBarrier* rhiMemoryBarrier = pipelineBarrier.get_memory_barrier();
+            const PipelineBarrier::MemoryBarrier* rhiMemoryBarrier = pipelineBarrier.get_memory_barrier();
 
             VkMemoryBarrier2 memoryBarrier{};
             memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
@@ -5142,9 +5121,9 @@ void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, 
             memoryBarriers.push_back(memoryBarrier);
             break;
         }
-        case rhi::PipelineBarrier::BUFFER:
+        case PipelineBarrier::BUFFER:
         {
-            const rhi::PipelineBarrier::BufferBarrier* rhiBufferBarrier = pipelineBarrier.get_buffer_barrier();
+            const PipelineBarrier::BufferBarrier* rhiBufferBarrier = pipelineBarrier.get_buffer_barrier();
             const Buffer* buffer = rhiBufferBarrier->buffer;
 
             VkBufferMemoryBarrier2 bufferBarrier{};
@@ -5152,7 +5131,7 @@ void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, 
             bufferBarrier.buffer = buffer->vk().buffer;
             bufferBarrier.offset = 0;
             
-            if (has_flag(buffer->bufferUsage, rhi::ResourceUsage::STORAGE_BUFFER))
+            if (has_flag(buffer->bufferUsage, ResourceUsage::STORAGE_BUFFER))
             {
                 bufferBarrier.size = VK_WHOLE_SIZE;
             }
@@ -5170,9 +5149,9 @@ void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, 
             bufferBarriers.push_back(bufferBarrier);
             break;
         }
-        case rhi::PipelineBarrier::TEXTURE:
+        case PipelineBarrier::TEXTURE:
         {
-            const rhi::PipelineBarrier::TextureBarrier* rhiTextureBarrier = pipelineBarrier.get_texture_barrier();
+            const PipelineBarrier::TextureBarrier* rhiTextureBarrier = pipelineBarrier.get_texture_barrier();
             const Texture* texture = rhiTextureBarrier->texture;
 
             VkImageMemoryBarrier2 imageBarrier{};
@@ -5188,7 +5167,7 @@ void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, 
             imageBarrier.image = texture->vk().image;
 
             VkImageSubresourceRange range;
-            if (has_flag(texture->textureUsage, rhi::ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
+            if (has_flag(texture->textureUsage, ResourceUsage::DEPTH_STENCIL_ATTACHMENT))
             {
                 range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             }
@@ -5547,10 +5526,10 @@ uint64 get_min_offset_alignment(const BufferInfo* bufferInfo)
 {
     uint64 alignment = 0;
 
-    if (has_flag(bufferInfo->bufferUsage, rhi::ResourceUsage::STORAGE_BUFFER))
+    if (has_flag(bufferInfo->bufferUsage, ResourceUsage::STORAGE_BUFFER))
         alignment = std::max(alignment, g_device.properties2.properties.limits.minStorageBufferOffsetAlignment);
 
-    if (has_flag(bufferInfo->bufferUsage, rhi::ResourceUsage::STORAGE_TEXEL_BUFFER))
+    if (has_flag(bufferInfo->bufferUsage, ResourceUsage::STORAGE_TEXEL_BUFFER))
         alignment = std::max(alignment, g_device.properties2.properties.limits.minTexelBufferOffsetAlignment);
 
     return alignment;
