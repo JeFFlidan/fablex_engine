@@ -181,6 +181,8 @@ void GPUModel::build(SceneManager* sceneManager)
             shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
     }
 
+    FE_LOG(LogRenderer, INFO, "MESHLETS COUNT: {}", m_meshletCount);
+
     BufferCreateInfo bufferInfo;
     bufferInfo.bufferUsage = 
         ResourceUsage::STORAGE_BUFFER |

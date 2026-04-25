@@ -299,7 +299,7 @@ void Renderer::configure_submit_contexts()
             }
         }
 
-        if (node->useRayTracing && m_bvhBuildSemaphore && requiresWaitingBVH)
+        if (/*node->useRayTracing &&*/ m_bvhBuildSemaphore && requiresWaitingBVH)
         {
             lastSubmitContext->waitSemaphores.push_back(m_bvhBuildSemaphore);
             requiresWaitingBVH = false;

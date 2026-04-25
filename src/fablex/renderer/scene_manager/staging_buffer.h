@@ -27,7 +27,10 @@ public:
 
     void set_offset(uint64 offset)
     {
+        uint64 offsetDelta = offset - m_offset;
+
         m_offset = offset;
+        m_data += offsetDelta;
     }
 
     template<typename ValueType>

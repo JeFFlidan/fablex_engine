@@ -94,6 +94,8 @@ private:
     DeletionQueue* m_deletionQueue = nullptr;
     CommandRecorderManager m_commandRecorderManager;
 
+    bool m_useRayTracing = false;
+
     void subscribe_to_events();
     void load_resources();
     void create_samplers();
