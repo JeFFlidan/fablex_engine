@@ -11,7 +11,7 @@
 #include "core/primitives/aabb.h"
 #include "core/primitives/sphere.h"
 #include "engine/entity/entity.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_model.h"
 #include "meshoptimizer.h"
 
 namespace fe::renderer
@@ -101,87 +101,94 @@ void GPUModel::build(SceneManager* sceneManager)
 
     const float coneWeight = 0.5f;
 
-    const size_t maxMeshlets = meshopt_buildMeshletsBound(
+    const size_t maxModelMeshlets = meshopt_buildMeshletsBound(
         m_asset->index_count(), 
         MESHLET_VERTEX_COUNT, 
         MESHLET_TRIANGLE_COUNT
     );
 
-    std::vector<meshopt_Meshlet> meshoptMeshlets(maxMeshlets);
-    std::vector<unsigned int> meshletVertices(maxMeshlets * MESHLET_VERTEX_COUNT);
-    std::vector<unsigned char> meshletTriangles(maxMeshlets * MESHLET_TRIANGLE_COUNT * 3);
-
-    m_meshletCount = meshopt_buildMeshlets(
-        meshoptMeshlets.data(),
-        meshletVertices.data(),
-        meshletTriangles.data(),
-        m_asset->indices().data(),
-        m_asset->index_count(),
-        (float*)m_asset->vertex_positions().data(),
-        m_asset->vertex_count(),
-        sizeof(Float3),
-        MESHLET_VERTEX_COUNT,
-        MESHLET_TRIANGLE_COUNT,
-        coneWeight
-    );
+    std::vector<meshopt_Meshlet> meshoptMeshlets(maxModelMeshlets);
+    std::vector<unsigned int> meshletVertices(maxModelMeshlets * MESHLET_VERTEX_COUNT);
+    std::vector<unsigned char> meshletTriangles(maxModelMeshlets * MESHLET_TRIANGLE_COUNT * 3);
 
     std::vector<ShaderMeshlet> shaderMeshlets;
     std::vector<ShaderMeshletBounds> shaderMeshletBounds;
 
-    shaderMeshlets.reserve(m_meshletCount);
-    shaderMeshletBounds.reserve(m_meshletCount);
+    m_meshMeshletsInfos.reserve(maxModelMeshlets);
 
-    const meshopt_Meshlet& lastMeshlet = meshoptMeshlets[m_meshletCount - 1];
-    meshletVertices.resize(lastMeshlet.vertex_offset + lastMeshlet.vertex_count);
-    meshletTriangles.resize(lastMeshlet.triangle_offset + ((lastMeshlet.triangle_count * 3 + 3) & ~3));
-    meshoptMeshlets.resize(m_meshletCount);
+    for (const asset::Mesh& mesh : m_asset->meshes())
+    {        
+        MeshMeshletsInfo& meshMeshletsInfo = m_meshMeshletsInfos.emplace_back();
 
-    for (const meshopt_Meshlet& meshoptMeshlet : meshoptMeshlets)
-    {
-        meshopt_optimizeMeshlet(
-            &meshletVertices[meshoptMeshlet.vertex_offset], 
-            &meshletTriangles[meshoptMeshlet.triangle_offset], 
-            meshoptMeshlet.triangle_count,
-            meshoptMeshlet.vertex_count
+        meshMeshletsInfo.meshletCount = meshopt_buildMeshlets(
+            meshoptMeshlets.data(),
+            meshletVertices.data(),
+            meshletTriangles.data(),
+            &m_asset->indices()[mesh.indexOffset],
+            mesh.indexCount,
+            (float*)m_asset->vertex_positions().data(),
+            m_asset->vertex_count(),
+            sizeof(Float3),
+            MESHLET_VERTEX_COUNT,
+            MESHLET_TRIANGLE_COUNT,
+            coneWeight
         );
 
-        meshopt_Bounds bounds = meshopt_computeMeshletBounds(
-            &meshletVertices[meshoptMeshlet.vertex_offset], 
-            &meshletTriangles[meshoptMeshlet.triangle_offset], 
-            meshoptMeshlet.triangle_count, 
-            &m_asset->vertex_positions()[0].x, 
-            m_asset->vertex_count(), 
-            sizeof(Float3)
-        );
-
-        ShaderMeshletBounds& shaderMeshletBoundsEntry = shaderMeshletBounds.emplace_back();
-        shaderMeshletBoundsEntry.bounds.center.x = bounds.center[0];
-        shaderMeshletBoundsEntry.bounds.center.y = bounds.center[1];
-        shaderMeshletBoundsEntry.bounds.center.z = bounds.center[2];
-        shaderMeshletBoundsEntry.bounds.radius = bounds.radius;
-        shaderMeshletBoundsEntry.coneAxis.x = bounds.cone_axis[0];
-        shaderMeshletBoundsEntry.coneAxis.y = bounds.cone_axis[1];
-        shaderMeshletBoundsEntry.coneAxis.z = bounds.cone_axis[2];
-        shaderMeshletBoundsEntry.coneCutoff = bounds.cone_cutoff;
-
-        ShaderMeshlet& shaderMeshlet = shaderMeshlets.emplace_back();
-        shaderMeshlet.triangleCount = meshoptMeshlet.triangle_count;
-        shaderMeshlet.vertexCount = meshoptMeshlet.vertex_count;
-
-        for (size_t i = 0; i != meshoptMeshlet.triangle_count; ++i)
+        meshMeshletsInfo.meshletOffset += m_meshletCount;
+        m_meshletCount += meshMeshletsInfo.meshletCount;
+        
+        shaderMeshlets.reserve(m_meshletCount);
+        shaderMeshletBounds.reserve(m_meshletCount);
+    
+        for (size_t i = 0; i != meshMeshletsInfo.meshletCount; ++i)
         {
-            shaderMeshlet.triangles[i].init(
-                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 0),
-                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 1),
-                meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 2)
-            );
-        }
+            const meshopt_Meshlet& meshoptMeshlet = meshoptMeshlets[i];
 
-        for (size_t i = 0; i != meshoptMeshlet.vertex_count; ++i)
-            shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
+            meshopt_optimizeMeshlet(
+                &meshletVertices[meshoptMeshlet.vertex_offset], 
+                &meshletTriangles[meshoptMeshlet.triangle_offset], 
+                meshoptMeshlet.triangle_count,
+                meshoptMeshlet.vertex_count
+            );
+    
+            meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+                &meshletVertices[meshoptMeshlet.vertex_offset], 
+                &meshletTriangles[meshoptMeshlet.triangle_offset], 
+                meshoptMeshlet.triangle_count, 
+                &m_asset->vertex_positions()[0].x, 
+                m_asset->vertex_count(), 
+                sizeof(Float3)
+            );
+    
+            ShaderMeshletBounds& shaderMeshletBoundsEntry = shaderMeshletBounds.emplace_back();
+            shaderMeshletBoundsEntry.bounds.center.x = bounds.center[0];
+            shaderMeshletBoundsEntry.bounds.center.y = bounds.center[1];
+            shaderMeshletBoundsEntry.bounds.center.z = bounds.center[2];
+            shaderMeshletBoundsEntry.bounds.radius = bounds.radius;
+            shaderMeshletBoundsEntry.coneAxis.x = bounds.cone_axis[0];
+            shaderMeshletBoundsEntry.coneAxis.y = bounds.cone_axis[1];
+            shaderMeshletBoundsEntry.coneAxis.z = bounds.cone_axis[2];
+            shaderMeshletBoundsEntry.coneCutoff = bounds.cone_cutoff;
+    
+            ShaderMeshlet& shaderMeshlet = shaderMeshlets.emplace_back();
+            shaderMeshlet.triangleCount = meshoptMeshlet.triangle_count;
+            shaderMeshlet.vertexCount = meshoptMeshlet.vertex_count;
+    
+            for (size_t i = 0; i != meshoptMeshlet.triangle_count; ++i)
+            {
+                shaderMeshlet.triangles[i].init(
+                    meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 0),
+                    meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 1),
+                    meshletTriangles.at(meshoptMeshlet.triangle_offset + i * 3 + 2)
+                );
+            }
+    
+            for (size_t i = 0; i != meshoptMeshlet.vertex_count; ++i)
+                shaderMeshlet.vertices[i] = meshletVertices.at(meshoptMeshlet.vertex_offset + i);
+        }
     }
 
-    FE_LOG(LogRenderer, INFO, "MESHLETS COUNT: {}", m_meshletCount);
+    m_meshMeshletsInfos.resize(m_meshletCount);
 
     BufferCreateInfo bufferInfo;
     bufferInfo.bufferUsage = 
@@ -569,22 +576,29 @@ void GPUModel::upload_model_instance(const SceneManager* sceneManager, engine::E
     Matrix transformMat = instanceEntity->get_world_transform();
 
     modelInstance.scale = instanceEntity->get_scale();
+    modelInstance.meshCount = m_asset->meshes().size();
     modelInstance.transform.set_transfrom(remapMat * transformMat);
     modelInstance.rawTransform.set_transfrom(instanceEntity->get_world_transform());
     modelInstance.prevTransform.set_transfrom(remapMat * instanceEntity->get_prev_world_transform());
     modelInstance.transformInverseTranspose.set_transfrom(transformMat.transpose().inverse());
 
-    for (auto& mesh : m_asset->meshes())
+    for (size_t i = 0; i != m_asset->meshes().size(); ++i)
     {
+        const asset::Mesh& mesh = m_asset->meshes()[i];
+        const MeshMeshletsInfo& meshMeshletsInfo = m_meshMeshletsInfos[i];
+
         ShaderMeshInstance& shaderMeshInstance = meshInstanceBuffers[m_nextMeshInstanceIndex++];
         shaderMeshInstance.modelIndex = m_indexInBuffer;
 
         UUID materialUUID = materialComponent->material_uuids()[mesh.materialIndex];
         shaderMeshInstance.materialIndex = sceneManager->gpu_material(materialUUID)->index();
         shaderMeshInstance.indexOffset = mesh.indexOffset;
+        shaderMeshInstance.meshletCount = meshMeshletsInfo.meshletCount;
+        shaderMeshInstance.meshletOffset = meshMeshletsInfo.meshletOffset;
     }
 
     sceneManager->tlas().write(this, instanceEntity, m_nextModelInstanceIndex++);
+    sceneManager->increase_meshlet_count(m_meshletCount);
 }
 
 const AABB& GPUModel::aabb() const

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/components/fwd.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_camera.h"
 
 namespace fe::renderer
 {

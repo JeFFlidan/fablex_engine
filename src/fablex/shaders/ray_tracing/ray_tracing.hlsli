@@ -2,7 +2,6 @@
 #define RT
 
 #include "common.hlsli"
-#include "shader_interop_renderer.h"
 
 struct [raypayload] RayPayload
 {

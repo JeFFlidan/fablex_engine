@@ -1,7 +1,7 @@
 #ifndef COMMON_SHADER
 #define COMMON_SHADER
 
-#include "shader_interop_base.h"
+#include "interops/shader_interop_base.h"
 #include "utils/rng.hlsli"
 #include "utils/math.hlsli"
 
@@ -89,7 +89,16 @@ static const uint BINDLESS_DESCRIPTOR_SET_ACCELERATION_STRUCTURE = 7;
 
 #endif
 
-#include "shader_interop_renderer.h"
+#include "interops/shader_interop_camera.h"
+#include "interops/shader_interop_culling.h"
+#include "interops/shader_interop_depth_reduce.h"
+#include "interops/shader_interop_entity.h"
+#include "interops/shader_interop_frame.h"
+#include "interops/shader_interop_material.h"
+#include "interops/shader_interop_meshlet.h"
+#include "interops/shader_interop_model.h"
+#include "interops/shader_interop_push_constants.h"
+#include "interops/shader_interop_rt.h"
 
 #if defined(__spirv__)
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderModel> bindlessStructuredModels[];
@@ -100,6 +109,7 @@ static const uint BINDLESS_DESCRIPTOR_SET_ACCELERATION_STRUCTURE = 7;
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderEntity> bindlessStructuredEntities[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMeshlet> bindlesStructuredMeshlets[];
 [[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMeshletBounds> bindlesStructuredMeshletBounds[];
+[[vk::binding(0, BINDLESS_DESCRIPTOR_SET_STORAGE_BUFFER)]] RWStructuredBuffer<ShaderMeshletInfo> bindlesStructuredMeshletInfo[];
 #endif
 
 FrameUB get_frame()
@@ -143,6 +153,16 @@ inline ShaderModelInstance get_model_instance(uint hlslInstanceID)
 inline ShaderMeshInstance get_mesh_instance(uint meshID)
 {
     return bindlessStructuredMeshInstances[get_frame().meshInstanceBufferIndex][meshID];
+}
+
+inline void update_meshlet_info(ShaderMeshletInfo info, uint meshletID)
+{
+    bindlesStructuredMeshletInfo[get_frame().meshletInfoBufferIndex][meshletID] = info;
+}
+
+inline ShaderMeshletInfo get_meshlet_info(uint meshletID)
+{
+    return bindlesStructuredMeshletInfo[get_frame().meshletInfoBufferIndex][meshletID];
 }
 
 inline ShaderEntityIterator lights_iter()

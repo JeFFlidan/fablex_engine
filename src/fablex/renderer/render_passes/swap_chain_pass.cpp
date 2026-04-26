@@ -3,7 +3,7 @@
 #include "imgui_renderer.h"
 #include "rhi/rhi.h"
 #include "rhi/resources/graphics_pipeline_info.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_push_constants.h"
 
 namespace fe::renderer
 {

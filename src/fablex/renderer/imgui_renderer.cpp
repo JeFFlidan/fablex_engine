@@ -14,7 +14,7 @@
 #include "rhi/resources/texture_view.h"
 #include "rhi/resources/viewport.h"
 #include "rhi/resources/graphics_pipeline_info.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_push_constants.h"
 
 #include "imgui.h"
 

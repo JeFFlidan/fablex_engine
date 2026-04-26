@@ -2,7 +2,7 @@
 #include "globals.h"
 #include "render_context.h"
 #include "scene_manager/scene_manager.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_push_constants.h"
 
 namespace fe::renderer
 {

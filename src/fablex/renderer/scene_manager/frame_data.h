@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_frame.h"
 
 namespace fe::renderer
 {

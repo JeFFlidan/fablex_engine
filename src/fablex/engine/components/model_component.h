@@ -2,7 +2,7 @@
 
 #include "asset_manager/fwd.h"
 #include "engine/entity/component.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_model.h"
 
 namespace fe::engine
 {

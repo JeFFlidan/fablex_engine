@@ -8,6 +8,7 @@
 #include "rhi/rhi.h"
 #include "scene_manager/scene_manager.h"
 #include "engine/components/camera_component.h"
+#include "shaders/interops/shader_interop_push_constants.h"
 
 namespace fe::renderer
 {

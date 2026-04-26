@@ -87,6 +87,12 @@ private:
         std::string get_srv_name(const std::string& debugBaseName) const;
     };
 
+    struct MeshMeshletsInfo
+    {
+        uint32_t meshletCount = 0;
+        uint32_t meshletOffset = 0;
+    };
+
     static constexpr uint32 INVALID_INSTANCE_INDEX = ~0u;
 
     Format m_positionFormat = Format::UNDEFINED;
@@ -111,6 +117,8 @@ private:
 
     BLASState m_BLASState = BLASState::REQUIRES_REBUILD;
     HandleVector<BLASHandle> m_BLASes;
+
+    std::vector<MeshMeshletsInfo> m_meshMeshletsInfos;
 
     void configure_buffer_view(BufferView& bufferView, Format format, std::string debugName, bool requireUAV = false);
     Format get_blas_vertex_format() const;

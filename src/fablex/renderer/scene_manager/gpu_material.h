@@ -3,7 +3,7 @@
 #include "gpu_resource.h"
 #include "engine/components/material_component.h"
 #include "asset_manager/material/material.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_material.h"
 
 namespace fe::renderer
 {

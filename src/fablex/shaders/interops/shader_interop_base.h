@@ -37,4 +37,41 @@ using float4x4 = fe::Float4x4;
 #define UB_FRAME_SLOT		0
 #define UB_CAMERA_SLOT		1
 
+struct ShaderSphereBounds
+{
+	float3 center;
+	float radius;
+
+	void init()
+	{
+		center = float3(0.0f, 0.0f, 0.0f);
+		radius = 0.0f;
+	}
+};
+
+struct ShaderFrustum
+{
+	float4 planes[6];
+#ifndef __cplusplus
+	bool check(ShaderSphereBounds sphereBounds)
+	{
+		bool visible = true;
+		[unroll]
+		for (int i = 0; i != 6; ++i)
+		{
+			visible = visible && dot(planes[i], float4(sphereBounds.center, 1.0f)) > -sphereBounds.radius;
+		}
+		return visible;
+	}
+#endif
+};
+
+struct Viewport
+{
+	float left;
+	float top;
+	float right;
+	float bottom;
+};
+
 #endif // SHADER_INTEROP

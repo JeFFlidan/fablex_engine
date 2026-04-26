@@ -12,6 +12,7 @@ void FrameData::fill(const SceneManager* sceneManager)
     meshInstanceBufferIndex = sceneManager->mesh_instance_buffers().descriptor();
     entityBufferIndex = sceneManager->shader_entity_buffers().descriptor();
     materialBufferIndex = sceneManager->material_buffers().descriptor();
+    meshletInfoBufferIndex = sceneManager->meshlet_info_buffers().descriptor();
     lightArrayCount = GPUResourceCounters::light_count();
     lightArrayOffset = GPUResourceCounters::light_offset();
 }

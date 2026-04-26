@@ -10,18 +10,24 @@
 #include "deletion_queue.h"
 #include "handles/sampler.h"
 
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_material.h"
+#include "shaders/interops/shader_interop_meshlet.h"
+#include "shaders/interops/shader_interop_model.h"
+
+#include <atomic>
 
 namespace fe::renderer
 {
 
 class CommandRecorder;
+class ShaderManager;
 
 using ModelBuffers = GPUDataStorageBuffers<ShaderModel>;
 using ModelInstanceBuffers = GPUDataStorageBuffers<ShaderModelInstance>;
 using MeshInstanceBuffers = GPUDataStorageBuffers<ShaderMeshInstance>;
 using MaterialBuffers = GPUDataStorageBuffers<ShaderMaterial>;
 using ShaderEntityBuffers = GPUDataStorageBuffers<ShaderEntity>;
+using MeshletInfoBuffers = GPUDataStorageBuffers<ShaderMeshletInfo>;
 using FrameDataBuffers = GPUDataUniformBuffers<FrameData>;
 using CameraBuffers = GPUDataUniformBuffers<CameraData>;
 
@@ -34,12 +40,18 @@ struct SceneManagerCmds
     CommandBufferRef computeCmd = nullptr;
 };
 
+struct SceneManagerInitInfo
+{
+    DeletionQueue* deletionQueue = nullptr;
+    ShaderManager* shaderManager = nullptr;
+};
+
 class SceneManager
 {
 public:
     using ForEachModelHandler = std::function<void(const GPUModel& gpuModel, uint32 modelIndex)>;
 
-    SceneManager(DeletionQueue* deletionQueue);
+    SceneManager(DeletionQueue* deletionQueue, ShaderManager* shaderManager);
     ~SceneManager();
 
     void upload(const SceneManagerCmds& cmds);
@@ -70,10 +82,13 @@ public:
     const MeshInstanceBuffers& mesh_instance_buffers() const { return m_meshInstanceBuffers; }
     const MaterialBuffers& material_buffers() const { return m_materialBuffers; }
     const ShaderEntityBuffers& shader_entity_buffers() const { return m_shaderEntityBuffers; }
+    const MeshletInfoBuffers& meshlet_info_buffers() const { return m_meshletInfoBuffers; }
 
     GPUModel* gpu_model(UUID modelUUID) const;
     GPUTexture* gpu_texture(UUID textureUUID) const;
     GPUMaterial* gpu_material(UUID materialUUID) const;
+
+    void increase_meshlet_count(uint32_t modelInstanceMeshletCount) const;
 
 private:
     ModelBuffers m_modelBuffers;
@@ -81,6 +96,7 @@ private:
     MeshInstanceBuffers m_meshInstanceBuffers;
     MaterialBuffers m_materialBuffers;
     ShaderEntityBuffers m_shaderEntityBuffers;
+    MeshletInfoBuffers m_meshletInfoBuffers;
     FrameDataBuffers m_frameDataBuffers;
     CameraBuffers m_cameraBuffers;
 
@@ -92,9 +108,14 @@ private:
     UUID m_blueNoiseTextureUUID = UUID::INVALID;
 
     DeletionQueue* m_deletionQueue = nullptr;
+    ShaderManager* m_shaderManager = nullptr;
     CommandRecorderManager m_commandRecorderManager;
 
+    PipelineHandle m_updateMeshletInfoBufferPipeline;
+
     bool m_useRayTracing = false;
+
+    mutable std::atomic<uint32_t> m_sceneMeshletCount = 0;
 
     void subscribe_to_events();
     void load_resources();
@@ -104,6 +125,7 @@ private:
 
     void upload_frame_data_to_gpu();
     void upload_cameras_to_gpu();
+    void update_meshlet_info_buffer();
 };
 
 }

@@ -3,6 +3,7 @@
 #include "rhi/rhi.h"
 #include "rhi/resources/graphics_pipeline_info.h"
 #include "scene_manager/scene_manager.h"
+#include "shaders/interops/shader_interop_push_constants.h"
 
 namespace fe::renderer
 {

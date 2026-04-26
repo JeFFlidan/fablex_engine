@@ -15,7 +15,10 @@
 #include "core/task_composer.h"
 #include "asset_manager/asset_manager.h"
 #include "asset_manager/events.h"
-#include "shaders/shader_interop_renderer.h"
+
+#include "renderer/shader_manager.h"
+#include "renderer/render_graph/render_graph_metadata.h"
+#include "rhi/resources/compute_pipeline_info.h"
 
 namespace fe::renderer
 {
@@ -28,8 +31,11 @@ constexpr const char* MATERIAL_BUFFER_NAME = "MaterialBuffer";
 constexpr const char* FRAME_DATA_BUFFER_NAME = "FrameDataBuffer";
 constexpr const char* CAMERA_BUFFER_NAME = "CameraBuffer";
 
-SceneManager::SceneManager(DeletionQueue* deletionQueue) 
-    : m_gpuResources(this), m_tlas(this), m_deletionQueue(deletionQueue)
+SceneManager::SceneManager(DeletionQueue* deletionQueue, ShaderManager* shaderManager) 
+    : m_gpuResources(this), 
+    m_tlas(this), 
+    m_deletionQueue(deletionQueue),
+    m_shaderManager(shaderManager)
 {
     // For now some buffers support only CPU_TO_GPU memory usage
     FE_CHECK(Device::has_capability(GPUCapability::CACHE_COHERENT_UMA));
@@ -46,6 +52,14 @@ SceneManager::SceneManager(DeletionQueue* deletionQueue)
     m_materialBuffers.set_debug_name(MATERIAL_BUFFER_NAME);
     m_cameraBuffers.set_debug_name(CAMERA_BUFFER_NAME);
     m_frameDataBuffers.set_debug_name(FRAME_DATA_BUFFER_NAME);
+
+    rg::ShaderMetadata shaderMetadata = {
+        .filePath = "update_meshlet_infos_cs.hlsl",
+        .type = ShaderType::COMPUTE,
+    };
+
+    ComputePipelineCreateInfo pipelineInfo{ m_shaderManager->get_shader(shaderMetadata) };
+    m_updateMeshletInfoBufferPipeline.init(pipelineInfo);
 }
 
 SceneManager::~SceneManager()
@@ -57,6 +71,8 @@ void SceneManager::upload(const SceneManagerCmds& cmds)
 {
     m_commandRecorderManager.set_cmd(cmds.graphicsCmd);
     m_commandRecorderManager.set_cmd(cmds.computeCmd);
+
+    m_sceneMeshletCount = 0;
 
     TaskGroup taskGroup;
     
@@ -132,13 +148,14 @@ void SceneManager::upload(const SceneManagerCmds& cmds)
         });
     });
 
-    TaskComposer::execute(taskGroup, [this](TaskExecutionInfo execInfo)
-    {
-        upload_frame_data_to_gpu();
-        upload_cameras_to_gpu();
-    });
-
     TaskComposer::wait(taskGroup);
+
+    m_meshletInfoBuffers.allocate(m_sceneMeshletCount);
+
+    upload_frame_data_to_gpu();
+    upload_cameras_to_gpu();
+
+    update_meshlet_info_buffer();
 }
 
 void SceneManager::for_each_model(const ForEachModelHandler& handler)
@@ -273,6 +290,11 @@ GPUMaterial* SceneManager::gpu_material(UUID materialUUID) const
     return m_gpuResources.material(materialUUID);
 }
 
+void SceneManager::increase_meshlet_count(uint32_t modelInstanceMeshletCount) const
+{
+    m_sceneMeshletCount.fetch_add(modelInstanceMeshletCount);
+}
+
 void SceneManager::allocate_buffers()
 {
     m_modelBuffers.allocate(GPUResourceCounters::model_count());
@@ -303,6 +325,21 @@ void SceneManager::upload_cameras_to_gpu()
     });
 
     m_cameraBuffers.bind_uniform_buffer(UB_CAMERA_SLOT);
+}
+
+void SceneManager::update_meshlet_info_buffer()
+{
+    record_graphics_cmd([this](CommandBufferRef cmd)
+    {
+        std::vector<PipelineBarrier> barrier(1);
+        barrier[0].set_buffer_barrier(m_meshletInfoBuffers.active_buffer(), ResourceLayout::SHADER_READ, ResourceLayout::SHADER_WRITE);
+
+        cmd.bind_pipeline(m_updateMeshletInfoBufferPipeline);
+        cmd.add_pipeline_barriers(barrier);
+        cmd.dispatch({ engine::ModelComponent::count(), 1, 1 });
+        barrier[0].set_buffer_barrier(m_meshletInfoBuffers.active_buffer(), ResourceLayout::SHADER_WRITE, ResourceLayout::SHADER_READ);
+        cmd.add_pipeline_barriers(barrier);
+    });
 }
 
 }

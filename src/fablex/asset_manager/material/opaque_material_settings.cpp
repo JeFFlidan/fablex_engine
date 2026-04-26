@@ -1,7 +1,7 @@
 #include "opaque_material_settings.h"
 #include "asset_manager.h"
 #include "renderer/accessor.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_material.h"
 
 namespace fe::asset
 {

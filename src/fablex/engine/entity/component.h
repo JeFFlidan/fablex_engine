@@ -2,7 +2,7 @@
 
 #include "core/object.h"
 #include "component_macro.h"
-#include "shaders/shader_interop_renderer.h"
+#include "shaders/interops/shader_interop_entity.h"
 
 namespace fe::engine
 {

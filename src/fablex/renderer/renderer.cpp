@@ -125,7 +125,7 @@ void Renderer::init_managers()
     m_shaderManager = std::make_unique<ShaderManager>();
     m_pipelineManager = std::make_unique<PipelineManager>(m_shaderManager.get());
     m_deletionQueue = std::make_unique<DeletionQueue>();
-    m_sceneManager = std::make_unique<SceneManager>(m_deletionQueue.get());
+    m_sceneManager = std::make_unique<SceneManager>(m_deletionQueue.get(), m_shaderManager.get());
     m_imGuiRenderer = std::make_unique<ImGuiRenderer>(m_deletionQueue.get(), m_shaderManager.get());
 
     FE_LOG(LogRenderer, INFO, "Renderer systems initialization completed.");
