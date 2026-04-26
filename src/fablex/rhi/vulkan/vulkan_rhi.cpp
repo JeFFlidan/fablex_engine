@@ -5104,7 +5104,7 @@ void add_pipeline_barriers(CommandBuffer* cmd, const PipelineBarrier* barriers, 
 
     for (uint32 i = 0; i != barrierCount; ++i)
     {
-        const PipelineBarrier& pipelineBarrier = barriers[barrierCount];
+        const PipelineBarrier& pipelineBarrier = barriers[i];
 
         switch (pipelineBarrier.type)
         {
