@@ -159,4 +159,17 @@ float3 oct_to_ndir_unorm(float2 e)
     return oct_to_ndir_snorm(e * 2.0 - 1.0);
 }
 
+/*
+ * Depth
+ */
+
+float3 reconstruct_position(float2 uv, float depth, float4x4 invViewProj)
+{
+    float x = uv.x * 2.0 - 1.0;
+    float y = (1.0 - uv.y) * 2.0 - 1.0;
+    float4 clipPos = float4(x, y, depth, 1.0);
+    float4 worldPos = mul(invViewProj, clipPos);
+    return worldPos.xyz / worldPos.w;
+}
+
 #endif // MATH

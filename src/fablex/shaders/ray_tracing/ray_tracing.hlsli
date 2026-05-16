@@ -29,7 +29,7 @@ struct [raypayload] SecondaryRayPayload
 
 struct [raypayload] ShadowRayPayload
 {
-    float rayHitT : read(caller) : write(miss, closesthit);
+    float rayHitT : read(caller) : write(caller, miss, closesthit);
 };
 
 typedef BuiltInTriangleIntersectionAttributes RayAttributes;

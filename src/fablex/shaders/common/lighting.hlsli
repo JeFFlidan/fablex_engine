@@ -32,7 +32,7 @@ struct LightingResult
     void apply(inout float4 color)
     {
         // TODO: Add indirect lighting
-        float3 diffuse = direct.diffuse / PI;
+        float3 diffuse = direct.diffuse / PI + indirect.diffuse;
         float3 specular = direct.specular;
         color.rgb = diffuse;
         color.rgb += specular;
@@ -41,7 +41,7 @@ struct LightingResult
     float4 apply()
     {
         float4 color = float4(0, 0, 0, 1);
-        float3 diffuse = direct.diffuse / PI;
+        float3 diffuse = direct.diffuse / PI + indirect.diffuse;
         float3 specular = direct.specular;
         color.rgb = diffuse;
         color.rgb += specular;
@@ -66,8 +66,13 @@ inline void light_directional(in ShaderEntity light, inout Surface surface, inou
     brdf.init(surface, L);
 
     surface.F = brdf.F;
-    result.direct.diffuse = mad(lightColor, brdf.diffuse(surface), result.direct.diffuse);
-    result.direct.specular = mad(lightColor, brdf.specular(surface), result.direct.specular);
+
+    float3 diffuse = lightColor * brdf.diffuse(surface);
+    float3 specular = lightColor * brdf.specular(surface);
+
+    result.direct.diffuse += surface.shadow * diffuse;
+    result.direct.specular += surface.shadow * specular;
+    result.indirect.diffuse += surface.baseColor.xyz * float3(0.15, 0.15, 0.15);
 }
 
 inline float calculate_point_light_attenuation(in float3 unnormalizedL, in float attenuationRadius)

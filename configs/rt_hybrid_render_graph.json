@@ -9,7 +9,7 @@
                 }
             ],
             "InputTextures": [
-                "_rt_SceneAlbedo"
+                "_rt_RTLighting"
             ],
             "Pipeline": {
                 "Name": "SwapChainPipeline",
@@ -71,6 +71,28 @@
                 "Name": "GBufferPassPipeline",
                 "Compute": "gbuffer/gbuffer_cs.hlsl"
             }
+        },
+        {
+            "Name": "RTHybridLightingPass",
+            "Type": "GRAPHICS",
+            "OutputStorageTextures": [
+                "_rt_RTLighting"
+            ],
+            "InputTextures": [
+                "_rt_SceneDepth",
+                "_rt_SceneAlbedo",
+                "_rt_SceneNormals",
+                "_rt_SceneSurface"
+            ],
+            "Pipeline": {
+                "Name": "RTHybridLightingPipeline",
+                "ShaderLib": {
+                    "Path": "ray_tracing/ray_tracing_hybrid.hlsl",
+                    "Raygen": ["raygen"],
+                    "Miss": ["miss_shadow"],
+                    "ClosestHit": ["closest_hit_shadow"]
+                }
+            }
         }
     ],
     "RenderTextures": [
@@ -93,6 +115,10 @@
         {
             "Name": "_rt_SceneSurface",
             "Format": "R8G8B8A8_UNORM"
+        },
+        {
+            "Name": "_rt_RTLighting",
+            "Format": "R8G8B8A8_UNORM"
         }
     ],
     "PushConstants": [
@@ -100,7 +126,7 @@
             "Name": "SwapChainPushConstants",
             "Resources": [
                 {
-                    "Name": "_rt_SceneAlbedo"
+                    "Name": "_rt_RTLighting"
                 }
             ]
         },
@@ -120,6 +146,27 @@
                 },
                 {
                     "Name": "_rt_SceneSurface",
+                    "Flags": ["Writable"]
+                }
+            ]
+        },
+        {
+            "Name": "RTHybridLightingPushConstants",
+            "Resources": [
+                {
+                    "Name": "_rt_SceneDepth"
+                },
+                {
+                    "Name": "_rt_SceneAlbedo"
+                },
+                {
+                    "Name": "_rt_SceneNormals"
+                },
+                {
+                    "Name": "_rt_SceneSurface"
+                },
+                {
+                    "Name": "_rt_RTLighting",
                     "Flags": ["Writable"]
                 }
             ]

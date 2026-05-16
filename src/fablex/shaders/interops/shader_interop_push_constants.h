@@ -118,7 +118,21 @@ struct GBufferPushConstants
 	RWTexture2D_Descriptor<float4> outColor;
 	RWTexture2D_Descriptor<float4> outNormal;
 	RWTexture2D_Descriptor<float4> outSurface;
-	uint padding;
+};
+
+struct RTHybridLightingPushConstants
+{
+	DEFINE_PUSH_CONSTANTS(RTHybridLightingPushConstants);
+
+	Texture2D_Descriptor<float> gBufferDepth;
+	Texture2D_Descriptor<float4> gBufferAlbedo;
+	Texture2D_Descriptor<float4> gBufferNormal;
+	Texture2D_Descriptor<float4> gBufferSurface;
+	RWTexture2D_Descriptor<float4> outColor;
+
+	AccelerationStructure_Descriptor tlas;
+
+	uint2 offset;
 };
 
 struct ImGuiPushConstants

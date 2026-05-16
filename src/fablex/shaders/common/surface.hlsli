@@ -52,6 +52,8 @@ struct Surface
     float3 P_dy;
 #endif // SURFACE_POSITION_DERIVATIVES
 
+    float shadow;
+
     ShaderModelInstance modelInstance;
     ShaderMeshInstance meshInstance;
     ShaderModel model;

@@ -65,8 +65,6 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
             break;
         case SHADER_ENTITY_TYPE_DIRECTIONAL_LIGHT:
         {
-            light_directional(entity, surface, lightingResult);
-
             RayDesc ray = {
                 surface.P + 0.01f * surface.N,
                 0.001f,
@@ -87,6 +85,12 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
             );
 
             shadow = shadowPayload.rayHitT < FLOAT_MAX ? 0 : 1;
+
+            if (shadow > 0)
+            {
+                light_directional(entity, surface, lightingResult);
+            }
+
             break;
         }
         }
@@ -94,7 +98,7 @@ void closest_hit_light(inout RayPayload payload, in RayAttributes attr)
 
     payload.color = 1;
     lightingResult.apply(payload.color);
-    // payload.color *= shadow;
+    //payload.color *= shadow;
 }
 
 [shader("closesthit")]
