@@ -21,6 +21,11 @@ struct Payload
     uint meshletIndices[TS_GROUP_SIZE];
 };
 
+struct MeshletPrimitiveAttributes
+{
+    uint triangleIndex : SV_PrimitiveID;
+};
+
 #ifdef OBJECT_MESH_SHADER_COMPILE_TS
 
 groupshared Payload payload;
@@ -65,7 +70,8 @@ void main(
     uint gtid : SV_GroupThreadID,
     in payload Payload payload,
     out indices uint3 triangles[MESHLET_TRIANGLE_COUNT],
-    out vertices PixelInput vertices[MESHLET_VERTEX_COUNT]
+    out vertices PixelInput vertices[MESHLET_VERTEX_COUNT],
+    out primitives MeshletPrimitiveAttributes primitives[MESHLET_TRIANGLE_COUNT]
 )
 {
     ShaderModelInstance modelInstance = get_model_instance(payload.instanceID);
@@ -79,6 +85,7 @@ void main(
     if (gtid < meshlet.triangleCount)
     {
         triangles[gtid] = meshlet.triangles[gtid].tri();
+        primitives[gtid].triangleIndex = gtid;
     }
 
     [branch]
@@ -96,6 +103,9 @@ void main(
             float(gid & 3) / 4,
             float(gid & 7) / 8
         );
+
+        vertices[gtid].instanceID = payload.instanceID;
+        vertices[gtid].meshletID = meshletIndex;
     }
 }
 

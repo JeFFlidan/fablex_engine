@@ -89,6 +89,7 @@ public:
     GPUMaterial* gpu_material(UUID materialUUID) const;
 
     void increase_meshlet_count(uint32_t modelInstanceMeshletCount) const;
+    uint32 get_scene_meshlet_count() const { return m_sceneMeshletCount; }
 
 private:
     ModelBuffers m_modelBuffers;

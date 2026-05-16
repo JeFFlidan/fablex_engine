@@ -1,0 +1,128 @@
+{
+    "RenderPasses": [
+        {
+            "Name": "SwapChainPass",
+            "Type": "GRAPHICS",
+            "RenderTargets": [
+                {
+                    "ColorClearValue": [0.1, 0.1, 0.1, 1.0]
+                }
+            ],
+            "InputTextures": [
+                "_rt_SceneAlbedo"
+            ],
+            "Pipeline": {
+                "Name": "SwapChainPipeline",
+                "Shaders": [
+                    {
+                        "Type": "VERTEX",
+                        "Path": "output_plane_vs.hlsl"
+                    },
+                    {
+                        "Type": "FRAGMENT",
+                        "Path": "output_plane_fs.hlsl"
+                    }
+                ]
+            }
+        },
+        {
+            "Name": "VBufferPass",
+            "Type": "GRAPHICS",
+            "RenderTargets": [
+                {
+                    "Name": "_rt_SceneDepth",
+                    "DepthStencilClearValue": [0.0, 0.1]
+                },
+                {
+                    "Name": "_rt_VisibilityBuffer",
+                    "ColorClearValue": [100000, 100000, 100000, 1]
+                }
+            ],
+            "Pipeline": {
+                "Name": "VBufferPipeline",
+                "Shaders": [
+                    {
+                        "Type": "TASK",
+                        "Path": "gbuffer/vbuffer_ts.hlsl"
+                    },
+                    {
+                        "Type": "MESH",
+                        "Path": "gbuffer/vbuffer_ms.hlsl"
+                    },
+                    {
+                        "Type": "FRAGMENT",
+                        "Path": "gbuffer/vbuffer_fs.hlsl"
+                    }
+                ]
+            }
+        },
+        {
+            "Name": "GBufferPass",
+            "Type": "COMPUTE",
+            "OutputStorageTextures": [
+                "_rt_SceneAlbedo",
+                "_rt_SceneNormals",
+                "_rt_SceneSurface"
+            ],
+            "InputTextures": [
+                "_rt_VisibilityBuffer"
+            ],
+            "Pipeline": {
+                "Name": "GBufferPassPipeline",
+                "Compute": "gbuffer/gbuffer_cs.hlsl"
+            }
+        }
+    ],
+    "RenderTextures": [
+        {
+            "Name": "_rt_SceneDepth",
+            "Format": "D32_SFLOAT"
+        },
+        {
+            "Name": "_rt_VisibilityBuffer",
+            "Format": "R32G32_UINT"
+        },
+        {
+            "Name": "_rt_SceneAlbedo",
+            "Format": "R8G8B8A8_UNORM"
+        },
+        {
+            "Name": "_rt_SceneNormals",
+            "Format": "R16G16B16A16_SFLOAT"
+        },
+        {
+            "Name": "_rt_SceneSurface",
+            "Format": "R8G8B8A8_UNORM"
+        }
+    ],
+    "PushConstants": [
+        {
+            "Name": "SwapChainPushConstants",
+            "Resources": [
+                {
+                    "Name": "_rt_SceneAlbedo"
+                }
+            ]
+        },
+        {
+            "Name": "GBufferPushConstants",
+            "Resources": [
+                {
+                    "Name": "_rt_VisibilityBuffer"
+                },
+                {
+                    "Name": "_rt_SceneAlbedo",
+                    "Flags": ["Writable"]
+                },
+                {
+                    "Name": "_rt_SceneNormals",
+                    "Flags": ["Writable"]
+                },
+                {
+                    "Name": "_rt_SceneSurface",
+                    "Flags": ["Writable"]
+                }
+            ]
+        }
+    ]
+}

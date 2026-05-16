@@ -63,6 +63,13 @@ inline T barycentric_interpolation(in T v0, in T v1, in T v2, in half2 barycentr
     return mad(v0, 1 - barycentric.x - barycentric.y, mad(v1, barycentric.x, v2 * barycentric.y));
 }
 
+template<typename T>
+inline T perspective_barycentric_interpolation(in T v0, in T v1, in T v2, in float4 barycentricsAndInvW)
+{
+    T result = mad(v0, barycentricsAndInvW.x, mad(v1, barycentricsAndInvW.y, v2 * barycentricsAndInvW.z));
+    return result / barycentricsAndInvW.w;
+}
+
 float2 compute_barycentrics(float3 rayOrigin, float3 rayDirection, float3 a, float3 b, float3 c)
 {
     float3 v0v1 = b - a;
@@ -89,6 +96,34 @@ float2 compute_barycentrics(float3 p, float3 a, float3 b, float3 c)
 	float u = (d11 * d20 - d01 * d21) * denom_rcp;
 	float v = (d00 * d21 - d01 * d20) * denom_rcp;
 	return float2(u, v);
+}
+
+// Return value: x, y, z - barycentrics, w - interpolated inv w
+float4 compute_perspective_correct_barycentrics(float2 p, float2 a, float2 b, float2 c, float3 invW)
+{
+    float2 v0 = b - a, v1 = c - a, v2 = p - a;
+    float den = v0.x * v1.y - v1.x * v0.y;
+
+    float3 barycentrics = float3(0, 0, 0);
+
+    barycentrics.y = (v2.x * v1.y - v1.x * v2.y) / den;
+    barycentrics.z = (v0.x * v2.y - v2.x * v0.y) / den;
+    barycentrics.x = 1.0f - barycentrics.y - barycentrics.z;
+
+    float interpInvW = dot(barycentrics, invW);
+
+    return float4(
+        barycentrics.x * invW.x,
+        barycentrics.y * invW.y,
+        barycentrics.z * invW.z,
+        interpInvW
+    );
+}
+
+// Input are clip positions
+float3 inverse_perspective(float w0, float w1, float w2)
+{
+    return float3(1.0 / w0, 1.0 / w1, 1.0 / w2);
 }
 
 /* 

@@ -3,7 +3,7 @@
 #include "common/surface.hlsli"
 #include "common/lighting.hlsli"
 
-float4 main(PixelInput input) : SV_TARGET
+float4 main(PixelInput input, float3 bary : SV_Barycentrics) : SV_TARGET
 {
 	Surface surface;
 	surface.P = input.position.xyz;
@@ -30,5 +30,5 @@ float4 main(PixelInput input) : SV_TARGET
         }
     }
 
-	return float4(lightingResult.direct.diffuse, 1.0);
+	return float4(bary, 1.0);
 }

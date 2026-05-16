@@ -19,7 +19,7 @@ void main(uint3 Gid : SV_GroupID, uint groupIndex : SV_GroupIndex)
 			meshletInfo.modelInstanceID = instanceIndex;
 			meshletInfo.modelMeshID = meshIndex;
 
-			uint meshletIndex = mesh.meshletOffset + j;
+			uint meshletIndex = model.meshletOffset + mesh.meshletOffset + j;
 			update_meshlet_info(meshletInfo, meshletIndex);
 		}
 	}

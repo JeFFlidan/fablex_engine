@@ -571,6 +571,7 @@ void GPUModel::upload_model_instance(const SceneManager* sceneManager, engine::E
     modelInstance.sphereBounds.center = sphereBounds.center;
     modelInstance.sphereBounds.radius = sphereBounds.radius;
     modelInstance.meshOffset = m_nextMeshInstanceIndex;
+    modelInstance.meshletOffset = sceneManager->get_scene_meshlet_count();
 
     Matrix remapMat = aabb().get_unorm_remap_matrix();
     Matrix transformMat = instanceEntity->get_world_transform();

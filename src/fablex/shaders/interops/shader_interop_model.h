@@ -89,7 +89,7 @@ struct ShaderModelInstance
 	uint materialIndex;
 	uint meshOffset;
     uint meshCount;
-    uint padding0;
+    uint meshletOffset;
 
 	float3 scale;
     uint padding1;

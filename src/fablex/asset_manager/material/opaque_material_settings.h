@@ -103,7 +103,7 @@ struct OpaqueMaterialCreateInfo : MaterialCreateInfo
     Texture* ambientOcclusionTexture = nullptr;
     Texture* armTexture = nullptr;
 
-    Float4 baseColor = Float4(0.8f, 0.8f, 0.8f, 1.0f);
+    Float4 baseColor = Float4(1.0f, 1.0f, 1.0f, 1.0f);
     float roughness = 0.3f;
     float metallic = 0.0f;
 };

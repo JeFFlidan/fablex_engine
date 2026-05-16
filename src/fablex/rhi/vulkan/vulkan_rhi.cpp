@@ -1283,7 +1283,8 @@ public:
             if (priority || physicalDevice == VK_NULL_HANDLE)
             {
                 physicalDevice = device;
-                break;
+
+                FE_LOG(LogVulkanRHI, INFO, "Physical device name: {} {}", properties2.properties.deviceName, devices.size());
             }
         }
 

@@ -6,7 +6,7 @@
 #ifdef OBJECT_SHADER_BASE_MODEL_LAYOUT
 #define OBJECT_SHADER_USE_NORMAL
 #define OBJECT_SHADER_USE_TANGENT
-#define OBJECT_SHADER_USE_TEXCOORD
+#define OBJECT_SHADER_USE_UV_SETS
 #endif
 
 #ifdef OBJECT_SHADER_OUTPUT_PLANE
@@ -14,6 +14,7 @@
 #define OBJECT_SHADER_USE_VERTEX_ID
 #endif
 
+#ifndef OBJECT_GBUFFER
 PUSH_CONSTANTS(pushConstants, ObjectPushConstants)
 
 struct VertexInput
@@ -93,9 +94,16 @@ struct VertexDesc
     }
 };
 
+#endif // OBJECT_GBUFFER
+
 struct PixelInput
 {
     precise float4 position : SV_POSITION;
+
+#ifdef OBJECT_VBUFFER
+    nointerpolation uint instanceID : TEXCOORD9;
+    nointerpolation uint meshletID : TEXCOORD10;
+#endif // OBJECT_VBUFFER
 
 #ifdef OBJECT_SHADER_USE_INSTANCE_ID
     uint instanceID : SV_InstanceID;
@@ -117,6 +125,7 @@ struct PixelInput
     float3 color : COLOR;
 #endif // OBJECT_SHADER_USE_COLOR
 
+#ifndef OBJECT_GBUFFER
     void init(VertexDesc vertDesc)
     {
         ShaderCamera camera = get_camera();
@@ -135,7 +144,11 @@ struct PixelInput
         uvSets = vertDesc.uvSets;
 #endif // OBJECT_SHADER_USE_UV_SETS
     }
+
+#endif // OBJECT_GBUFFER
 };
+
+#ifndef OBJECT_GBUFFER
 
 PixelInput create_pixel_input(in VertexInput vertInput)
 {
@@ -146,6 +159,8 @@ PixelInput create_pixel_input(in VertexInput vertInput)
     output.init(vertDesc);
     return output;
 }
+
+#endif // OBJECT_GBUFFER
 
 #ifdef OBJECT_SHADER_COMPILE_VS
 PixelInput main(VertexInput vertInput)

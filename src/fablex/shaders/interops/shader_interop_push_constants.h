@@ -110,6 +110,17 @@ struct RNGSeedGenerationPushConstants
 	uint blueNoiseTextureDepth;
 };
 
+struct GBufferPushConstants
+{
+	DEFINE_PUSH_CONSTANTS(GBufferPushConstants);
+
+	Texture2D_Descriptor<uint2> inVBuffer;
+	RWTexture2D_Descriptor<float4> outColor;
+	RWTexture2D_Descriptor<float4> outNormal;
+	RWTexture2D_Descriptor<float4> outSurface;
+	uint padding;
+};
+
 struct ImGuiPushConstants
 {
 	float2 scale;
